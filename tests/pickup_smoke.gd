@@ -155,7 +155,9 @@ func _run() -> void:
 		await _wait_settled(first)
 		_check(room_bounds.has_point(Vector2(first.global_position.x, first.global_position.z)), "Walls keep thrown spheres inside the apartment")
 		_check(first.global_position.y >= ground_y and first.global_position.y < 2.0, "Sphere thrown at %s lands on the floor or furniture" % throw_case.position)
-		player.global_position = Vector3(first.global_position.x, ground_y, first.global_position.z) + throw_case.recover * 0.6
+		player.global_position = _free_spot_near(player, first.global_position, ground_y, throw_case.recover, room_bounds)
+		# Let the teleport settle on the floor before pressing, as a walking player would be.
+		await _wait_for_physics(2)
 		await _hold_left(64)
 		_check(player.held_pickup == first, "Spheres remain reusable after wall collisions")
 
@@ -189,6 +191,27 @@ func _check(condition: bool, message: String) -> void:
 	if not condition:
 		failed = true
 		push_error(message)
+
+
+# Where a sphere lands after wall bounces depends on each character's release hand, so it can
+# rest on furniture; teleporting the player into that furniture would fling it, not test pickup.
+func _free_spot_near(player: CharacterBody3D, target: Vector3, ground_y: float, preferred: Vector3, room: Rect2) -> Vector3:
+	var body_shape := player.get_node("CollisionShape3D") as CollisionShape3D
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = body_shape.shape
+	query.collision_mask = player.collision_mask
+	query.exclude = [player.get_rid()]
+	var directions: Array[Vector3] = [preferred]
+	for step in 8:
+		directions.append(Vector3.FORWARD.rotated(Vector3.UP, step * PI / 4.0))
+	for distance: float in [0.6, 0.8, 1.0]:
+		for direction in directions:
+			var spot: Vector3 = Vector3(target.x, ground_y, target.z) + direction.normalized() * distance
+			query.transform = Transform3D(Basis.IDENTITY, spot + body_shape.position + Vector3.UP * 0.03)
+			var on_floor := room.grow(-0.35).has_point(Vector2(spot.x, spot.z))
+			if on_floor and player.get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty():
+				return spot
+	return Vector3(target.x, ground_y, target.z) + preferred * 0.6
 
 
 func _hold_left(frames: int) -> void:

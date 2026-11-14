@@ -18,7 +18,7 @@ func _run() -> void:
 	lobby.play_intro = true
 	root.add_child(lobby)
 	await _frames(3)
-	var entry := lobby.get_node_or_null("%TutorialButton") as Button
+	var entry := lobby.get_node_or_null("%TutorialButton") as TextureButton
 	_check(entry != null and entry.is_visible_in_tree(), "The menu offers an interactive tutorial")
 	if entry == null:
 		quit(1)

@@ -4,9 +4,9 @@
 
 | 역할 | 파일 | 배정 위치 |
 | --- | --- | --- |
-| 플레이어(호스트) 청년 | `03_Young.glb` | `player.gd` `DEFAULT_MODEL` |
+| 플레이어(호스트·남편) 노년 | `01_Elder.glb` | `player.gd` `DEFAULT_MODEL` |
 | 게스트 여성 | `02_Woman.glb` | `courtyard.gd` `GUEST_MODEL` |
-| 테스트 더미 노년 | `01_Elder.glb` | `test_mode.gd` `TARGET_MODEL` |
+| 테스트 더미(아내 칸) 여성 | `02_Woman.glb` | `test_mode.gd` `TARGET_MODEL` |
 
 모델은 GLB에서 +Z를 보고 player는 -Z를 보므로 `Model`은 y축으로 PI 회전하고 0.45배로 줄인다.
 
@@ -38,7 +38,7 @@
 
 - `pickup_contest.gd`의 실제 시작/결과/취소(호스트·게스트 모두 라운드 ID·revision으로 검증된 경로)에서 시작·종료된다.
 - 두 캐릭터의 `Model`만 원래 배치 간격 2.4(× 0.45 = 1.08 m)로 대상 물건 양쪽에 서서 서로(물건 쪽)를 본다. CharacterBody는 움직이지 않는다. 종료·취소 때 `Model` transform을 원래 값으로 되돌린다.
-- player 0이 side 0(-축), player 1이 side 1. 클립이 다른 side용으로 만들어졌으면 같은 phase를 반 주기 늦춰 재생한다(예: 노년 더미가 side 1일 때).
+- player 0이 side 0(-축), player 1이 side 1. 클립이 다른 side용으로 만들어졌으면 같은 phase를 반 주기 늦춰 재생한다(예: side 0용 청년 클립을 side 1에서 쓸 때).
 - 공유 phase(`tug_phase`, 0~1) 하나로 두 캐릭터와 물건을 움직인다. 템포를 바꿔도 phase는 그대로다.
 - 호스트의 phase·템포가 기준이다. 호스트는 0.25초마다 `_sync_tug(round_id, item, revision, phase, fast)`(unreliable_ordered)를 보내고, 게스트는 라운드·물건·revision이 모두 맞을 때만 이 값으로 맞춘다. 패킷 사이에는 로컬로 진행한다. 끝났거나 취소된 라운드의 패킷은 줄다리기를 다시 시작하지 않고 물건도 움직이지 않는다.
 - 템포: `tug_tempo = &"auto"`(0.6초 안에 누름이 있으면 Fast, 없으면 Slow), `&"fast"`, `&"slow"`.

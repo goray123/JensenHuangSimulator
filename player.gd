@@ -35,7 +35,7 @@ const SLIP_FALL_ANGLE := PI * 0.5
 # Sustained contact must overcome floor friction, including on large furniture.
 const PUSH_MASS := 120.0
 const PUSH_RESPONSE := 20.0
-const DEFAULT_MODEL := preload("res://assets/characters/motions/03_Young.glb")
+const DEFAULT_MODEL := preload("res://assets/characters/motions/01_Elder.glb")
 const MOTION_MANIFEST := preload("res://assets/characters/motions/CHARACTER_MOTIONS_MANIFEST.json")
 const PAINTED_VERTEX_COLOR := preload("res://assets/characters/motions/painted_vertex_color.gdshader")
 const MODEL_SCALE := 0.45
