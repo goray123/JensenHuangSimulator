@@ -1,9 +1,10 @@
 extends Node
 
-enum State { IDLE, HOSTING, SEARCHING, CONNECTING, JOINED, TESTING }
+enum State { IDLE, HOSTING, SEARCHING, CONNECTING, JOINED, TESTING, TUTORIAL }
 
 const APARTMENT := preload("res://house.tscn")
 const TEST_MODE := preload("res://test_mode.gd")
+const GUIDED_TUTORIAL := preload("res://guided_tutorial.gd")
 const INTRO := preload("res://intro_cutscene.gd")
 const GAME_PORT := 33443
 const DISCOVERY_PORT := 33444
@@ -37,6 +38,7 @@ var _hover_tween: Tween
 @onready var _status_panel: Control = %StatusPanel
 @onready var _start_button: TextureButton = %Start
 @onready var _cancel_button: Button = %Cancel
+@onready var _tutorial_button: Button = %TutorialButton
 
 
 func _ready() -> void:
@@ -44,6 +46,7 @@ func _ready() -> void:
 	_start_button.mouse_entered.connect(_set_start_hover.bind(true))
 	_start_button.mouse_exited.connect(_set_start_hover.bind(false))
 	_cancel_button.pressed.connect(_return_to_menu.bind(READY_MESSAGE))
+	_tutorial_button.pressed.connect(_open_tutorial)
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	multiplayer.connected_to_server.connect(_on_connected_to_host)
@@ -66,6 +69,35 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	elif _state == State.TESTING and event.is_action_pressed(&"test_reset"):
 		_restart_test_mode.call_deferred()
 		get_viewport().set_input_as_handled()
+	elif _state == State.TUTORIAL and event.is_action_pressed(&"test_reset"):
+		_restart_tutorial.call_deferred()
+		get_viewport().set_input_as_handled()
+
+
+func _open_tutorial() -> void:
+	if _state != State.IDLE or _apartment != null:
+		return
+	_close_network()
+	_state = State.TUTORIAL
+	_open_tutorial_apartment()
+
+
+func _open_tutorial_apartment() -> void:
+	_apartment = APARTMENT.instantiate()
+	add_child(_apartment)
+	var tutorial := GUIDED_TUTORIAL.new()
+	tutorial.name = "GuidedTutorial"
+	tutorial.menu_requested.connect(_return_to_menu.bind(READY_MESSAGE), CONNECT_DEFERRED)
+	tutorial.replay_requested.connect(_restart_tutorial, CONNECT_DEFERRED)
+	_apartment.add_child(tutorial)
+	_menu.hide()
+
+
+func _restart_tutorial() -> void:
+	if _state != State.TUTORIAL:
+		return
+	_remove_apartment()
+	_open_tutorial_apartment()
 
 
 func _host_room() -> void:
@@ -306,6 +338,7 @@ func _close_network() -> void:
 func _show_lobby(message: String) -> void:
 	_status.text = message
 	_start_button.visible = _state == State.IDLE
+	_tutorial_button.visible = _state == State.IDLE
 	_cancel_button.visible = _state != State.IDLE
 	_status_panel.visible = _state != State.IDLE or not message.is_empty()
 	if _hover_tween != null:
