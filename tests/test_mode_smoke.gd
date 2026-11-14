@@ -58,6 +58,17 @@ func _run() -> void:
 	_check(apartment != old_apartment and not is_instance_valid(old_apartment), "R replaces the test stage safely")
 	_check(mode.hit_count == 0 and player.held_pickup == null and not player.is_stunned(), "Reset clears hit counts, held objects, and player state")
 	_check(get_nodes_in_group(&"pickups").size() == 21 and get_nodes_in_group(&"apartment_props").size() == 18, "Reset restores every prop without duplicates")
+	await _tap(KEY_G)
+	_check(apartment._contest.active and player.contest_active and mode.target.held_pickup != null, "G starts an offline contest against the test target")
+	var contested: RigidBody3D = mode.target.held_pickup
+	for _press in 45:
+		if not apartment._contest.active:
+			break
+		await _tap(KEY_E)
+	_check(not apartment._contest.active and player.held_pickup == contested and mode.target.is_stunned(), "E mashing can beat the offline opponent and take its object")
+	await _tap(KEY_R)
+	apartment = lobby.get_node("Apartment") as Node3D
+	_check(not apartment._contest.active and apartment.get_node("Player").held_pickup == null, "Reset clears the contest and restores the test stage")
 	await _tap(KEY_ESCAPE)
 	_check(lobby.get_node_or_null("Apartment") == null and button.visible and lobby.get_node("Menu").visible, "Esc returns to the main menu")
 	_check(get_nodes_in_group(&"pickups").is_empty() and lobby._peer == null, "Leaving removes the test world and keeps networking closed")

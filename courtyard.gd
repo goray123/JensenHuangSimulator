@@ -2,6 +2,7 @@ extends Node3D
 
 const Player := preload("res://player.gd")
 const PLAYER_SCENE := preload("res://player.tscn")
+const PICKUP_CONTEST := preload("res://pickup_contest.gd")
 const GUEST_COLOR := Color(0.16, 0.65, 0.98)
 const INPUT_TIMEOUT_MS := 500
 
@@ -13,6 +14,7 @@ var _local_player: Player
 var _players: Array[Player]
 var _pickups: Array[RigidBody3D]
 var _round_finished := false
+var _contest: Node
 
 @onready var _host: Player = $Player
 @onready var _pickup_status: Label = $HUD/PickupStatus
@@ -61,6 +63,10 @@ func _ready() -> void:
 	_local_player.throw_blocked.connect(_show_throw_blocked)
 	_local_player.aim_changed.connect(_update_aim_status)
 	_update_pickup_status(_local_player.held_pickup != null)
+	_contest = PICKUP_CONTEST.new()
+	_contest.name = "PickupContest"
+	add_child(_contest)
+	_contest.setup(self, _players if guest_peer_id != 0 else [_host], _pickups)
 	if timed_round and (guest_peer_id == 0 or multiplayer.is_server()):
 		_round_timer.timeout.connect(_on_round_timeout)
 		_round_timer.start()
@@ -102,7 +108,7 @@ func _physics_process(_delta: float) -> void:
 	for pickup in _pickups:
 		transforms.append(pickup.global_transform)
 	var holding := Vector2i(_pickups.find(_host.held_pickup), _pickups.find(_guest.held_pickup))
-	_apply_snapshot.rpc_id(guest_peer_id, transforms, holding, seconds_left)
+	_apply_snapshot.rpc_id(guest_peer_id, transforms, holding, _contest.revision, seconds_left)
 
 
 func _update_time_left(seconds: int) -> void:
@@ -119,6 +125,7 @@ func _on_round_timeout() -> void:
 @rpc("authority", "call_local", "reliable")
 func _end_round() -> void:
 	_round_finished = true
+	_contest.cancel_round()
 	_update_time_left(0)
 	$HUD/RoundEnd.show()
 	process_mode = Node.PROCESS_MODE_DISABLED
@@ -160,8 +167,10 @@ func _apply_hit(player_index: int) -> void:
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")
-func _apply_snapshot(transforms: Array, holding: Vector2i, seconds_left: int) -> void:
-	if _round_finished or transforms.size() != _players.size() + _pickups.size():
+func _apply_snapshot(transforms: Array, holding: Vector2i, ownership_revision: int, seconds_left: int) -> void:
+	if _round_finished or ownership_revision < _contest.revision:
+		return
+	if transforms.size() != _players.size() + _pickups.size():
 		return
 	if mini(holding.x, holding.y) < -1 or maxi(holding.x, holding.y) >= _pickups.size():
 		return
