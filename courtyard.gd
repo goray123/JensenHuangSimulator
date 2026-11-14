@@ -13,6 +13,10 @@ const ROOM_PHYSICS := preload("res://room_physics.gd")
 const PHYSICS_MASS := preload("res://physics_mass.gd")
 const FURNITURE_SNAPSHOT_BATCH := 16
 
+## Host-decided whole seconds left (the guest receives them in snapshots); not emitted after the round ends.
+signal round_seconds_changed(seconds: int)
+signal round_ended
+
 var guest_peer_id := 0
 var _last_guest_input := -1
 var _guest: Player
@@ -149,6 +153,8 @@ func _physics_process(_delta: float) -> void:
 
 func _update_time_left(seconds: int) -> void:
 	_time_left.text = "%02d:%02d" % [floori(seconds / 60.0), seconds % 60]
+	if not _round_finished:
+		round_seconds_changed.emit(seconds)
 
 
 func _on_round_timeout() -> void:
@@ -180,6 +186,7 @@ func _end_round(gold: Vector2i) -> void:
 		body.freeze = true
 	_update_time_left(0)
 	$HUD/RoundEnd.show()
+	round_ended.emit()
 	process_mode = Node.PROCESS_MODE_DISABLED
 	# shortcut: loads the ~30 MB ending synchronously (brief hitch at timeout); preload threaded if it shows.
 	var ending: CanvasLayer = load(ENDING_SCENE).instantiate()
