@@ -7,6 +7,10 @@ const TEST_MODE := preload("res://test_mode.gd")
 const GUIDED_TUTORIAL := preload("res://guided_tutorial.gd")
 const INTRO := preload("res://intro_cutscene.gd")
 const BGM := preload("res://bgm.gd")
+const POST_MATCH_ACTIONS := preload("res://ui/post_match_actions.gd")
+const REMATCH_NOTICE_SECONDS := 0.4
+const TITLE_NOTICE_SECONDS := 0.65
+const TITLE_ACK_TIMEOUT_SECONDS := 2.5
 const GAME_PORT := 33443
 const DISCOVERY_PORT := 33444
 const TIMEOUT_MS := 4500
@@ -36,6 +40,17 @@ var _intro_done_peers: Array[int] = []
 var _host_if_none := false
 var _hover_tweens := {}
 var _bgm: Node
+## A generation identifies votes and delayed decisions across rounds on the same connection.
+var _match_id := 0
+## Never reset on disconnect: old timers must not match round 1 of a new session.
+var _post_round_epoch := 0
+var _post_round_menu: CanvasLayer
+var _post_round_choices: Array[int] = []
+var _post_round_resolution := 0
+var _post_round_started_msec := 0
+var _post_round_transitioning := false
+var _title_notice_elapsed := false
+var _title_guest_ready := false
 
 @onready var _menu: Control = $Menu
 @onready var _status: Label = %Status
@@ -204,6 +219,9 @@ func _on_peer_connected(_peer_id: int) -> void:
 
 func _on_peer_disconnected(_peer_id: int) -> void:
 	if _state == State.HOSTING:
+		if _post_round_resolution == 2:
+			_return_to_menu.call_deferred(READY_MESSAGE)
+			return
 		_remove_apartment()
 		_peer.refuse_new_connections = false
 		_bgm.play(&"lobby")
@@ -220,7 +238,7 @@ func _on_connection_failed() -> void:
 
 
 func _on_host_disconnected() -> void:
-	_return_to_menu("호스트와의 연결이 끊겼습니다.")
+	_return_to_menu(READY_MESSAGE if _post_round_resolution == 2 else "호스트와의 연결이 끊겼습니다.")
 
 
 func _start_game() -> void:
@@ -261,13 +279,14 @@ func _report_intro_done() -> void:
 		_intro_done_peers.append(peer_id)
 	var peers := multiplayer.get_peers()
 	if peers.size() == 1 and 1 in _intro_done_peers and peers[0] in _intro_done_peers:
-		_open_apartment.rpc(peers[0])
+		_open_apartment.rpc(peers[0], _match_id + 1)
 
 
 @rpc("authority", "call_local", "reliable")
-func _open_apartment(guest_id: int) -> void:
-	if _apartment != null or (_state != State.HOSTING and multiplayer.get_unique_id() != guest_id):
+func _open_apartment(guest_id: int, match_id: int) -> void:
+	if match_id <= _match_id or _apartment != null or (_state != State.HOSTING and multiplayer.get_unique_id() != guest_id):
 		return
+	_match_id = match_id
 	_remove_intro()
 	_apartment = APARTMENT.instantiate()
 	_apartment.guest_peer_id = guest_id
@@ -310,6 +329,7 @@ func _remove_intro() -> void:
 
 func _open_test_apartment() -> void:
 	_remove_intro()
+	_match_id += 1
 	_apartment = APARTMENT.instantiate()
 	_connect_round_music()
 	add_child(_apartment)
@@ -331,6 +351,172 @@ func _connect_round_music() -> void:
 	_bgm.play(&"brawl")
 	_apartment.round_seconds_changed.connect(_on_round_seconds_changed)
 	_apartment.round_ended.connect(_bgm.stop)
+	_apartment.round_ended.connect(_on_round_ended)
+
+
+## Lives outside the frozen house and its ending. The guided tutorial has its own completion UI.
+func _on_round_ended() -> void:
+	if _post_round_menu != null or _state not in [State.HOSTING, State.JOINED, State.TESTING]:
+		return
+	_post_round_started_msec = Time.get_ticks_msec()
+	_post_round_epoch += 1
+	_post_round_choices.assign([0] if _state == State.TESTING else [0, 0])
+	_post_round_resolution = 0
+	_post_round_menu = POST_MATCH_ACTIONS.new()
+	_post_round_menu.name = "PostMatchActions"
+	_post_round_menu.rematch_requested.connect(_request_rematch)
+	_post_round_menu.title_requested.connect(_request_title)
+	add_child(_post_round_menu)
+	_post_round_menu.setup(_post_round_choices.size(), 1 if _state == State.JOINED else 0)
+	_post_round_menu.set_choices(_post_round_choices)
+
+
+func _request_rematch() -> void:
+	_request_post_round_choice(1)
+
+
+func _request_title() -> void:
+	_request_post_round_choice(2)
+
+
+func _request_post_round_choice(choice: int) -> void:
+	if not is_instance_valid(_post_round_menu) or not _post_round_menu.actions_visible:
+		return
+	if _state == State.JOINED:
+		_receive_post_round_choice.rpc_id(1, _match_id, choice)
+	else:
+		_receive_post_round_choice(_match_id, choice)
+
+
+## Only the host counts votes. A player can switch their rematch vote to title until restart commits.
+@rpc("any_peer", "call_remote", "reliable")
+func _receive_post_round_choice(match_id: int, choice: int) -> void:
+	if not multiplayer.is_server() or not _post_round_is_current(match_id) or _post_round_transitioning or _post_round_resolution == 2:
+		return
+	if choice not in [1, 2] or Time.get_ticks_msec() - _post_round_started_msec < POST_MATCH_ACTIONS.SHOW_DELAY_SECONDS * 1000.0:
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	var index := 0
+	if sender != 0:
+		if _state != State.HOSTING or sender != _apartment.guest_peer_id:
+			return
+		index = 1
+	if _post_round_choices[index] == choice:
+		return
+	var choices := _post_round_choices.duplicate()
+	choices[index] = choice
+	if _state == State.HOSTING:
+		_sync_post_round_choices.rpc(match_id, choices)
+	else:
+		_sync_post_round_choices(match_id, choices)
+	if _post_round_resolution == 1:
+		get_tree().create_timer(REMATCH_NOTICE_SECONDS).timeout.connect(_finish_rematch.bind(match_id, _post_round_epoch))
+
+
+@rpc("authority", "call_local", "reliable")
+func _sync_post_round_choices(match_id: int, choices: Array[int]) -> void:
+	if not _post_round_is_current(match_id) or choices.size() != _post_round_choices.size():
+		return
+	for choice in choices:
+		if choice not in [0, 1, 2]:
+			return
+	_post_round_choices.assign(choices)
+	_post_round_menu.set_choices(_post_round_choices)
+	if 2 in _post_round_choices:
+		if _post_round_resolution == 2:
+			return
+		_post_round_resolution = 2
+		_post_round_menu.lock_actions()
+		# Both peers show the X for this long before the guest acknowledges it.
+		get_tree().create_timer(TITLE_NOTICE_SECONDS).timeout.connect(_after_title_notice.bind(match_id, _post_round_epoch))
+		if multiplayer.is_server():
+			get_tree().create_timer(TITLE_ACK_TIMEOUT_SECONDS).timeout.connect(_finish_title_fallback.bind(match_id, _post_round_epoch))
+	elif _post_round_choices.all(func(choice: int) -> bool: return choice == 1):
+		_post_round_resolution = 1
+
+
+func _post_round_is_current(match_id: int) -> bool:
+	return match_id == _match_id and is_instance_valid(_apartment) and _apartment._round_finished and is_instance_valid(_post_round_menu)
+
+
+func _finish_rematch(match_id: int, epoch: int) -> void:
+	if epoch != _post_round_epoch or not _post_round_is_current(match_id) or _post_round_resolution != 1 or _post_round_transitioning:
+		return
+	if _state == State.TESTING:
+		_restart_test_mode.call_deferred()
+	elif _state == State.HOSTING and multiplayer.get_peers().size() == 1:
+		_begin_rematch.rpc(_apartment.guest_peer_id, match_id + 1)
+
+
+@rpc("authority", "call_local", "reliable")
+func _begin_rematch(guest_id: int, next_match_id: int) -> void:
+	if next_match_id != _match_id + 1 or not _post_round_is_current(_match_id) or _post_round_resolution != 1 or _post_round_transitioning:
+		return
+	_post_round_transitioning = true
+	_post_round_menu.lock_actions()
+	_reload_match.call_deferred(guest_id, next_match_id, _post_round_epoch)
+
+
+func _reload_match(guest_id: int, next_match_id: int, epoch: int) -> void:
+	if epoch != _post_round_epoch or not _post_round_transitioning or _post_round_resolution != 1 or next_match_id != _match_id + 1:
+		return
+	_remove_apartment()
+	_open_apartment(guest_id, next_match_id)
+
+
+func _after_title_notice(match_id: int, epoch: int) -> void:
+	if epoch != _post_round_epoch or not _post_round_is_current(match_id) or _post_round_resolution != 2:
+		return
+	_title_notice_elapsed = true
+	if multiplayer.is_server():
+		_try_complete_title_return(match_id)
+	else:
+		_ack_title_notice.rpc_id(1, match_id)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _ack_title_notice(match_id: int) -> void:
+	if not multiplayer.is_server() or not _post_round_is_current(match_id) or _post_round_resolution != 2:
+		return
+	if multiplayer.get_remote_sender_id() != _apartment.guest_peer_id:
+		return
+	_title_guest_ready = true
+	_try_complete_title_return(match_id)
+
+
+func _try_complete_title_return(match_id: int) -> void:
+	if not _post_round_is_current(match_id) or _post_round_resolution != 2 or not _title_notice_elapsed or _post_round_transitioning:
+		return
+	if _state == State.TESTING:
+		_return_to_menu.call_deferred(READY_MESSAGE)
+	elif _state == State.HOSTING and _title_guest_ready:
+		_post_round_transitioning = true
+		# Keep the host connected until the guest receives this command and leaves.
+		_complete_title_return.rpc_id(_apartment.guest_peer_id, match_id)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _complete_title_return(match_id: int) -> void:
+	if _post_round_is_current(match_id) and _post_round_resolution == 2 and _title_notice_elapsed:
+		_return_to_menu.call_deferred(READY_MESSAGE)
+
+
+func _finish_title_fallback(match_id: int, epoch: int) -> void:
+	if epoch == _post_round_epoch and _post_round_is_current(match_id) and _post_round_resolution == 2:
+		_return_to_menu(READY_MESSAGE)
+
+
+func _clear_post_round() -> void:
+	if is_instance_valid(_post_round_menu):
+		remove_child(_post_round_menu)
+		_post_round_menu.queue_free()
+	_post_round_menu = null
+	_post_round_choices.clear()
+	_post_round_resolution = 0
+	_post_round_started_msec = 0
+	_post_round_transitioning = false
+	_title_notice_elapsed = false
+	_title_guest_ready = false
 
 
 func _on_round_seconds_changed(seconds: int) -> void:
@@ -339,6 +525,7 @@ func _on_round_seconds_changed(seconds: int) -> void:
 
 
 func _remove_apartment() -> void:
+	_clear_post_round()
 	_remove_intro()
 	if _apartment != null:
 		remove_child(_apartment)
@@ -354,6 +541,7 @@ func _return_to_menu(message: String) -> void:
 
 
 func _close_network() -> void:
+	_match_id = 0
 	_discovery.close()
 	if _peer != null:
 		_peer.close()
