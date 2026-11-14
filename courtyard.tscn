@@ -1,0 +1,84 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://player.tscn" id="1_player"]
+
+[sub_resource type="Environment" id="Environment_courtyard"]
+background_mode = 1
+background_color = Color(0.09, 0.12, 0.16, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.83, 0.9, 1, 1)
+ambient_light_energy = 0.55
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.35, 0.43, 0.47, 1)
+roughness = 0.95
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.73, 0.74, 0.71, 1)
+roughness = 0.92
+
+[node name="Courtyard" type="Node3D"]
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_courtyard")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-58, -33, 0)
+light_color = Color(1, 0.95, 0.87, 1)
+light_energy = 1.15
+shadow_enabled = true
+
+[node name="Ground" type="CSGBox3D" parent="."]
+position = Vector3(0, -0.22, 0)
+size = Vector3(16.9, 0.44, 12.9)
+material = SubResource("StandardMaterial3D_floor")
+use_collision = true
+
+[node name="NorthWall" type="CSGBox3D" parent="."]
+position = Vector3(0, 0.46, -6.225)
+size = Vector3(16.9, 0.92, 0.45)
+material = SubResource("StandardMaterial3D_wall")
+use_collision = true
+
+[node name="SouthWall" type="CSGBox3D" parent="."]
+position = Vector3(0, 0.46, 6.225)
+size = Vector3(16.9, 0.92, 0.45)
+material = SubResource("StandardMaterial3D_wall")
+use_collision = true
+
+[node name="WestWall" type="CSGBox3D" parent="."]
+position = Vector3(-8.225, 0.46, 0)
+size = Vector3(0.45, 0.92, 12)
+material = SubResource("StandardMaterial3D_wall")
+use_collision = true
+
+[node name="EastWall" type="CSGBox3D" parent="."]
+position = Vector3(8.225, 0.46, 0)
+size = Vector3(0.45, 0.92, 12)
+material = SubResource("StandardMaterial3D_wall")
+use_collision = true
+
+[node name="Player" parent="." instance=ExtResource("1_player")]
+position = Vector3(0, 0.04, 0)
+
+[node name="Overview" type="Camera3D" parent="."]
+position = Vector3(6, 25, 17)
+rotation = Vector3(-0.96, 0.339293, 0)
+projection = 1
+current = true
+size = 18.5
+
+[node name="HUD" type="CanvasLayer" parent="."]
+
+[node name="Controls" type="Label" parent="HUD"]
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -60.0
+offset_bottom = -22.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.83, 0.87, 0.92, 1)
+theme_override_font_sizes/font_size = 18
+text = "W / S  전후 이동     A / D  좌우 회전"
+horizontal_alignment = 1
+vertical_alignment = 1
