@@ -29,6 +29,8 @@ func _run() -> void:
 	var first: PanelContainer = speech.bubble(0)
 	_check(first != null and _text(first) == SPEECH.LINES[&"hit"][0][0], "A hit makes the husband shout his first hit line")
 	await _wait_for_physics(12)
+	# Let the burst's impact shake settle before measuring where things rest.
+	await create_timer(SPEECH.CRUNCH_SHAKE_SECONDS).timeout
 	var camera := root.get_camera_3d()
 	var head := camera.unproject_position(player.get_node("Head").global_position)
 	var rect: Rect2 = first.get_global_rect()
@@ -43,7 +45,7 @@ func _run() -> void:
 	_check(_text(speech.bubble(0)) == SPEECH.LINES[&"hit"][0][1] and speech.bubble(0) != first, "The next hit cycles to the next line and replaces the bubble")
 	_check(speech.crunch_burst(0) != burst and speech.crunch_burst(0) != null, "A new hit restarts the burst")
 	await process_frame
-	var live := speech.get_children().filter(func(child: Node) -> bool: return not child.is_queued_for_deletion())
+	var live := _callouts(speech)
 	_check(live.size() == 2 and live.filter(func(child: Node) -> bool: return child is PanelContainer).size() == 1, "Each speaker shows one bubble and one burst at a time")
 	await create_timer(1.0).timeout
 	_check(speech.crunch_burst(0) == null, "The burst fades out on its own within a second")
@@ -78,7 +80,7 @@ func _run() -> void:
 	_check(_text(speech.bubble(1)) == SPEECH.LINES[&"lost"][1][0] and _text(speech.bubble(0)) == SPEECH.LINES[&"won"][0][0],
 		"The loser complains and the winner gloats")
 	await create_timer(SPEECH.POP_SECONDS + SPEECH.SHOW_SECONDS + SPEECH.FADE_SECONDS + 0.3).timeout
-	_check(speech.bubble(0) == null and speech.bubble(1) == null and speech.get_child_count() == 0, "Bubbles fade out and free themselves")
+	_check(speech.bubble(0) == null and speech.bubble(1) == null and _callouts(speech).is_empty(), "Bubbles fade out and free themselves")
 
 	await create_timer(2.6).timeout
 	target.receive_banana_peel()
@@ -88,11 +90,59 @@ func _run() -> void:
 	apartment.get_node("HUD").add_bag_item(1, apartment._pickups.find(ring), ring)
 	_check(_text(speech.bubble(1)) == "위자료다!!", "Bagging an item gives the wife her bag line")
 
+	# Cartoon marks decided by the host's throw streaks.
+	apartment.record_throw_miss(player)
+	_check(speech.mark(0, &"miss") == null, "A single miss shows nothing")
+	apartment.record_throw_miss(player)
+	_check(speech.mark(0, &"miss") != null and speech.mark(0, &"miss").texture == SPEECH.MARKS[&"miss"].texture, "A second miss in a row pops the !! mark")
+	apartment.record_throw_hit(player, target)
+	_check(speech.mark(0, &"spark") != null and apartment._miss_streaks[0] == 0, "Landing a hit sparkles the thrower and ends the miss streak")
+	_check(speech.mark(1, &"angry") == null, "A first hit does not anger the victim")
+	apartment.record_throw_hit(player, target)
+	_check(speech.mark(1, &"angry") != null, "A second hit within the window shows anger veins on the victim")
+	await _wait_for_physics(12)
+	var mark_camera := root.get_camera_3d()
+	var husband_head := mark_camera.unproject_position((player.get_node("Model") as Node3D).global_position + SPEECH.MARK_ANCHOR)
+	var wife_head := mark_camera.unproject_position((target.get_node("Model") as Node3D).global_position + SPEECH.MARK_ANCHOR)
+	_check(speech.mark(0, &"spark").get_global_rect().get_center().x > husband_head.x + 20.0
+		and speech.mark(1, &"angry").get_global_rect().get_center().x < wife_head.x - 20.0, "Sparks sit right of the thrower's head, veins left of the victim's")
+	await create_timer(1.6).timeout
+	_check(speech.mark(0, &"spark") == null and speech.mark(1, &"angry") == null and speech.mark(0, &"miss") == null, "Marks fade out on their own")
+
+	# A real throw that lands without touching anyone counts as a miss on the host.
+	target.global_position = Vector3(9.5, target.global_position.y, -3.5)
+	player.global_position = Vector3(6.6, player.global_position.y, -1.6)
+	var letter: RigidBody3D = apartment.get_node("Items/Item_14_letter")
+	player.hold_pickup(letter)
+	player.release_pickup(true, Vector3(0.0, 1.5, -1.2))
+	for _frame in 300:
+		if apartment._miss_streaks.get(0, 0) == 1:
+			break
+		await physics_frame
+	_check(apartment._miss_streaks.get(0, 0) == 1, "A thrown letter that comes to rest untouched is recorded as a miss")
+
+	# Running while heavily loaded spins the loading wheel; it fades when the player stops.
+	while player.is_stunned():
+		await physics_frame
+	player.bag_weight = 20.0
+	_set_key(KEY_A, true)
+	await _wait_for_physics(30)
+	var wheel: TextureRect = speech.spinner(0)
+	_check(wheel.visible and wheel.modulate.a > 0.9 and absf(wheel.rotation / (TAU / 12.0) - roundf(wheel.rotation / (TAU / 12.0))) < 0.001 and wheel.rotation < TAU, "A slowed runner shows the ticking loading wheel")
+	_set_key(KEY_A, false)
+	await _wait_for_physics(30)
+	_check(not wheel.visible, "The wheel fades once the slowed player stops")
+	player.bag_weight = 0.0
+	_set_key(KEY_A, true)
+	await _wait_for_physics(20)
+	_set_key(KEY_A, false)
+	_check(not wheel.visible, "An unloaded runner never shows the wheel")
+
 	# Peers see the same events in the same order, so a fresh instance replays the same words.
 	var replay: Control = SPEECH.new()
 	root.add_child(replay)
-	replay.bind(0, player.get_node("Head"))
-	replay.bind(1, target.get_node("Head"))
+	replay.bind(0, player)
+	replay.bind(1, target)
 	var seen := []
 	for event: StringName in [&"hit", &"hit", &"throw"]:
 		seen.append(replay.say(0, event))
@@ -106,6 +156,12 @@ func _run() -> void:
 	if not failed:
 		print("Speech bubble smoke test passed.")
 	quit(int(failed))
+
+
+## Live bubbles, bursts and marks (the always-present spinners excluded).
+func _callouts(speech: Control) -> Array[Node]:
+	return speech.get_children().filter(func(child: Node) -> bool:
+		return not child.is_queued_for_deletion() and not String(child.name).begins_with("Spinner"))
 
 
 func _text(bubble: PanelContainer) -> String:

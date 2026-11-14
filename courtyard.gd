@@ -35,6 +35,13 @@ var _physics_bodies: Array[RigidBody3D]
 var _room_physics: Node
 var _round_finished := false
 var _contest: Node
+## Host-only throw streaks for the cartoon effects, keyed by player index.
+var _miss_streaks := {}
+var _hit_streaks := {}
+var _last_hit_msec := {}
+
+## A second hit within this window counts as "hit again in a row" (anger veins).
+const HIT_STREAK_WINDOW_MSEC := 5000
 
 @onready var _host: Player = $Player
 @onready var _throw_power: ProgressBar = $HUD/ThrowPower
@@ -574,6 +581,49 @@ func reward_thrower(thrower: Node3D) -> void:
 func _play_hit_reward() -> void:
 	if not _round_finished and is_instance_valid(_local_player):
 		SFX.play_ui(_local_player, &"pickup_coin", -6.0)
+
+
+## Host: a thrown item hit another player. The thrower sparkles; a victim hit again within the
+## streak window fumes. Landing a hit also ends the thrower's miss streak.
+func record_throw_hit(thrower: Node3D, victim: Node3D) -> void:
+	if not multiplayer.is_server() or _round_finished:
+		return
+	var thrower_index := _players.find(thrower)
+	var victim_index := _players.find(victim)
+	if thrower_index >= 0:
+		_miss_streaks[thrower_index] = 0
+		_cartoon_fx(thrower_index, &"spark")
+	if victim_index >= 0:
+		var now := Time.get_ticks_msec()
+		var recent: bool = now - int(_last_hit_msec.get(victim_index, -HIT_STREAK_WINDOW_MSEC - 1)) <= HIT_STREAK_WINDOW_MSEC
+		_hit_streaks[victim_index] = int(_hit_streaks.get(victim_index, 0)) + 1 if recent else 1
+		_last_hit_msec[victim_index] = now
+		if _hit_streaks[victim_index] >= 2:
+			_cartoon_fx(victim_index, &"angry")
+
+
+## Host: a thrown item came to rest without hitting anyone. Two or more misses in a row show "!!".
+func record_throw_miss(thrower: Node3D) -> void:
+	if not multiplayer.is_server() or _round_finished:
+		return
+	var thrower_index := _players.find(thrower)
+	if thrower_index < 0:
+		return
+	_miss_streaks[thrower_index] = int(_miss_streaks.get(thrower_index, 0)) + 1
+	if _miss_streaks[thrower_index] >= 2:
+		_cartoon_fx(thrower_index, &"miss")
+
+
+func _cartoon_fx(player_index: int, kind: StringName) -> void:
+	$HUD.speech.fx(player_index, kind)
+	if guest_peer_id != 0:
+		_apply_cartoon_fx.rpc_id(guest_peer_id, player_index, kind)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_cartoon_fx(player_index: int, kind: StringName) -> void:
+	if not _round_finished and player_index >= 0 and player_index < _players.size():
+		$HUD.speech.fx(player_index, kind)
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")

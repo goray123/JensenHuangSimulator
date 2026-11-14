@@ -44,7 +44,7 @@ func bind_player(player_index: int, player: CharacterBody3D) -> void:
 	player.held_pickup_changed.connect(func(is_holding: bool) -> void:
 		if is_holding and player.held_pickup != null and player.held_pickup.gold_value >= proud_gold_threshold:
 			portrait.play_reaction(&"proud"))
-	speech.bind(player_index, player.get_node("Model"))
+	speech.bind(player_index, player)
 	player.hit_received.connect(speech.crunch.bind(player_index))
 	player.hit_received.connect(speech.say.bind(player_index, &"hit"))
 	player.banana_peel_stepped.connect(speech.say.bind(player_index, &"slip"))

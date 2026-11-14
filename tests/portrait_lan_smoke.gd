@@ -96,6 +96,7 @@ func _test_host() -> void:
 	pan._on_body_entered(_guest)
 	_check(_wife.current_state == &"fallen", "The host shows the fallen wife card")
 	_check(_speech_text(1) == "아얏!!", "The hit makes the wife shout on the host")
+	_check(_apartment.get_node("HUD").speech.mark(0, &"spark") != null, "The host sparkles the husband for landing the hit")
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 3)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 4, "The guest sees the hit reaction"):
 		return
@@ -133,6 +134,8 @@ func _test_guest() -> void:
 	if not await _expect(func() -> bool: return _wife.current_state == &"fallen", "The reliable hit makes the wife card fall on the guest"):
 		return
 	_check(_speech_text(1) == "아얏!!", "The guest shows the same hit line as the host")
+	if not await _expect(func() -> bool: return _apartment.get_node("HUD").speech.mark(0, &"spark") != null, "The host-decided hit sparkle reaches the guest"):
+		return
 	_barrier.acknowledge.rpc_id(1, 4)
 	if not await _expect(func() -> bool: return _barrier.stage >= 4, "The host applies a status effect"):
 		return
