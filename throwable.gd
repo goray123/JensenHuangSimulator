@@ -13,6 +13,10 @@ const IMPACT_SOUNDS := {
 	&"12-ring": &"hit_metal", &"22-bucket": &"hit_metal", &"01-banana": &"hit_soft",
 	&"05-cake": &"hit_soft", &"18-folded-clothes": &"hit_soft", &"19-shoes": &"hit_soft", &"20-coat": &"hit_soft",
 	&"16-piggy-bank": &"hit_shatter",
+	# Map furniture pickups use their path under the map as item_id.
+	&"Kitchen/Refrigerator": &"hit_metal", &"Kitchen/AirFryer": &"hit_metal", &"Kitchen/Kettle": &"hit_metal",
+	&"Bathroom/Sink": &"hit_shatter", &"Bathroom/Toilet": &"hit_shatter",
+	&"LivingRoom/Sofa": &"hit_soft", &"MasterBedroom/Bed": &"hit_soft", &"SmallBedroom/Bed": &"hit_soft",
 }
 const PACKING_SECONDS := [1.0, 0.5, 0.7, 1.1, 1.4, 1.9]
 

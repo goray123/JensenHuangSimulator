@@ -84,29 +84,30 @@ func _run() -> void:
 func _verify_body_lists(is_host: bool) -> void:
 	var furniture: Array = _apartment._room_physics.bodies
 	var all_bodies: Array = _apartment._physics_bodies
-	_check(_apartment._pickups.size() == 21 and not furniture.is_empty(),
-		"Furniture physics preserves all 21 original pickup ownership entries")
-	_check(all_bodies.size() == 21 + furniture.size(),
+	var pickup_count: int = _apartment._pickups.size()
+	_check(pickup_count == 43 and not furniture.is_empty(),
+		"Furniture physics preserves all 21 original and 22 furniture pickup ownership entries")
+	_check(all_bodies.size() == pickup_count + furniture.size(),
 		"Both peers register every pickup and furniture body for snapshots")
 	for index in all_bodies.size():
 		var body := all_bodies[index] as RigidBody3D
 		_paths.append(str(_apartment.get_path_to(body)))
-		if index < 21:
+		if index < pickup_count:
 			_check(body == _apartment._pickups[index],
 				"Pickup snapshot indices keep their original stable ordering")
 		else:
-			_check(body == furniture[index - 21] and body.is_in_group(&"dynamic_furniture")
+			_check(body == furniture[index - pickup_count] and body.is_in_group(&"dynamic_furniture")
 				and not body.is_in_group(&"pickups"),
 				"Furniture follows the pickup range without becoming E-pickable")
 		var volume: float = body.get_meta(&"physics_volume", 0.0)
-		var weight_scale := 0.75 if index < 21 else 1.0
+		var weight_scale := 0.75 if index < pickup_count else 1.0
 		_check(volume > 0.0 and is_equal_approx(body.mass, maxf(volume * 40.0, 0.02) * weight_scale * 0.5),
 			"Both peers use half the previous physical mass for pickups and furniture")
 		_check(body.freeze != is_host,
 			"Only the host simulates unheld bodies; the guest keeps snapshot bodies frozen")
 		if body.name == &"Stool00":
 			_stool = body
-	_check(_stool != null, "Both peers expose the same authored stool as a dynamic body")
+	_check(_stool != null and _stool.is_in_group(&"furniture_pickups"), "Both peers expose the same authored stool as a dynamic pickup body")
 	var furniture_paths: Array[String] = []
 	for body in furniture:
 		furniture_paths.append(str(_apartment.get_path_to(body)))

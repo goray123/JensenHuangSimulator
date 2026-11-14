@@ -23,7 +23,7 @@ func _run() -> void:
 	var power := apartment.get_node("HUD/ThrowPower") as ProgressBar
 	var props := get_nodes_in_group(&"apartment_props")
 	_check(props.size() == 18, "The TV and all 17 small props are throwable")
-	_check(get_nodes_in_group(&"pickups").size() == 21, "All props and the three spheres share the pickup system")
+	_check(get_nodes_in_group(&"pickups").size() == 43, "All props, furniture pickups and the three spheres share the pickup system")
 	for body: RigidBody3D in props:
 		var model := body.get_node("Model") as Node3D
 		var actual := _mesh_bounds(model, Transform3D.IDENTITY)

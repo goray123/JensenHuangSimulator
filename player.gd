@@ -25,6 +25,8 @@ const MAX_THROW_SPEED := 10.0
 const THROW_CYCLE_SECONDS := 2.0
 const THROW_ANGLE := deg_to_rad(25.0)
 const THROW_HEIGHT_DROP := 0.15
+const FURNITURE_LIFT_STEP := 0.1
+const FURNITURE_LIFT_STEPS := 10
 const HIT_FLASH_DURATION := 0.2
 const HIT_STUN_DURATION := 0.5
 const HIT_FLASH_INTERVAL := 0.05
@@ -512,6 +514,25 @@ func _throw_transform() -> Transform3D:
 	var bounds := (launch_transform * collider.transform) * collider.shape.get_debug_mesh().get_aabb()
 	var available_drop := maxf(bounds.position.y - global_position.y - 0.02, 0.0)
 	launch_transform.origin.y -= minf(THROW_HEIGHT_DROP, available_drop)
+	if held_pickup.is_in_group(&"furniture_pickups"):
+		launch_transform = _lift_over_clutter(launch_transform, collider)
+	return launch_transform
+
+
+# Big furniture rarely has a clear launch spot at hand height: a sofa held in
+# front of you overlaps the coffee table. Heave it over such clutter instead of
+# refusing the throw; walls still block, since they are taller than the lift.
+func _lift_over_clutter(launch_transform: Transform3D, collider: CollisionShape3D) -> Transform3D:
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = collider.shape
+	query.collision_mask = 3
+	query.exclude = [get_rid(), held_pickup.get_rid()]
+	var space := get_world_3d().direct_space_state
+	for step in FURNITURE_LIFT_STEPS + 1:
+		var lifted := launch_transform.translated(Vector3.UP * step * FURNITURE_LIFT_STEP)
+		query.transform = lifted * collider.transform
+		if space.intersect_shape(query, 1).is_empty():
+			return lifted
 	return launch_transform
 
 
@@ -524,18 +545,27 @@ func _pickup_distance_squared(pickup: RigidBody3D) -> float:
 func can_grab(pickup: RigidBody3D) -> bool:
 	return (held_pickup == null and not contest_active and not is_stunned()
 		and is_instance_valid(pickup) and not pickup.is_queued_for_deletion() and pickup.is_in_group(&"pickups")
-		and _pickup_distance_squared(pickup) <= PICKUP_RANGE * PICKUP_RANGE)
+		and _in_pickup_range(pickup))
+
+
+# Large furniture is reachable from its sides, not only within range of its centre.
+func _in_pickup_range(pickup: RigidBody3D) -> bool:
+	var reach := PICKUP_RANGE + float(pickup.get_meta(&"grab_reach", 0.0))
+	return _pickup_distance_squared(pickup) <= reach * reach
 
 
 func get_pickup_target() -> RigidBody3D:
 	if held_pickup != null or contest_active or is_stunned():
 		return null
 	var nearest: RigidBody3D = null
-	var nearest_distance_squared := PICKUP_RANGE * PICKUP_RANGE
+	var nearest_distance_squared := INF
 	for node in get_tree().get_nodes_in_group(&"pickups"):
 		var pickup := node as RigidBody3D
 		if pickup == null or pickup.is_queued_for_deletion() or pickup.get_world_3d() != get_world_3d():
 			continue
+		if not _in_pickup_range(pickup):
+			continue
+		# Rank by centre distance so an item on a table wins over the table.
 		var distance_squared := _pickup_distance_squared(pickup)
 		if distance_squared <= nearest_distance_squared:
 			nearest = pickup
@@ -570,6 +600,7 @@ func hold_pickup(pickup: RigidBody3D) -> void:
 		return
 	pickup.set_pickup_highlighted(false)
 	_set_highlighted_pickup(null)
+	_wake_bodies_resting_on(pickup)
 	if pickup.has_method(&"disarm"):
 		pickup.disarm()
 	pickup.freeze = true
@@ -594,6 +625,26 @@ func hold_pickup(pickup: RigidBody3D) -> void:
 	_update_hand_socket(0.0)
 	_shared_sound(&"pickup_grab")
 	held_pickup_changed.emit(true)
+
+
+# Sleeping bodies ignore a support that stops colliding, so lifting a table
+# would leave what was on it floating. Wake everything just above it.
+func _wake_bodies_resting_on(pickup: RigidBody3D) -> void:
+	var collider := pickup.get_node_or_null("CollisionShape3D") as CollisionShape3D
+	if collider == null or collider.shape == null:
+		return
+	var bounds := collider.shape.get_debug_mesh().get_aabb()
+	var box := BoxShape3D.new()
+	box.size = bounds.size + Vector3(0.1, 0.3, 0.1)
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = box
+	query.transform = pickup.global_transform * collider.transform * Transform3D(Basis.IDENTITY, bounds.get_center() + Vector3.UP * 0.15)
+	query.collision_mask = 2
+	query.exclude = [pickup.get_rid()]
+	for hit in pickup.get_world_3d().direct_space_state.intersect_shape(query, 32):
+		var body := hit.collider as RigidBody3D
+		if body != null and not body.freeze:
+			body.sleeping = false
 
 
 func release_pickup(launch: bool, launch_velocity := Vector3.ZERO) -> void:

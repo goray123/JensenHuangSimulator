@@ -20,10 +20,10 @@ func _run() -> void:
 	await _wait_for_physics(15)
 	var ground_y := player.global_position.y
 	var total_pickups := get_nodes_in_group(&"pickups").size()
-	_check(total_pickups == 21, "The three spheres and 18 props remain pickup targets")
+	_check(total_pickups == 43, "The three spheres, 18 props and 22 furniture pieces remain pickup targets")
 	var pickups: Array[Node] = [courtyard.get_node("Pickup1"), courtyard.get_node("Pickup2"), courtyard.get_node("Pickup3")]
 	# The prop smoke test covers furniture selection separately.
-	for prop in get_nodes_in_group(&"apartment_props"):
+	for prop in get_nodes_in_group(&"apartment_props") + get_nodes_in_group(&"furniture_pickups"):
 		prop.remove_from_group(&"pickups")
 	for pickup: RigidBody3D in pickups:
 		var sphere := (pickup.get_node("Sphere") as MeshInstance3D).mesh as SphereMesh

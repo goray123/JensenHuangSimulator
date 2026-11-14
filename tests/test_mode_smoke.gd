@@ -33,7 +33,7 @@ func _run() -> void:
 	_check(lobby._peer == null and not lobby._discovery.is_bound() and lobby.multiplayer.get_peers().is_empty(), "Test Mode opens without hosting, discovery, or another peer")
 	_check(not lobby.get_node("Menu").visible and apartment.guest_peer_id == 0, "Test Mode opens the offline apartment directly")
 	_check(target.is_on_floor() and not target.reads_local_input and player.is_on_floor(), "The player and test target stand on the floor")
-	_check(get_nodes_in_group(&"pickups").size() == 21, "Only the 21 household items are collectible")
+	_check(get_nodes_in_group(&"pickups").size() == 43, "Only the 21 household items and 22 furniture pieces are collectible")
 	var banana: RigidBody3D = apartment.get_node("Items/Item_01_banana")
 	var egg: RigidBody3D = apartment.get_node("Items/Item_06_egg")
 	var ring: RigidBody3D = apartment.get_node("Items/Item_12_ring")
@@ -163,7 +163,7 @@ func _run() -> void:
 	_check(apartment.get_node("HUD/HusbandBag/Items").get_child_count() == 0
 		and apartment.get_node("HUD/HusbandProfile/HusbandWallet/Gold").text == "000000", "A new test round resets bags and gold")
 	_check(player.held_pickup == null and not player.is_stunned(), "Reset clears held objects and player state")
-	_check(get_nodes_in_group(&"pickups").size() == 21 and get_nodes_in_group(&"household_items").size() == 21, "Reset restores every prop without duplicates")
+	_check(get_nodes_in_group(&"pickups").size() == 43 and get_nodes_in_group(&"household_items").size() == 21, "Reset restores every prop without duplicates")
 	var dummy: CharacterBody3D = mode.target
 	var dummy_bag := apartment.get_node("HUD/WifeBag/Items") as GridContainer
 	await _tap(KEY_F3)

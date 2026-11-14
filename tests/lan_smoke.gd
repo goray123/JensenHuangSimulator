@@ -87,7 +87,7 @@ func _run() -> void:
 	_guest = apartment.get_node("Guest")
 	_pickup = apartment.get_node("Items/Item_06_egg")
 	var second: RigidBody3D = apartment.get_node("Items/Item_10_tissue_box")
-	_check(apartment._pickups.size() == 21, "Only the 21 household items have pickup indices")
+	_check(apartment._pickups.size() == 43, "Only the 21 household items and 22 furniture pieces have pickup indices")
 	await _wait_frames(8)
 	_check(not _lobby.get_node("Menu").visible, "Start opens the new map for both players")
 	_check(_host.position.distance_to(HOST_SPAWN) < 0.08, "Host uses the first map spawn")

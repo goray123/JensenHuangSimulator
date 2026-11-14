@@ -80,7 +80,7 @@ func _run() -> void:
 			_first = pickup
 		elif pickup.name == &"SecondBanana":
 			_second = pickup
-	_check(_first != null and _second != null and _apartment._pickups.size() == 22,
+	_check(_first != null and _second != null and _apartment._pickups.size() == 44,
 		"Both authored bananas have stable entries in the shared pickup list")
 	if _failed:
 		quit(1)
@@ -305,7 +305,7 @@ func _verify_indices() -> void:
 	_check(_apartment._pickups.size() == _pickup_ids.size(), "Conversion preserves the size of the network pickup list")
 	for index in _pickup_ids.size():
 		_check(_apartment._pickups[index].get_instance_id() == _pickup_ids[index], "Conversion preserves every pickup's network index and body identity")
-	_check(get_nodes_in_group(&"pickups").size() == 20, "Exactly the two converted bananas leave the available pickup group")
+	_check(get_nodes_in_group(&"pickups").size() == 42, "Exactly the two converted bananas leave the available pickup group")
 
 
 func _is_peel(pickup: RigidBody3D) -> bool:

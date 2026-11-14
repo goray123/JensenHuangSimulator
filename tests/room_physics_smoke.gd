@@ -22,7 +22,7 @@ func _run() -> void:
 	player.reads_local_input = false
 	var furniture := get_nodes_in_group(&"dynamic_furniture")
 	_check(furniture.size() >= 26, "All 26 furniture objects have dynamic physics bodies")
-	_check(get_nodes_in_group(&"pickups").size() == 21, "Existing E pickup targets are preserved")
+	_check(get_nodes_in_group(&"pickups").size() == 43, "Existing E pickup targets are preserved alongside 22 furniture pickups")
 	for mesh: MeshInstance3D in apartment.get_node("Map").find_children("*", "MeshInstance3D", true, false):
 		if mesh.visible and authored.get(mesh.name) != null:
 			_check(mesh.global_transform.is_equal_approx(authored[mesh.name]), "%s keeps its authored transform and scale" % mesh.name)
