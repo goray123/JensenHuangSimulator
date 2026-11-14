@@ -91,14 +91,14 @@ offset_bottom = -22.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.83, 0.87, 0.92, 1)
 theme_override_font_sizes/font_size = 18
-text = "W A S D  이동 + 방향 전환     E  구 줍기     T  바라보는 방향으로 던지기"
+text = "W A S D  이동 + 방향 전환     E  구 줍기     T 누르기: 궤적 / 떼기: 던지기"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="PickupStatus" type="Label" parent="HUD"]
 offset_left = 24.0
 offset_top = 20.0
-offset_right = 480.0
+offset_right = 700.0
 offset_bottom = 52.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.84, 0.3, 1)

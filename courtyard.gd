@@ -9,4 +9,4 @@ func _ready() -> void:
 
 
 func _update_pickup_status(is_holding: bool) -> void:
-	_pickup_status.text = "손: 구를 들고 있음 (T로 던지기)" if is_holding else "손: 비어 있음"
+	_pickup_status.text = "손: 구를 들고 있음 (T 누르기: 조준 / 떼기: 던지기)" if is_holding else "손: 비어 있음"

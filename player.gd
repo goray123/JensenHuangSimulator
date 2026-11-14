@@ -5,12 +5,14 @@ signal held_pickup_changed(is_holding: bool)
 const MOVE_SPEED := 4.0
 const TURN_SPEED := 6.0
 const PICKUP_RANGE := 1.2
-const THROW_SPEED := 6.0
+const THROW_SPEED := 12.0
 const THROW_LIFT := 1.0
 
 var held_pickup: RigidBody3D = null
+var _is_aiming := false
 
 @onready var _hand_socket: Marker3D = $RightArm/HandSocket
+@onready var _trajectory: MeshInstance3D = $ThrowTrajectory
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -18,8 +20,29 @@ func _unhandled_input(event: InputEvent) -> void:
 		_pickup_nearest()
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"throw"):
-		_throw_held_pickup()
+		_is_aiming = held_pickup != null
 		get_viewport().set_input_as_handled()
+	elif event.is_action_released(&"throw"):
+		var should_throw := _is_aiming
+		_cancel_aim()
+		if should_throw:
+			_throw_held_pickup()
+		get_viewport().set_input_as_handled()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_cancel_aim()
+
+
+func _cancel_aim() -> void:
+	_is_aiming = false
+	if is_instance_valid(_trajectory):
+		_trajectory.clear_trajectory()
+
+
+func _throw_velocity() -> Vector3:
+	return -global_transform.basis.z * THROW_SPEED + Vector3.UP * THROW_LIFT
 
 
 func _pickup_nearest() -> void:
@@ -60,7 +83,7 @@ func _throw_held_pickup() -> void:
 	pickup.collision_mask = 3
 	pickup.freeze = false
 	pickup.sleeping = false
-	pickup.linear_velocity = -global_transform.basis.z * THROW_SPEED + Vector3.UP * THROW_LIFT
+	pickup.linear_velocity = _throw_velocity()
 	pickup.angular_velocity = Vector3.ZERO
 	pickup.add_to_group(&"pickups")
 	held_pickup_changed.emit(false)
@@ -79,3 +102,7 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	move_and_slide()
+	if _is_aiming and held_pickup != null and Input.is_action_pressed(&"throw"):
+		_trajectory.update_trajectory(self, held_pickup, _throw_velocity())
+	else:
+		_cancel_aim()
