@@ -1,5 +1,7 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://throwable.gd" id="1_throwable"]
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pickup"]
 albedo_color = Color(1, 0.78, 0.12, 1)
 metallic = 0.25
@@ -23,6 +25,7 @@ friction = 0.8
 bounce = 0.2
 
 [node name="Pickup" type="RigidBody3D" groups=["pickups"]]
+script = ExtResource("1_throwable")
 collision_layer = 2
 collision_mask = 3
 mass = 0.1

@@ -42,6 +42,9 @@ func _ready() -> void:
 		_guest.add_collision_exception_with(_host)
 		_host.add_collision_exception_with(_guest)
 		_players = [_host, _guest]
+		if is_host:
+			for index in _players.size():
+				_players[index].hit_received.connect(_broadcast_hit.bind(index))
 		process_physics_priority = 1
 		if not is_host:
 			_local_player = _guest
@@ -130,6 +133,16 @@ func _receive_pickup_action(pick_up: bool, speed: float) -> void:
 
 func _is_guest_request() -> bool:
 	return _guest != null and multiplayer.is_server() and multiplayer.get_remote_sender_id() == guest_peer_id
+
+
+func _broadcast_hit(player_index: int) -> void:
+	_apply_hit.rpc_id(guest_peer_id, player_index)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_hit(player_index: int) -> void:
+	if player_index >= 0 and player_index < _players.size():
+		_players[player_index].receive_hit()
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")

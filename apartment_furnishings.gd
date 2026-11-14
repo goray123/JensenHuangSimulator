@@ -1,5 +1,7 @@
 extends Node3D
 
+const THROWABLE := preload("res://throwable.gd")
+
 const ITEM_NAMES := {
 	"Television": "TV", "Laptop": "노트북", "CoffeeMug": "머그컵",
 	"DeskMug": "머그컵", "CoffeeTableBooks": "책", "BedsideLamp": "탁상등",
@@ -36,7 +38,7 @@ func _make_pickup(model: Node3D) -> void:
 	var item_name := String(model.name)
 	model.name = "Model"
 	model.remove_from_group(&"throwable_props")
-	var body := RigidBody3D.new()
+	var body := THROWABLE.new()
 	body.name = item_name
 	body.freeze = true
 	body.collision_layer = 2

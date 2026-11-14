@@ -9,9 +9,13 @@ const GUEST_SPAWN := Vector3(2.1, 0.04, 4.24)
 class StartBarrier:
 	extends Node
 	var started := false
+	var hits_verified := false
 	@rpc("authority", "call_remote", "reliable")
 	func begin() -> void:
 		started = true
+	@rpc("authority", "call_remote", "reliable")
+	func finish_hits() -> void:
+		hits_verified = true
 
 var _lobby: Node
 var _host: Player
@@ -111,6 +115,7 @@ func _test_host(second: RigidBody3D) -> void:
 	await _expect(func() -> bool: return _guest.held_pickup == tv, "A guest can also pick up the shared TV")
 	var tv_from := tv.global_position
 	await _expect(func() -> bool: return _guest.held_pickup == null and tv.global_position.distance_to(tv_from) > 0.35, "A charged TV throw is simulated by the host")
+	await _test_hits_host(_lobby.get_node("Apartment"))
 	await _expect(func() -> bool: return _lobby.get_node_or_null("Apartment") == null, "The host returns to the lobby when the guest leaves")
 	_check(_lobby.get_node("%Start").disabled, "Leaving frees the guest slot and disables Start")
 
@@ -155,8 +160,61 @@ func _test_guest() -> void:
 	var tv_from := tv.global_position
 	_key(KEY_T, false)
 	await _expect(func() -> bool: return _guest.held_pickup == null and tv.global_position.distance_to(tv_from) > 0.35, "Guest sees the charged TV throw")
+	await _test_hits_guest(_lobby.get_node("Apartment").get_node("Pickup1"))
 	await _tap(KEY_ESCAPE)
 	_check(_lobby.get_node_or_null("Apartment") == null and _lobby.get_node("%Join").visible, "Esc returns the guest to the main menu")
+
+
+func _test_hits_host(apartment: Node3D) -> void:
+	var sphere := apartment.get_node("Pickup1") as RigidBody3D
+	# Earlier throw tests must not introduce unrelated hits during timing checks.
+	for item in apartment._pickups:
+		item.freeze = true
+		item.disarm()
+	_host.position = Vector3(-2, 0.01, 3)
+	_host.rotation.y = 0
+	_guest.position = Vector3(-2, 0.01, 1.2)
+	_host.hold_pickup(sphere)
+	_host.release_pickup(true, _host.throw_velocity_at_speed(8.0))
+	await _expect(func() -> bool: return _guest.is_stunned(), "The host's projectile stuns the guest on the authoritative server")
+	var hit_position := _guest.global_position
+	await _wait_frames(20)
+	_check(_guest.is_stunned() and _guest.global_position.distance_to(hit_position) < 0.02, "The server blocks guest movement during the stun")
+	await _wait_frames(20)
+	_check(not _guest.is_stunned(), "The server releases the guest's movement after half a second")
+	_host.position = Vector3(-2, 0.01, 1.2)
+	_guest.position = Vector3(-2, 0.01, 3)
+	_guest.rotation.y = 0
+	_guest.hold_pickup(sphere)
+	await _expect(func() -> bool: return _host.is_stunned(), "The guest's projectile can also stun the host")
+	await _wait_frames(40)
+	_check(not _host.is_stunned(), "The host recovers after the same stun duration")
+	root.get_node("SmokeBarrier").finish_hits.rpc_id(apartment.guest_peer_id)
+
+
+func _test_hits_guest(sphere: RigidBody3D) -> void:
+	await _expect(func() -> bool: return _guest.is_stunned(), "The guest receives the reliable hit event from the host")
+	var torso := _guest.get_node("Torso") as MeshInstance3D
+	var hit_position := _guest.global_position
+	var saw_red := false
+	_key(KEY_D, true)
+	for _frame in 18:
+		saw_red = saw_red or torso.material_overlay != null
+		await physics_frame
+	_check(saw_red and torso.material_overlay == null, "The guest sees the red blink and its end after 0.2 seconds")
+	_check(_guest.is_stunned() and _guest.global_position.distance_to(hit_position) < 0.08, "Guest input cannot bypass the movement lock")
+	await _expect(func() -> bool: return not _guest.is_stunned() and _guest.position.x > hit_position.x + 0.1, "Guest movement resumes when the hit expires")
+	_key(KEY_D, false)
+	await _expect(func() -> bool: return _guest.held_pickup == sphere and _guest.position.z > 2.9, "The next projectile is shared with the guest")
+	_key(KEY_T, true)
+	await _wait_frames(45)
+	_key(KEY_T, false)
+	await _expect(func() -> bool: return _host.is_stunned(), "A guest throw produces a synchronized hit on the host")
+	_check(not _guest.is_stunned(), "Throwing does not stun the thrower")
+	await _wait_frames(15)
+	_check(_host.get_node("Torso").material_overlay == null, "The remote host's red flash restores its appearance")
+	await _expect(func() -> bool: return not _host.is_stunned(), "The remote host's stun also expires")
+	await _expect(func() -> bool: return root.get_node("SmokeBarrier").hits_verified, "The host finishes hit checks before the guest disconnects")
 
 
 func _expect(condition: Callable, message: String) -> void:

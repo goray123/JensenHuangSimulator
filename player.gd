@@ -4,6 +4,7 @@ signal held_pickup_changed(is_holding: bool)
 signal throw_blocked
 signal aim_changed(is_aiming: bool, speed: float)
 signal pickup_action_requested(pick_up: bool, speed: float)
+signal hit_received
 
 const MOVE_SPEED := 4.0
 const TURN_SPEED := 6.0
@@ -12,6 +13,9 @@ const MAX_THROW_SPEED := 10.0
 const THROW_CYCLE_SECONDS := 2.0
 const THROW_ANGLE := deg_to_rad(25.0)
 const THROW_HEIGHT_DROP := 0.15
+const HIT_FLASH_DURATION := 0.2
+const HIT_STUN_DURATION := 0.5
+const HIT_FLASH_INTERVAL := 0.05
 
 var held_pickup: RigidBody3D = null
 var reads_local_input := true
@@ -19,9 +23,49 @@ var simulates_movement := true
 var remote_input := Vector2.ZERO
 var _is_aiming := false
 var _aim_elapsed := 0.0
+var _stun_remaining := 0.0
+var _flash_remaining := 0.0
+var _body_meshes: Array[MeshInstance3D]
+var _original_overlays: Array[Material]
+var _hit_material := StandardMaterial3D.new()
 
 @onready var _hand_socket: Marker3D = $RightArm/HandSocket
 @onready var _trajectory: MeshInstance3D = $ThrowTrajectory
+
+
+func _ready() -> void:
+	_hit_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_hit_material.albedo_color = Color(1, 0.04, 0.04)
+	for node in get_children():
+		if node is MeshInstance3D and node != _trajectory:
+			_body_meshes.append(node)
+			_original_overlays.append(node.material_overlay)
+
+
+func receive_hit() -> void:
+	_stun_remaining = HIT_STUN_DURATION
+	_flash_remaining = HIT_FLASH_DURATION
+	velocity.x = 0.0
+	velocity.z = 0.0
+	_set_hit_flash(true)
+	hit_received.emit()
+
+
+func is_stunned() -> bool:
+	return _stun_remaining > 0.0
+
+
+func _update_hit_effects(delta: float) -> void:
+	_stun_remaining = move_toward(_stun_remaining, 0.0, delta)
+	if _flash_remaining > 0.0:
+		_flash_remaining = move_toward(_flash_remaining, 0.0, delta)
+		var flash_step := int((HIT_FLASH_DURATION - _flash_remaining) / HIT_FLASH_INTERVAL)
+		_set_hit_flash(_flash_remaining > 0.0 and flash_step % 2 == 0)
+
+
+func _set_hit_flash(red: bool) -> void:
+	for index in _body_meshes.size():
+		_body_meshes[index].material_overlay = _hit_material if red else _original_overlays[index]
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -111,6 +155,8 @@ func pickup_nearest() -> void:
 
 
 func hold_pickup(pickup: RigidBody3D) -> void:
+	if pickup.has_method(&"disarm"):
+		pickup.disarm()
 	pickup.freeze = true
 	pickup.linear_velocity = Vector3.ZERO
 	pickup.angular_velocity = Vector3.ZERO
@@ -154,6 +200,8 @@ func release_pickup(launch: bool, launch_velocity := Vector3.ZERO) -> void:
 	pickup.angular_velocity = Vector3.ZERO
 	if launch:
 		pickup.sleeping = false
+		if pickup.has_method(&"arm"):
+			pickup.arm(self)
 	pickup.add_to_group(&"pickups")
 	held_pickup_changed.emit(false)
 
@@ -164,7 +212,9 @@ static func read_movement() -> Vector2:
 
 func _physics_process(delta: float) -> void:
 	if simulates_movement:
-		_move(read_movement() if reads_local_input else remote_input, delta)
+		var input := read_movement() if reads_local_input else remote_input
+		_move(Vector2.ZERO if is_stunned() else input, delta)
+	_update_hit_effects(delta)
 	if reads_local_input and _is_aiming and held_pickup != null and Input.is_action_pressed(&"throw"):
 		_aim_elapsed = fmod(_aim_elapsed + delta, THROW_CYCLE_SECONDS)
 		_trajectory.update_trajectory(self, held_pickup, _throw_velocity(), _throw_transform())
