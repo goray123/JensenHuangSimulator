@@ -3,12 +3,15 @@ extends CharacterBody3D
 signal held_pickup_changed(is_holding: bool)
 signal throw_blocked
 signal aim_changed(is_aiming: bool, speed: float)
-signal pickup_action_requested(pick_up: bool, speed: float)
+signal grab_changed(is_grabbing: bool, progress: float)
+signal throw_requested(speed: float)
+signal bag_requested
 signal hit_received
 
 const MOVE_SPEED := 4.0
 const TURN_SPEED := 6.0
 const PICKUP_RANGE := 1.2
+const GRAB_SECONDS := 1.0
 const MAX_THROW_SPEED := 10.0
 const THROW_CYCLE_SECONDS := 2.0
 const THROW_ANGLE := deg_to_rad(25.0)
@@ -23,7 +26,8 @@ var simulates_movement := true
 var remote_input := Vector2.ZERO
 var contest_active := false
 var pickup_request_handler: Callable
-var pickup_highlight_provider: Callable
+var _grab_target: RigidBody3D
+var _grab_elapsed := -1.0
 var _is_aiming := false
 var _aim_elapsed := 0.0
 var _stun_remaining := 0.0
@@ -55,6 +59,7 @@ func receive_hit() -> void:
 
 func apply_stun(duration: float) -> void:
 	_stun_remaining = maxf(_stun_remaining, duration)
+	_cancel_grab()
 	velocity.x = 0.0
 	velocity.z = 0.0
 
@@ -62,6 +67,7 @@ func apply_stun(duration: float) -> void:
 func set_contest_active(value: bool) -> void:
 	contest_active = value
 	if value:
+		_cancel_grab()
 		_cancel_aim()
 		_set_highlighted_pickup(null)
 		velocity.x = 0.0
@@ -90,33 +96,57 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventKey and event.echo:
 		return
-	if event.is_action_pressed(&"pickup"):
-		if pickup_request_handler.is_valid() or simulates_movement:
-			pickup_nearest()
-		else:
-			pickup_action_requested.emit(true, 0.0)
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"throw"):
-		if not contest_active and not _is_aiming and held_pickup != null:
+	if event.is_action_pressed(&"interact"):
+		if contest_active:
+			if pickup_request_handler.is_valid():
+				pickup_request_handler.call(self)
+		elif held_pickup == null:
+			_begin_grab()
+		elif not _is_aiming:
 			_aim_elapsed = 0.0
 			_is_aiming = true
 			aim_changed.emit(true, 0.0)
 		get_viewport().set_input_as_handled()
-	elif event.is_action_released(&"throw"):
-		var should_throw := _is_aiming
-		var launch_velocity := _throw_velocity()
-		_cancel_aim()
-		if should_throw:
+	elif event.is_action_released(&"interact"):
+		_cancel_grab()
+		if _is_aiming:
+			var launch_velocity := _throw_velocity()
+			_cancel_aim()
 			if simulates_movement:
 				release_pickup(true, launch_velocity)
 			else:
-				pickup_action_requested.emit(false, launch_velocity.length())
+				throw_requested.emit(launch_velocity.length())
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed(&"bag_item") and not contest_active and held_pickup != null:
+		_cancel_aim()
+		bag_requested.emit()
 		get_viewport().set_input_as_handled()
 
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT:
+		_cancel_grab()
 		_cancel_aim()
+
+
+func _begin_grab() -> void:
+	if _grab_elapsed >= 0.0 or not pickup_request_handler.is_valid():
+		return
+	_grab_target = get_pickup_target()
+	if _grab_target != null:
+		_grab_elapsed = 0.0
+		grab_changed.emit(true, 0.0)
+		pickup_request_handler.call(self, true, _grab_target)
+
+
+func _cancel_grab() -> void:
+	if _grab_elapsed < 0.0:
+		return
+	_grab_target = null
+	_grab_elapsed = -1.0
+	grab_changed.emit(false, 0.0)
+	if pickup_request_handler.is_valid():
+		pickup_request_handler.call(self, false)
 
 
 func _cancel_aim() -> void:
@@ -154,6 +184,18 @@ func _throw_transform() -> Transform3D:
 	return launch_transform
 
 
+func _pickup_distance_squared(pickup: RigidBody3D) -> float:
+	var reach_position := global_position
+	reach_position.y = clampf(pickup.global_position.y, global_position.y, global_position.y + 1.8)
+	return reach_position.distance_squared_to(pickup.global_position)
+
+
+func can_grab(pickup: RigidBody3D) -> bool:
+	return (held_pickup == null and not contest_active and not is_stunned()
+		and is_instance_valid(pickup) and not pickup.is_queued_for_deletion() and pickup.is_in_group(&"pickups")
+		and _pickup_distance_squared(pickup) <= PICKUP_RANGE * PICKUP_RANGE)
+
+
 func get_pickup_target() -> RigidBody3D:
 	if held_pickup != null or contest_active or is_stunned():
 		return null
@@ -161,31 +203,19 @@ func get_pickup_target() -> RigidBody3D:
 	var nearest_distance_squared := PICKUP_RANGE * PICKUP_RANGE
 	for node in get_tree().get_nodes_in_group(&"pickups"):
 		var pickup := node as RigidBody3D
-		if pickup == null or pickup.is_queued_for_deletion():
+		if pickup == null or pickup.is_queued_for_deletion() or pickup.get_world_3d() != get_world_3d():
 			continue
-		var reach_position := global_position
-		reach_position.y = clampf(pickup.global_position.y, global_position.y, global_position.y + 1.8)
-		var distance_squared := reach_position.distance_squared_to(pickup.global_position)
+		var distance_squared := _pickup_distance_squared(pickup)
 		if distance_squared <= nearest_distance_squared:
 			nearest = pickup
 			nearest_distance_squared = distance_squared
 	return nearest
 
 
-func pickup_nearest() -> void:
-	if pickup_request_handler.is_valid():
-		pickup_request_handler.call(self)
-		return
-	var pickup := get_pickup_target()
-	if pickup != null:
-		hold_pickup(pickup)
-
-
 func _update_pickup_highlight() -> void:
-	# Selection is local feedback, even when the server handles E and movement.
 	var target: RigidBody3D = null
 	if reads_local_input:
-		target = pickup_highlight_provider.call(self) if pickup_highlight_provider.is_valid() else get_pickup_target()
+		target = _grab_target if is_instance_valid(_grab_target) else get_pickup_target()
 	_set_highlighted_pickup(target)
 
 
@@ -219,6 +249,7 @@ func hold_pickup(pickup: RigidBody3D) -> void:
 	pickup.transform = Transform3D.IDENTITY
 	pickup.position = pickup.get_meta(&"hold_offset", Vector3.ZERO)
 	held_pickup = pickup
+	_cancel_grab()
 	held_pickup_changed.emit(true)
 
 
@@ -264,8 +295,14 @@ func _physics_process(delta: float) -> void:
 		var input := read_movement() if reads_local_input else remote_input
 		_move(Vector2.ZERO if is_stunned() or contest_active else input, delta)
 	_update_hit_effects(delta)
+	if _grab_elapsed >= 0.0:
+		if not reads_local_input or not Input.is_action_pressed(&"interact") or not is_instance_valid(_grab_target) or not can_grab(_grab_target):
+			_cancel_grab()
+		else:
+			_grab_elapsed = minf(_grab_elapsed + delta, GRAB_SECONDS)
+			grab_changed.emit(true, _grab_elapsed / GRAB_SECONDS)
 	_update_pickup_highlight()
-	if reads_local_input and _is_aiming and held_pickup != null and Input.is_action_pressed(&"throw"):
+	if reads_local_input and _is_aiming and held_pickup != null and Input.is_action_pressed(&"interact"):
 		_aim_elapsed = fmod(_aim_elapsed + delta, THROW_CYCLE_SECONDS)
 		_trajectory.update_trajectory(self, held_pickup, _throw_velocity(), _throw_transform())
 		aim_changed.emit(true, _throw_speed())

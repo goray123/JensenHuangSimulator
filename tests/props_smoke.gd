@@ -50,7 +50,12 @@ func _run() -> void:
 			approach = Vector3.FORWARD
 		var distance := 0.9 if body.get_parent().name in [&"Kitchen", &"SecondBedroom"] else 0.75
 		player.global_position = Vector3(body.global_position.x, ground_y, body.global_position.z) + approach * distance
-		await _tap(KEY_E)
+		var reachable: bool = player.get_pickup_target() == body
+		_check(reachable, "%s can be targeted from standing height" % body.name)
+		if not reachable:
+			body.remove_from_group(&"pickups")
+			continue
+		player.hold_pickup(body)
 		_check(player.held_pickup == body, "%s can be picked up from standing height" % body.name)
 		if player.held_pickup != body:
 			body.remove_from_group(&"pickups")
@@ -58,15 +63,15 @@ func _run() -> void:
 		_check(body.freeze and body.collision_layer == 0, "%s is safe to carry" % body.name)
 		player.global_position = launch_position
 		player.rotation.y = 0.0
-		_set_key(KEY_T, true)
+		_mouse(true)
 		await _wait_for_physics(30)
 		_check(trajectory.visible and trajectory.points.size() > 2, "%s shows an oriented throw trajectory" % body.name)
 		var predicted: PackedVector3Array = trajectory.points.duplicate()
 		var release_speed := power.value
-		_set_key(KEY_T, false)
+		_mouse(false)
 		_check(player.held_pickup == null and not body.freeze, "%s launches on release" % body.name)
 		var horizontal_velocity := body.linear_velocity * Vector3(1, 0, 1)
-		_check(absf(body.linear_velocity.length() - release_speed) < 0.002 and horizontal_velocity.normalized().dot(-player.global_basis.z) > 0.99, "%s launches forward at the speed shown when T is released" % body.name)
+		_check(absf(body.linear_velocity.length() - release_speed) < 0.002 and horizontal_velocity.normalized().dot(-player.global_basis.z) > 0.99, "%s launches forward at the speed shown when left click is released" % body.name)
 		_check(body.global_position.distance_to(predicted[0]) < 0.001, "%s uses the same lowered origin as its preview" % body.name)
 		var collider := body.get_node("CollisionShape3D") as CollisionShape3D
 		var bounds := collider.global_transform * collider.shape.get_debug_mesh().get_aabb()
@@ -79,19 +84,15 @@ func _run() -> void:
 		await _wait_for_physics(90)
 		_check(body.global_position.y > -0.05, "%s collides with the apartment floor" % body.name)
 		_check(model.scale.is_equal_approx(model_scale), "%s retains its visual scale after a throw" % body.name)
+		body.freeze = true
 		player.global_position = Vector3(body.global_position.x, ground_y, body.global_position.z + 0.7)
-		await _tap(KEY_E)
-		_check(player.held_pickup == body, "%s can be picked up again" % body.name)
-		# Release in open space before testing the next item.
-		player.global_position = launch_position
-		player.rotation.y = 0.0
-		await _tap(KEY_T)
+		_check(player.get_pickup_target() == body, "%s can be picked up again" % body.name)
 		body.freeze = true
 		body.collision_layer = 0
 		body.collision_mask = 0
 		body.remove_from_group(&"pickups")
 
-	# A TV intersecting a wall must remain in the hand when T is released.
+	# A TV intersecting a wall must remain in the hand when left click is released.
 	var tv := apartment.get_node_or_null("Furnishings/LivingRoom/Television") as RigidBody3D
 	if tv == null:
 		# Thrown bodies are now children of the apartment.
@@ -101,7 +102,7 @@ func _run() -> void:
 	tv.global_position = launch_position + Vector3(0, 0.8, -0.6)
 	tv.add_to_group(&"pickups")
 	player.global_position = launch_position
-	await _tap(KEY_E)
+	player.hold_pickup(tv)
 	_check(player.held_pickup == tv, "The TV is held before testing an obstructed release")
 	# Keep the player fixed to deliberately put the held box inside the wall.
 	player.set_physics_process(false)
@@ -109,7 +110,7 @@ func _run() -> void:
 	player.rotation.y = PI
 	var blocked := [false]
 	player.throw_blocked.connect(func() -> void: blocked[0] = true, CONNECT_ONE_SHOT)
-	await _tap(KEY_T)
+	await _hold_left(3)
 	_check(player.held_pickup == tv and tv.freeze, "A blocked TV throw keeps the TV in hand")
 	_check(blocked[0], "The player signals that the throw was blocked")
 	_check(get_nodes_in_group(&"apartment_props").size() == 18, "Throw cycles preserve every prop without duplicating bodies")
@@ -137,16 +138,16 @@ func _check(condition: bool, message: String) -> void:
 		push_error(message)
 
 
-func _tap(key: Key) -> void:
-	_set_key(key, true)
-	await _wait_for_physics(3)
-	_set_key(key, false)
+func _hold_left(frames: int) -> void:
+	_mouse(true)
+	await _wait_for_physics(frames)
+	_mouse(false)
 	await _wait_for_physics(2)
 
 
-func _set_key(key: Key, pressed: bool) -> void:
-	var event := InputEventKey.new()
-	event.physical_keycode = key
+func _mouse(pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
 	event.pressed = pressed
 	Input.parse_input_event(event)
 	Input.flush_buffered_events()

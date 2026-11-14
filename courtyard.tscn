@@ -10,6 +10,8 @@
 [ext_resource type="Texture2D" uid="uid://bdjnjaubptlbk" path="res://assets/Sprites/BagBG.png" id="7_bag"]
 [ext_resource type="Texture2D" uid="uid://p4l46rmyyi1b" path="res://assets/Sprites/TimerBG.png" id="8_timer"]
 [ext_resource type="FontFile" uid="uid://byxdr0v4mkixn" path="res://assets/Fonts/IntelOneMono-Bold.otf" id="9_timer_font"]
+[ext_resource type="Script" path="res://courtyard_hud.gd" id="10_hud"]
+[ext_resource type="Texture2D" path="res://assets/Sprites/LogBG.png" id="11_log"]
 
 [sub_resource type="Environment" id="Environment_apartment"]
 background_mode = 3
@@ -35,6 +37,46 @@ gradient = SubResource("Gradient_backdrop")
 width = 512
 height = 512
 fill_to = Vector2(1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_coin"]
+bg_color = Color(0.98, 0.76, 0.3, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.86, 0.58, 0.14, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_left = 14
+corner_radius_bottom_right = 14
+
+[sub_resource type="LabelSettings" id="LabelSettings_gold"]
+font = ExtResource("9_timer_font")
+font_size = 23
+font_color = Color(1, 0.96, 0.86, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_log"]
+content_margin_left = 16.0
+content_margin_right = 16.0
+texture = ExtResource("11_log")
+
+[sub_resource type="Theme" id="Theme_log"]
+Label/font_sizes/font_size = 17
+Label/styles/normal = SubResource("StyleBoxTexture_log")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grab_background"]
+bg_color = Color(0.14, 0.07, 0.2, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grab_fill"]
+bg_color = Color(0.46, 0.79, 0.25, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
 
 [node name="Apartment" type="Node3D" unique_id=698934390]
 script = ExtResource("3_courtyard")
@@ -108,6 +150,8 @@ texture = SubResource("GradientTexture2D_backdrop")
 expand_mode = 1
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1501621115]
+process_mode = 3
+script = ExtResource("10_hud")
 
 [node name="WifeProfile" type="TextureRect" parent="HUD" unique_id=1888945962]
 anchors_preset = -1
@@ -131,6 +175,61 @@ texture = ExtResource("6_husband")
 expand_mode = 1
 stretch_mode = 5
 
+[node name="WifeWallet" type="HBoxContainer" parent="HUD/WifeProfile"]
+layout_mode = 1
+offset_left = 43.0
+offset_top = 17.0
+offset_bottom = 45.0
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Coin" type="Label" parent="HUD/WifeProfile/WifeWallet"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.36, 0.2, 0.07, 1)
+theme_override_fonts/font = ExtResource("9_timer_font")
+theme_override_styles/normal = SubResource("StyleBoxFlat_coin")
+text = "G"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Gold" type="Label" parent="HUD/WifeProfile/WifeWallet"]
+layout_mode = 2
+mouse_filter = 2
+text = "000000"
+label_settings = SubResource("LabelSettings_gold")
+vertical_alignment = 1
+
+[node name="HusbandWallet" type="HBoxContainer" parent="HUD/HusbandProfile"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -165.0
+offset_top = 17.0
+offset_right = -42.0
+offset_bottom = 45.0
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Coin" type="Label" parent="HUD/HusbandProfile/HusbandWallet"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.36, 0.2, 0.07, 1)
+theme_override_fonts/font = ExtResource("9_timer_font")
+theme_override_styles/normal = SubResource("StyleBoxFlat_coin")
+text = "G"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Gold" type="Label" parent="HUD/HusbandProfile/HusbandWallet"]
+layout_mode = 2
+mouse_filter = 2
+text = "000000"
+label_settings = SubResource("LabelSettings_gold")
+vertical_alignment = 1
+
 [node name="WifeBag" type="TextureRect" parent="HUD" unique_id=439223]
 anchors_preset = -1
 anchor_left = 0.025
@@ -142,6 +241,15 @@ mouse_filter = 2
 texture = ExtResource("7_bag")
 expand_mode = 1
 
+[node name="Items" type="GridContainer" parent="HUD/WifeBag"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 18.0
+mouse_filter = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 2
+columns = 2
+
 [node name="HusbandBag" type="TextureRect" parent="HUD" unique_id=1680505510]
 anchors_preset = -1
 anchor_left = 0.975
@@ -152,6 +260,15 @@ offset_bottom = 528.0
 mouse_filter = 2
 texture = ExtResource("7_bag")
 expand_mode = 1
+
+[node name="Items" type="GridContainer" parent="HUD/HusbandBag"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 18.0
+mouse_filter = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 2
+columns = 2
 
 [node name="TimeLeft" type="Label" parent="HUD" unique_id=1218965045]
 anchors_preset = -1
@@ -193,6 +310,37 @@ mouse_filter = 2
 max_value = 10.0
 step = 0.001
 show_percentage = false
+
+[node name="GrabProgress" type="ProgressBar" parent="HUD"]
+visible = false
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -44.0
+offset_right = 120.0
+offset_bottom = -28.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_grab_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_grab_fill")
+max_value = 1.0
+step = 0.001
+show_percentage = false
+
+[node name="AcquisitionLogs" type="VBoxContainer" parent="HUD"]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -502.0
+offset_top = -28.0
+offset_right = -32.0
+offset_bottom = -28.0
+grow_vertical = 0
+mouse_filter = 2
+theme = SubResource("Theme_log")
+theme_override_constants/separation = 8
 
 [node name="RoundEnd" type="ColorRect" parent="HUD" unique_id=173380585]
 visible = false

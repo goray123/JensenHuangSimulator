@@ -51,11 +51,13 @@ func _start_contest_test() -> void:
 	_player.position = PRACTICE_SPAWN
 	target.position = PRACTICE_SPAWN + Vector3.FORWARD
 	for pickup: RigidBody3D in _apartment._pickups:
-		if pickup.name == &"Pickup3":
-			target.hold_pickup(pickup)
+		if pickup.name == &"Pickup3" and pickup.is_in_group(&"pickups"):
+			pickup.freeze = true
+			pickup.global_position = PRACTICE_SPAWN + Vector3(0, 0.07666667, -0.5)
+			_apartment._contest.request_interaction(_player, true, pickup)
+			_apartment._contest.request_interaction(target, true, pickup)
+			_contest_bot = _apartment._contest.active
 			break
-	_player.pickup_nearest()
-	_contest_bot = _apartment._contest.active
 	_bot_tap_elapsed = 0.0
 
 

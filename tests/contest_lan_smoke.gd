@@ -6,17 +6,22 @@ const LOBBY := preload("res://lan_lobby.tscn")
 const Player := preload("res://player.gd")
 const HOST_POSITION := Vector3(6.5, 0.065, -1.5)
 const GUEST_POSITION := Vector3(6.5, 0.065, -2.5)
+const ITEM_POSITION := Vector3(6.5, 0.142, -2.0)
 
 class ContestBarrier:
 	extends Node
 	var stage := 0
 	var guest_stage := 0
+	var grab_started := false
 	@rpc("authority", "call_remote", "reliable")
 	func advance(value: int) -> void:
 		stage = maxi(stage, value)
 	@rpc("any_peer", "call_remote", "reliable")
 	func acknowledge(value: int) -> void:
 		guest_stage = maxi(guest_stage, value)
+	@rpc("any_peer", "call_remote", "reliable")
+	func confirm_grab() -> void:
+		grab_started = true
 
 var _lobby: Node
 var _apartment: Node3D
@@ -85,40 +90,43 @@ func _test_host() -> void:
 	for item in _apartment._pickups:
 		item.freeze = true
 		item.disarm()
-	_host.global_position = HOST_POSITION
-	_guest.global_position = GUEST_POSITION
-	_host.rotation.y = 0.0
-	_guest.rotation.y = 0.0
-	_host.hold_pickup(_pickup)
-	await _wait_frames(8)
-	_barrier.advance.rpc_id(_apartment.guest_peer_id, 1)
-	if not await _expect(func() -> bool: return _contest.active, "The guest's E starts a contest against the current holder"):
+	_place_fixture()
+	if not await _start_host_grab(1):
 		return
 	var first_round: int = _contest.round_id
-	await _verify_active_round(0)
+	await _verify_active_round()
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 2, "Both peers inspect the half-full gauge before mashing"):
 		return
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 2)
-	if not await _expect(func() -> bool: return not _contest.active and _guest.held_pickup == _pickup, "Twenty guest E presses win the shared object"):
+	if not await _expect(func() -> bool: return not _contest.active and _guest.held_pickup == _pickup, "Twenty guest clicks win the shared object"):
 		return
 	await _verify_result(1)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 3, "Both peers finish the first loss-stun timing check"):
 		return
-	await _tap(KEY_E)
-	_check(_contest.active and _contest.round_id == first_round + 1, "The recovered host can challenge the guest holding the same object")
-	await _verify_active_round(1)
+	_guest.release_pickup(false)
+	_place_fixture()
+	await _wait_frames(8)
+	_barrier.advance.rpc_id(_apartment.guest_peer_id, 3)
+	if not await _expect(func() -> bool: return _barrier.grab_started, "The guest starts the second grab"):
+		return
+	_mouse(MOUSE_BUTTON_LEFT, true)
+	_mouse(MOUSE_BUTTON_LEFT, false)
+	_check(_contest.active and _contest.round_id == first_round + 1, "The host overlaps the guest's second grab")
+	await _verify_active_round()
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 4, "The guest checks the new round and sends obsolete round taps"):
 		return
 	_check(is_equal_approx(_contest.progress, 0.5), "Delayed first-round RPC taps do not score in the second round")
 	for _press in 20:
-		await _tap(KEY_E)
-	_check(not _contest.active and _host.held_pickup == _pickup, "Twenty host E presses win the object back")
+		await _tap_left()
+	_check(not _contest.active and _host.held_pickup == _pickup, "Twenty host clicks win the second contest")
 	await _verify_result(0)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 5, "Both peers finish the second result and reject stale ownership"):
 		return
-	_barrier.advance.rpc_id(_apartment.guest_peer_id, 5)
-	if not await _expect(func() -> bool: return _contest.active and _contest.round_id == first_round + 2, "The guest can start a third contest after recovering"):
+	_host.release_pickup(false)
+	_place_fixture()
+	if not await _start_host_grab(5):
 		return
+	_check(_contest.round_id == first_round + 2, "A third contest can start after recovery")
 	await _wait_frames(28)
 	_check(_camera.size < _camera_size, "The third round closes in while the timer is paused")
 	var round_timer := _apartment.get_node("RoundTimer") as Timer
@@ -135,7 +143,7 @@ func _test_host() -> void:
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 7, "The guest checks the frozen countdown before resolving the contest"):
 		return
 	for _press in 20:
-		await _tap(KEY_E)
+		await _tap_left()
 	_check(not _contest.active and _host.held_pickup == _pickup and not round_timer.paused, "Winning resumes the host timer and preserves the winner's item")
 	if not await _expect(func() -> bool: return _apartment.get_node("HUD/RoundEnd").visible, "The host's resumed timer ends play after the contest"):
 		return
@@ -151,28 +159,33 @@ func _test_host() -> void:
 
 func _test_guest() -> void:
 	_barrier.acknowledge.rpc_id(1, 1)
-	if not await _expect(func() -> bool: return _barrier.stage >= 1 and _host.held_pickup == _pickup, "The guest receives the server's held item and fixture"):
+	if not await _expect(func() -> bool: return _barrier.stage >= 1 and _pickup.is_in_group(&"pickups"), "The guest receives the loose item and fixture"):
 		return
 	_check(_host.global_position.distance_to(HOST_POSITION) < 0.08 and _guest.global_position.distance_to(GUEST_POSITION) < 0.08, "Both fixture positions reach the guest")
-	await _tap(KEY_E)
-	if not await _expect(func() -> bool: return _contest.active, "E near the other holder opens the guest's contest UI"):
+	if not await _join_grab_contest():
 		return
 	var first_round: int = _contest.round_id
-	await _verify_active_round(0)
+	await _verify_active_round()
 	_barrier.acknowledge.rpc_id(1, 2)
 	if not await _expect(func() -> bool: return _barrier.stage >= 2, "The server is ready to observe the guest's mash input"):
 		return
 	for _press in 20:
-		await _tap(KEY_E)
+		await _tap_left()
 	if not await _expect(func() -> bool: return not _contest.active and _guest.held_pickup == _pickup, "The reliable result attaches the won object to the guest"):
 		return
 	var first_revision: int = _contest.revision
 	await _verify_result(1)
 	_verify_stale_snapshot(0, first_revision - 1)
 	_barrier.acknowledge.rpc_id(1, 3)
-	if not await _expect(func() -> bool: return _contest.active and _contest.round_id == first_round + 1, "The guest receives the host's second-round challenge"):
+	if not await _expect(func() -> bool: return _barrier.stage >= 3 and _guest.held_pickup == null, "The second fixture is ready"):
 		return
-	await _verify_active_round(1)
+	_mouse(MOUSE_BUTTON_LEFT, true)
+	_barrier.confirm_grab.rpc_id(1)
+	if not await _expect(func() -> bool: return _contest.active and _contest.round_id == first_round + 1, "The guest receives the host's second grab contest"):
+		_mouse(MOUSE_BUTTON_LEFT, false)
+		return
+	_mouse(MOUSE_BUTTON_LEFT, false)
+	await _verify_active_round()
 	for _press in 3:
 		_contest._request_interaction.rpc_id(1, first_round, _contest.item_index)
 	_contest._sync_progress(first_round, 0.99)
@@ -185,9 +198,9 @@ func _test_guest() -> void:
 	_barrier.acknowledge.rpc_id(1, 5)
 	if not await _expect(func() -> bool: return _barrier.stage >= 5, "The host finishes checking the second result before the next challenge"):
 		return
-	await _tap(KEY_E)
-	if not await _expect(func() -> bool: return _contest.active and _contest.round_id == first_round + 2, "The recovered guest can challenge again"):
+	if not await _join_grab_contest():
 		return
+	_check(_contest.round_id == first_round + 2, "The guest sees the third contest")
 	if not await _expect(func() -> bool: return _barrier.stage >= 6, "Both peers see the third closeup with a paused countdown"):
 		return
 	_check(_camera.size < _camera_size and _contest.presentation.gauge.is_visible_in_tree(), "The guest sees the closeup and gauge")
@@ -212,7 +225,30 @@ func _test_guest() -> void:
 	_check(_lobby.get_node("%Join").visible and _lobby._peer == null, "Contest cleanup closes the guest network connection")
 
 
-func _verify_active_round(holder: int) -> void:
+func _place_fixture() -> void:
+	_host.global_position = HOST_POSITION
+	_guest.global_position = GUEST_POSITION
+	_pickup.freeze = true
+	_pickup.global_position = ITEM_POSITION
+
+
+func _start_host_grab(stage: int) -> bool:
+	await _wait_frames(8)
+	_mouse(MOUSE_BUTTON_LEFT, true)
+	_barrier.advance.rpc_id(_apartment.guest_peer_id, stage)
+	var started := await _expect(func() -> bool: return _contest.active, "Overlapping left holds open the host contest")
+	_mouse(MOUSE_BUTTON_LEFT, false)
+	return started
+
+
+func _join_grab_contest() -> bool:
+	_mouse(MOUSE_BUTTON_LEFT, true)
+	var started := await _expect(func() -> bool: return _contest.active, "Overlapping left holds open the guest contest")
+	_mouse(MOUSE_BUTTON_LEFT, false)
+	return started
+
+
+func _verify_active_round() -> void:
 	_check(_contest.active and _contest.presentation.active, "The contest and its presentation are active together")
 	_check(_apartment.get_node("RoundTimer").paused, "Both peers pause the round timer while the contest is active")
 	_check(is_equal_approx(_contest.progress, 0.5) and is_equal_approx(_contest.presentation.progress, 0.5), "The two-color gauge begins exactly half full")
@@ -221,13 +257,13 @@ func _verify_active_round(holder: int) -> void:
 	var host_position := _host.global_position
 	var guest_position := _guest.global_position
 	_key(KEY_D, true)
-	_key(KEY_T, true)
+	_mouse(MOUSE_BUTTON_RIGHT, true)
 	await _wait_frames(16)
-	_key(KEY_T, false)
+	_mouse(MOUSE_BUTTON_RIGHT, false)
 	_key(KEY_D, false)
 	_check(_host.global_position.distance_to(host_position) < 0.05 and _guest.global_position.distance_to(guest_position) < 0.05, "WASD cannot move either player during the closeup")
-	_check(not _host._is_aiming and not _guest._is_aiming, "T cannot begin charging or throwing during the contest")
-	_check((_host.held_pickup == _pickup) == (holder == 0) and (_guest.held_pickup == _pickup) == (holder == 1), "The object stays with its current holder until the contest ends")
+	_check(not _host._is_aiming and not _guest._is_aiming and _apartment._bagged_items.is_empty(), "Contested items cannot be thrown or bagged")
+	_check(_host.held_pickup == null and _guest.held_pickup == null and _pickup.freeze, "The object stays in the world until the contest ends")
 	_check(_camera.size < _camera_size - 2.0, "The local camera smoothly closes in on both players")
 
 
@@ -276,7 +312,7 @@ func _verify_timeout() -> void:
 	_check(_camera.global_transform.is_equal_approx(_camera_transform) and is_equal_approx(_camera.size, _camera_size), "Timeout restores the overview camera")
 	var progress: float = _contest.progress
 	_contest.request_interaction(_guest)
-	_check(not _contest.active and is_equal_approx(_contest.progress, progress) and _host.held_pickup == _pickup, "Late contest input cannot change ownership after the round ends")
+	_check(not _contest.active and is_equal_approx(_contest.progress, progress) and _host.held_pickup == _pickup and _guest.held_pickup == null, "Late contest input cannot change ownership after the round ends")
 
 
 func _expect(condition: Callable, message: String, seconds := 5.0) -> bool:
@@ -306,6 +342,21 @@ func _tap(key: Key) -> void:
 	await physics_frame
 	_key(key, false)
 	await physics_frame
+
+
+func _tap_left() -> void:
+	_mouse(MOUSE_BUTTON_LEFT, true)
+	await physics_frame
+	_mouse(MOUSE_BUTTON_LEFT, false)
+	await physics_frame
+
+
+func _mouse(button: MouseButton, pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = button
+	event.pressed = pressed
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
 
 
 func _key(key: Key, pressed: bool) -> void:

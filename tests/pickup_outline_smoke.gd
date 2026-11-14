@@ -23,7 +23,7 @@ func _run() -> void:
 	first.global_position = player.global_position + Vector3(-0.5, 0.04, 0)
 	second.global_position = player.global_position + Vector3(1, 0.04, 0)
 	await _wait_frames()
-	_check(_outlined(first) and not _outlined(second), "Only the nearest E target has a blue outline")
+	_check(_outlined(first) and not _outlined(second), "Only the nearest grab target has a blue outline")
 	player.global_position.x += 0.8
 	await _wait_frames()
 	_check(not _outlined(first) and _outlined(second), "Moving switches the outline to the new nearest target")
@@ -32,16 +32,16 @@ func _run() -> void:
 	_check(not _outlined(first) and not _outlined(second), "Objects outside pickup reach lose the outline")
 	second.global_position = player.global_position + Vector3(0.7, 1.0, 0)
 	await _wait_frames()
-	_check(_outlined(second), "A prop at table height uses the same reach rule as E")
+	_check(_outlined(second), "A prop at table height uses the same grab reach rule")
 	second.global_position.y = player.global_position.y + 3.0
 	await _wait_frames()
 	_check(not _outlined(second), "Objects above reachable height are not outlined")
 	second.global_position = player.global_position + Vector3(0.7, 0.04, 0)
 	await _wait_frames()
 	player.simulates_movement = true
-	_tap_e()
+	await _hold_left()
 	player.simulates_movement = false
-	_check(player.held_pickup == second and not _outlined(second), "E picks the outlined object and immediately hides its outline")
+	_check(player.held_pickup == second and not _outlined(second), "A left hold picks the outlined object and immediately hides its outline")
 	first.global_position = player.global_position + Vector3(0.3, 0.04, 0)
 	await _wait_frames()
 	_check(not _outlined(first), "Full hands do not highlight another pickup")
@@ -129,13 +129,19 @@ func _outlined(pickup: RigidBody3D) -> bool:
 	return false
 
 
-func _tap_e() -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.physical_keycode = KEY_E
-		event.pressed = pressed
-		Input.parse_input_event(event)
-		Input.flush_buffered_events()
+func _hold_left() -> void:
+	_mouse(true)
+	for _frame in 64:
+		await physics_frame
+	_mouse(false)
+
+
+func _mouse(pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = pressed
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
 
 
 func _wait_frames() -> void:

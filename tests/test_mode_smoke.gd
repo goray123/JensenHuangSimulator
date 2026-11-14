@@ -20,8 +20,12 @@ func _run() -> void:
 	_check(timer.wait_time == 60.0 and not timer.is_stopped() and clock.visible and clock.text == "01:00", "Test Mode starts with a visible one-minute countdown")
 	await _wait_for_physics(15)
 	var hud := apartment.get_node("HUD")
-	_check(hud.find_children("*", "Label", false, false) == [clock] and not hud.has_node("LogBackground"),
-		"The regular game HUD has only the timer as text and no bottom log")
+	var wife_bag := hud.get_node("WifeBag/Items") as GridContainer
+	var husband_bag := hud.get_node("HusbandBag/Items") as GridContainer
+	var gold := hud.get_node("WifeProfile/WifeWallet/Gold") as Label
+	var logs := hud.get_node("AcquisitionLogs") as VBoxContainer
+	_check(wife_bag.columns == 2 and wife_bag.get_child_count() == 0 and gold.text == "000000" and logs.get_child_count() == 0,
+		"Test Mode starts with an empty two-column bag, zero gold, and no acquisition log")
 	var mode := apartment.get_node("TestMode")
 	var player := apartment.get_node("Player") as CharacterBody3D
 	var target: CharacterBody3D = mode.target
@@ -40,15 +44,21 @@ func _run() -> void:
 	_check(pointer.visible and not target.get_node("Head/PlayerPosPointer").visible and pointer_start.y > start.y + 1.85
 		and (pointer.global_position - pointer_start).is_equal_approx(player.global_position - start),
 		"Only the controllable player has a pointer, and it follows their movement above their head")
-	await _tap(KEY_E)
-	_check(player.held_pickup != null, "Nearby test spheres can be picked up with E")
-	_set_key(KEY_T, true)
+	_mouse(MOUSE_BUTTON_LEFT, true)
 	await _wait_for_physics(30)
-	_check(player.get_node("ThrowTrajectory").visible and apartment.get_node("HUD/ThrowPower").visible, "Holding T shows the trajectory and speed gauge offline")
-	_set_key(KEY_T, false)
+	var grab := hud.get_node("GrabProgress") as ProgressBar
+	_check(player.held_pickup == null and grab.visible and absf(grab.value - 0.5) < 0.08, "The one-second grab shows progress and waits for the full hold")
+	await _wait_for_physics(34)
+	_mouse(MOUSE_BUTTON_LEFT, false)
+	_check(player.held_pickup != null and not grab.visible, "Holding left click acquires the nearby sphere")
+	_mouse(MOUSE_BUTTON_LEFT, true)
+	await _wait_for_physics(30)
+	_check(player.get_node("ThrowTrajectory").visible and apartment.get_node("HUD/ThrowPower").visible, "A second left hold shows the trajectory and speed gauge")
+	_mouse(MOUSE_BUTTON_LEFT, false)
 	await _expect(func() -> bool: return target.is_stunned(), "A real throw can hit and stun the test target")
 	await _wait_for_physics(35)
 	_check(not target.is_stunned() and target.get_node("Torso").material_overlay == null, "The target recovers and returns to blue")
+	var thrown_item: RigidBody3D = apartment.get_node("Pickup3")
 
 	var before_hit := player.global_position
 	_set_key(KEY_D, true)
@@ -59,7 +69,38 @@ func _run() -> void:
 	_set_key(KEY_D, false)
 	_check(not player.is_stunned() and player.global_position.x > before_hit.x + 0.1, "Movement resumes after the self-hit test")
 	await _expect(func() -> bool: return clock.text.begins_with("00:"), "The display counts down during practice")
-	player.hold_pickup(apartment.get_node("Pickup1"))
+	var bagged := apartment.get_node("Pickup1") as RigidBody3D
+	var item_index: int = apartment._pickups.find(bagged)
+	player.hold_pickup(bagged)
+	_mouse(MOUSE_BUTTON_LEFT, true)
+	await _wait_for_physics(3)
+	_mouse(MOUSE_BUTTON_RIGHT, true)
+	_mouse(MOUSE_BUTTON_RIGHT, false)
+	_mouse(MOUSE_BUTTON_LEFT, false)
+	_check(player.held_pickup == null and not bagged.visible and not bagged.is_in_group(&"pickups")
+		and bagged.freeze and bagged.collision_layer == 0 and not player.get_node("ThrowTrajectory").visible,
+		"A right click during aim bags the item and removes it from physics and selection")
+	_check(wife_bag.get_child_count() == 1 and wife_bag.get_child(0).texture.resource_path.ends_with("Item_Ring.png")
+		and husband_bag.get_child_count() == 0 and logs.get_child_count() == 1,
+		"Bagging adds the ring icon and acquisition log only once")
+	apartment._apply_bag_item(0, item_index)
+	_check(wife_bag.get_child_count() == 1, "Duplicate deposit events cannot award the item twice")
+	for value in range(1, 11):
+		await _expect(func() -> bool: return int(gold.text) >= value, "Gold reaches the next integer")
+		_check(int(gold.text) == value, "Gold rises by one at a time")
+	for item: RigidBody3D in [apartment.get_node("Pickup2"), thrown_item]:
+		player.hold_pickup(item)
+		_mouse(MOUSE_BUTTON_RIGHT, true)
+		_mouse(MOUSE_BUTTON_RIGHT, false)
+	await process_frame
+	await process_frame
+	var first_icon := wife_bag.get_child(0) as TextureRect
+	var second_icon := wife_bag.get_child(1) as TextureRect
+	var third_icon := wife_bag.get_child(2) as TextureRect
+	_check(second_icon.position.y == first_icon.position.y and third_icon.position.y > first_icon.position.y
+		and third_icon.position.x == first_icon.position.x, "The third icon wraps into a second row")
+	_check(logs.get_child_count() == 2, "The acquisition log shows the two latest deposits")
+	await _expect(func() -> bool: return int(gold.text) == 30, "Rapid deposits add ten gold per item")
 	var old_apartment := apartment
 	await _tap(KEY_R)
 	apartment = lobby.get_node("Apartment") as Node3D
@@ -67,22 +108,27 @@ func _run() -> void:
 	player = apartment.get_node("Player") as CharacterBody3D
 	_check(apartment != old_apartment and not is_instance_valid(old_apartment), "R replaces the test stage safely")
 	_check(apartment.get_node("HUD/TimeLeft").text == "01:00", "R resets the countdown to one minute")
+	_check(apartment.get_node("HUD/WifeBag/Items").get_child_count() == 0
+		and apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000000", "A new test round resets bags and gold")
 	_check(player.held_pickup == null and not player.is_stunned(), "Reset clears held objects and player state")
 	_check(get_nodes_in_group(&"pickups").size() == 21 and get_nodes_in_group(&"apartment_props").size() == 18, "Reset restores every prop without duplicates")
 	timer = apartment.get_node("RoundTimer") as Timer
 	clock = apartment.get_node("HUD/TimeLeft") as Label
 	await _tap(KEY_G)
-	_check(apartment._contest.active and player.contest_active and mode.target.held_pickup != null, "G starts an offline contest against the test target")
+	_check(apartment._contest.active and player.contest_active and mode.target.held_pickup == null, "G starts an offline contest against the test target")
 	var paused_time := timer.time_left
 	var paused_display := clock.text
 	await _wait_for_physics(15)
 	_check(timer.paused and is_equal_approx(timer.time_left, paused_time) and clock.text == paused_display, "The countdown and its display stay frozen during a contest")
-	var contested: RigidBody3D = mode.target.held_pickup
+	var contested := apartment.get_node("Pickup3") as RigidBody3D
 	for _press in 45:
 		if not apartment._contest.active:
 			break
-		await _tap(KEY_E)
-	_check(not apartment._contest.active and player.held_pickup == contested and mode.target.is_stunned(), "E mashing can beat the offline opponent and take its object")
+		_mouse(MOUSE_BUTTON_LEFT, true)
+		await _wait_for_physics(3)
+		_mouse(MOUSE_BUTTON_LEFT, false)
+		await _wait_for_physics(2)
+	_check(not apartment._contest.active and player.held_pickup == contested and mode.target.is_stunned(), "Left click mashing can beat the offline opponent and take the object")
 	_check(not timer.paused and timer.time_left > paused_time - 0.2, "The result resumes the saved countdown without subtracting contest time")
 	await _wait_for_physics(15)
 	_check(timer.time_left < paused_time - 0.2, "The countdown continues after the contest")
@@ -136,6 +182,14 @@ func _set_key(key: Key, pressed: bool) -> void:
 	var event := InputEventKey.new()
 	event.keycode = key
 	event.physical_keycode = key
+	event.pressed = pressed
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
+
+
+func _mouse(button: MouseButton, pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = button
 	event.pressed = pressed
 	Input.parse_input_event(event)
 	Input.flush_buffered_events()

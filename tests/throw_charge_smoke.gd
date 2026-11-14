@@ -20,13 +20,13 @@ func _run() -> void:
 	await _wait_for_physics(15)
 	var ground_y := player.global_position.y
 	_prepare(player, sphere, ground_y)
-	_set_key(KEY_T, true)
-	_check(power.visible and is_zero_approx(power.value), "A fresh T press starts aiming at zero speed")
+	_mouse(true)
+	_check(power.visible and is_zero_approx(power.value), "A fresh left click starts aiming at zero speed")
 	await _wait_for_physics(30)
 	_check(absf(power.value - 5.0) < 0.3, "Speed rises to five after half a second")
-	_set_key(KEY_T, true, true)
+	_mouse(true)
 	await _wait_for_physics(30)
-	_check(power.value > 9.98 and power.value <= 10.0, "Speed peaks at ten after one second and key repeat does not reset it")
+	_check(power.value > 9.98 and power.value <= 10.0, "Speed peaks at ten after one second and a duplicate press does not reset it")
 	await _wait_for_physics(30)
 	_check(absf(power.value - 5.0) < 0.3, "Speed falls back through five after one and a half seconds")
 	await _wait_for_physics(30)
@@ -45,8 +45,8 @@ func _run() -> void:
 	var expected_heading := -player.global_basis.z * cos(deg_to_rad(25.0)) + Vector3.UP * sin(deg_to_rad(25.0))
 	var expected_origin: Vector3 = trajectory.points[0]
 	_check(absf(sphere.global_position.y - expected_origin.y - 0.15) < 0.001, "The preview starts 15 cm below the held sphere")
-	_set_key(KEY_T, false)
-	_check(player.held_pickup == null, "Releasing T launches the held object")
+	_mouse(false)
+	_check(player.held_pickup == null, "Releasing left click launches the held object")
 	_check(absf(sphere.linear_velocity.length() - displayed_speed) < 0.002, "Release preserves the displayed speed before resetting the timer")
 	_check(sphere.linear_velocity.normalized().dot(expected_heading) > 0.999, "The launch angle remains stable as speed changes")
 	_check(absf(rad_to_deg(asin(sphere.linear_velocity.normalized().y)) - 25.0) < 0.01, "Throws launch at 25 degrees above horizontal")
@@ -54,29 +54,29 @@ func _run() -> void:
 	_check(not power.visible and not trajectory.visible, "Release hides the gauge and trajectory")
 
 	_prepare(player, sphere, ground_y)
-	_set_key(KEY_T, true)
-	_set_key(KEY_T, false)
+	_mouse(true)
+	_mouse(false)
 	_check(sphere.linear_velocity.is_zero_approx(), "An immediate release launches with exactly zero initial velocity")
 	await _wait_for_physics(20)
 	_check(sphere.global_position.y < 0.5, "A zero-speed release drops naturally under gravity")
 
 	_prepare(player, sphere, ground_y)
-	_set_key(KEY_T, true)
+	_mouse(true)
 	await _wait_for_physics(90)
 	var falling_speed := power.value
 	_check(absf(falling_speed - 5.0) < 0.3, "A later hold can release on the descending half of the cycle")
-	_set_key(KEY_T, false)
+	_mouse(false)
 	_check(absf(sphere.linear_velocity.length() - falling_speed) < 0.002, "Descending-cycle releases use the current speed")
 
 	_prepare(player, sphere, ground_y)
-	_set_key(KEY_T, true)
+	_mouse(true)
 	await _wait_for_physics(30)
 	player.notification(Node.NOTIFICATION_APPLICATION_FOCUS_OUT)
-	_set_key(KEY_T, false)
+	_mouse(false)
 	_check(player.held_pickup == sphere and not power.visible, "Focus loss cancels the charge without throwing")
-	_set_key(KEY_T, true)
+	_mouse(true)
 	_check(is_zero_approx(power.value), "A new aim after cancellation starts at zero")
-	_set_key(KEY_T, false)
+	_mouse(false)
 	_check(sphere.linear_velocity.is_zero_approx(), "Cancellation does not carry old speed into the next throw")
 	if not failed:
 		print("Throw charge smoke test passed.")
@@ -90,8 +90,7 @@ func _prepare(player: CharacterBody3D, sphere: RigidBody3D, ground_y: float) -> 
 	sphere.global_position = Vector3(6.5, ground_y + 0.07666667, -2.0)
 	player.global_position = Vector3(6.5, ground_y, -1.2)
 	player.rotation.y = 0.0
-	_set_key(KEY_E, true)
-	_set_key(KEY_E, false)
+	player.hold_pickup(sphere)
 	_check(player.held_pickup == sphere, "The test sphere is held before charging")
 
 
@@ -101,11 +100,10 @@ func _check(condition: bool, message: String) -> void:
 		push_error(message)
 
 
-func _set_key(key: Key, pressed: bool, echo: bool = false) -> void:
-	var event := InputEventKey.new()
-	event.physical_keycode = key
+func _mouse(pressed: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
 	event.pressed = pressed
-	event.echo = echo
 	Input.parse_input_event(event)
 	Input.flush_buffered_events()
 
