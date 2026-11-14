@@ -46,6 +46,8 @@ var _ending_elapsed := 0.0
 func _ready() -> void:
 	# The normal ending disables the house; the guide must still show its completion UI.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	# The lesson's ring must stay genuine so the scripted comeback always wins.
+	_apartment.settlement_surprises = false
 	_timer.stop()
 	_apartment.get_node("HUD/TimeLeft").hide()
 	for body: RigidBody3D in _apartment._physics_bodies:
@@ -203,7 +205,7 @@ func _enter_step(next_step: Step) -> void:
 			_marker.hide()
 			_player.simulates_movement = false
 			target.simulates_movement = false
-			var gold: Vector2i = _apartment.bag_gold()
+			var gold: Vector2i = _apartment.final_gold
 			hud.show_complete(gold.x, gold.y)
 
 
@@ -256,14 +258,16 @@ func _process_score(delta: float) -> void:
 		_timer.start(FINISH_SECONDS)
 		_apartment.get_node("HUD/TimeLeft").show()
 		var gold: Vector2i = _apartment.bag_gold()
-		hud.set_lesson(step, LESSON_COUNT, "금액 역전 성공!", "%d G : %d G — 시간이 끝나면 더 많은 쪽이 승리합니다." % [gold.x, gold.y], "가방 속 물건만 합산합니다. 잠시 뒤 실제 승리 모션이 재생됩니다.")
+		hud.set_lesson(step, LESSON_COUNT, "금액 역전 성공!", "%d G : %d G — 시간이 끝나면 더 많은 쪽이 승리합니다." % [gold.x, gold.y], "가방 속 물건을 하나씩 정산하고, 반지 같은 특수 증거물은 따로 감정합니다.")
 	elif not _finishing and _player.held_pickup != _contest_item:
 		_throw_elapsed += delta
 		if _throw_elapsed > 3.0:
 			_next(Step.SCORE)
 	if _finishing:
 		hud.set_progress(1.0 - _timer.time_left / FINISH_SECONDS)
-		if _apartment.get_node_or_null("Ending") != null:
+		var ending := _apartment.get_node_or_null("Ending")
+		# The settlement reveal runs first; the lesson waits for the gavel.
+		if ending != null and ending.verdict_shown:
 			if _ending_elapsed == 0.0:
 				hud.set_lesson(step, LESSON_COUNT, "승리!", "가방 금액으로 역전해 승리했습니다!", "실제 경기도 60초가 끝났을 때 가방 속 총금액으로 승패를 정합니다.")
 			_ending_elapsed += delta
