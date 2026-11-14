@@ -9,8 +9,8 @@
   "assets": {
     "wife": {
       "file": "wife_result_motions.glb",
-      "bytes": 20496204,
-      "sha256": "119061ee852c4f78b180aabc6f54f3ea374cbf70a24c8c2340ab1fc9a473512c",
+      "bytes": 20496288,
+      "sha256": "2a40e97ef5e2a542e2c6de1602826985aceafb5424099cf9f8b1ecb2daa47ade",
       "skins": 1,
       "meshes": 35,
       "animations": [
@@ -30,8 +30,8 @@
     },
     "husband": {
       "file": "husband_result_motions.glb",
-      "bytes": 9946108,
-      "sha256": "5c0358bdfc1689ca3f99a187162efd9ca61d11b3ba2ceedce02c9fce3aa28c31",
+      "bytes": 9946196,
+      "sha256": "c1e4d3fdb86c02e557078baaa921ddb7b7154bbe06cecd12d8ac8c5b0817a175",
       "skins": 1,
       "meshes": 57,
       "animations": [
@@ -51,8 +51,8 @@
     },
     "stage": {
       "file": "courtroom_stage.glb",
-      "bytes": 475452,
-      "sha256": "58f31b24c17743e4dfd9ff6b8d2f1da6e888cf1090970d59b2ebde36667fecc6",
+      "bytes": 476116,
+      "sha256": "1f30a08fcf1122066df91882907e6de97943232b0e4e4865fb650e1f65e5d129",
       "skins": 0,
       "meshes": 369,
       "animations": [],
@@ -116,7 +116,9 @@
   "notes": [
     "Original skin weights and bone proportions retained. Root actor placement is static.",
     "One-shot outcomes end in a held pose; do not loop the defeat motion.",
-    "Standalone skeleton actions, no video or image-card animation."
+    "Standalone skeleton actions, no video or image-card animation.",
+    "Procedural Blender base colors flattened to their approved diffuse factors. COLOR_0 face paint remains in the binary; The Godot ending applies a per-instance, color-space-aware shader on painted surfaces."
   ],
-  "validation": "GLB v2 parsed, original source unchanged, 2 exact 6-second clips and skin/color attributes per actor."
+  "validation": "GLB v2 parsed, original source unchanged, 2 exact 6-second clips and skin/color attributes per actor.",
+  "runtime_painted_shader": "res://assets/endings/painted_vertex_color.gdshader"
 }

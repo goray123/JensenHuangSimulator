@@ -11,7 +11,8 @@
 - `outcome_for(husband_gold, wife_gold)`: 정적 판정 함수. 같으면 `DRAW`.
 - 승자는 `celebrate_jump`, 패자는 `defeat_kneel`(각 6초, 1회 재생 후 마지막 자세 유지). 무승부는 두 사람 모두 시작 자세로 서 있습니다.
 - 3D 무대는 `own_world_3d` SubViewport 안에 있어 집과 아이템이 겹쳐 보이지 않습니다.
-- 정점색 보정: Godot 4.7.2 glTF 임포트는 얼굴처럼 정점색(COLOR_0)으로 칠한 표면의 재질에 `vertex_color_use_as_albedo`를 켜지 않아 흰색으로 보입니다. 결말 장면이 준비될 때 색 배열이 있는 표면만 재질을 인스턴스별로 복제해 이 값을 켭니다. 임포트된 원본 재질과 공유 메시는 바꾸지 않습니다.
+- 정점색 보정: 얼굴의 원본 `COLOR_0`를 읽는 전용 `ShaderMaterial`을 인스턴스별로 적용합니다. glTF의 선형 색을 Compatibility 출력에서만 sRGB로 변환하고, Forward+/Mobile에서는 선형 색을 유지합니다. 표면 거칠기와 반사 값도 가져오며 원본 임포트 재질·공유 메시·웨이트는 바꾸지 않습니다. `vertex_color_is_srgb`가 Compatibility에 적용되지 않는 점은 [Godot 재질 문서](https://docs.godotengine.org/en/stable/classes/class_basematerial3d.html#class-basematerial3d-property-vertex-color-is-srgb)를 참고하세요.
+- Blender의 Noise/ColorRamp가 연결된 벽·바닥·머리카락은 원본 diffuse 색을 GLB의 기본 색으로 복원했습니다. 메시·관절·정점색·모션 바이너리는 그대로입니다. 실내 보조 조명과 SubViewport 4× MSAA로 캐릭터와 링을 표시합니다.
 
 단독 확인: 에디터에서 장면을 열고 F6. 인스펙터의 `preview_outcome`으로 결과를 고릅니다.
 

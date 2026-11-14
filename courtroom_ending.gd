@@ -6,6 +6,7 @@ enum Outcome { DRAW, WIFE_WINS, HUSBAND_WINS }
 
 const WIN_CLIP := &"celebrate_jump"
 const LOSE_CLIP := &"defeat_kneel"
+const PAINTED_VERTEX_SHADER := preload("res://assets/endings/painted_vertex_color.gdshader")
 const TITLES := { Outcome.DRAW: "무승부", Outcome.WIFE_WINS: "아내 승리!", Outcome.HUSBAND_WINS: "남편 승리!" }
 
 ## Played when this scene is run on its own (F6 in the editor).
@@ -67,19 +68,21 @@ func _hold_start(player: AnimationPlayer) -> void:
 	player.pause()
 
 
-## The glTF importer leaves vertex_color_use_as_albedo off, so faces with painted vertex colors render white.
-## Fixed per instance; the imported materials and shared meshes stay untouched.
+## Preserve linear glTF face paint in both Compatibility and linear rendering backends.
+## Only per-instance materials change; imported materials and shared meshes stay untouched.
 func _use_vertex_colors(actor: Node) -> void:
 	for mesh_instance: MeshInstance3D in actor.find_children("*", "MeshInstance3D", true, false):
 		var mesh := mesh_instance.mesh as ArrayMesh
 		if mesh == null:
 			continue
 		for surface in mesh.get_surface_count():
-			var material := mesh_instance.get_active_material(surface) as BaseMaterial3D
-			if material == null or not mesh.surface_get_format(surface) & Mesh.ARRAY_FORMAT_COLOR:
+			var original := mesh_instance.get_active_material(surface) as BaseMaterial3D
+			if original == null or not mesh.surface_get_format(surface) & Mesh.ARRAY_FORMAT_COLOR:
 				continue
-			material = material.duplicate()
-			material.vertex_color_use_as_albedo = true
+			var material := ShaderMaterial.new()
+			material.shader = PAINTED_VERTEX_SHADER
+			material.set_shader_parameter(&"surface_roughness", original.roughness)
+			material.set_shader_parameter(&"surface_specular", original.metallic_specular)
 			mesh_instance.set_surface_override_material(surface, material)
 
 

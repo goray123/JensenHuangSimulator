@@ -109,20 +109,24 @@ func _restart(_lobby: Node, key: Key) -> void:
 	await _wait_frames(3)
 
 
-## Vertex-colored surfaces use their colors through per-instance copies; imported materials stay as they were.
+## Vertex-colored surfaces use a color-space aware material without changing imported resources.
 func _check_vertex_colors(actor: Node, label: String) -> void:
 	var colored := 0
 	for mesh_instance: MeshInstance3D in actor.find_children("*", "MeshInstance3D", true, false):
 		var mesh := mesh_instance.mesh as ArrayMesh
 		for surface in mesh.get_surface_count():
-			var override := mesh_instance.get_surface_override_material(surface) as BaseMaterial3D
+			var override := mesh_instance.get_surface_override_material(surface)
 			var imported := mesh.surface_get_material(surface) as BaseMaterial3D
 			if mesh.surface_get_arrays(surface)[Mesh.ARRAY_COLOR] == null:
 				_check(override == null, "%s surfaces without vertex colors keep their imported material" % label)
 				continue
 			colored += 1
-			_check(override != null and override != imported and override.vertex_color_use_as_albedo
-				and not imported.vertex_color_use_as_albedo, "%s %s uses vertex colors through its own material copy" % [label, mesh_instance.name])
+			var painted := override as ShaderMaterial
+			_check(painted != null and painted != imported and painted.shader == Ending.PAINTED_VERTEX_SHADER,
+				"%s %s uses the linear glTF paint shader through its own material" % [label, mesh_instance.name])
+			if painted != null:
+				_check(is_equal_approx(painted.get_shader_parameter(&"surface_roughness"), imported.roughness),
+					"%s keeps the imported surface roughness" % label)
 	_check(colored > 0, "%s has vertex-colored surfaces to check" % label)
 
 
