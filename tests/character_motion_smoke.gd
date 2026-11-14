@@ -81,7 +81,9 @@ func _run() -> void:
 	var pickup_start := []
 	var record := func(is_holding: bool) -> void:
 		if is_holding:
-			pickup_start.append([player.motion, anim.current_animation_position, anim.speed_scale])
+			var contact: Vector3 = player._bone_position(player._carry_bone)
+			var gap: float = player.get_node("HandSocket").global_position.distance_to(contact)
+			pickup_start.append([player.motion, anim.current_animation_position, anim.speed_scale, gap])
 	player.held_pickup_changed.connect(record)
 	_mouse(true)
 	await _wait_for_physics(64)
@@ -89,6 +91,7 @@ func _run() -> void:
 	await _wait_for_physics(1)
 	player.held_pickup_changed.disconnect(record)
 	_check(player.held_pickup == sphere and pickup_start.size() == 1 and pickup_start[0][0] == &"Pickup" and is_zero_approx(pickup_start[0][1]) and is_equal_approx(pickup_start[0][2], 2.0), "Ownership starts Pickup at 0 s and 2x")
+	_check(pickup_start.size() == 1 and pickup_start[0][3] < 0.012, "Initial Pickup follows the hand without reserving unused throw height")
 	await _wait_for_physics(66)
 	_check(player.motion == &"Carry", "Pickup returns to Carry")
 	var hand := player.get_node("HandSocket") as Marker3D

@@ -199,12 +199,14 @@ func _update_hand_socket(delta: float) -> void:
 	_hand_socket.global_position = _clear_of_floor(_bone_position(_carry_bone).lerp(_bone_position(_throw_bone), _socket_blend))
 
 
-# Crouching clips lower the hand to the floor; keep the lowered launch origin clear of it.
-func _clear_of_floor(hand: Vector3) -> Vector3:
+# Held objects only need floor clearance. Reserve the extra drop height for a launch,
+# so an early Pickup does not float above the authored hand contact.
+func _clear_of_floor(hand: Vector3, for_launch := false) -> Vector3:
 	if held_pickup != null:
 		var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
 		var local_bounds := (held_pickup.transform * collider.transform) * collider.shape.get_debug_mesh().get_aabb()
-		hand.y = maxf(hand.y, global_position.y + THROW_HEIGHT_DROP + 0.021 - local_bounds.position.y)
+		var drop_margin := THROW_HEIGHT_DROP if for_launch else 0.0
+		hand.y = maxf(hand.y, global_position.y + drop_margin + 0.021 - local_bounds.position.y)
 	return hand
 
 
@@ -445,7 +447,7 @@ func _throw_transform() -> Transform3D:
 	var launch_transform := held_pickup.global_transform
 	# Launch from the authored release contact whatever pose the model shows (e.g. a remote
 	# player still mid-Pickup on the host); a held Aim ready pose is exactly this point.
-	launch_transform.origin += _clear_of_floor(_model.global_transform * _aim_anchor) - _hand_socket.global_position
+	launch_transform.origin += _clear_of_floor(_model.global_transform * _aim_anchor, true) - _hand_socket.global_position
 	var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
 	var bounds := (launch_transform * collider.transform) * collider.shape.get_debug_mesh().get_aabb()
 	var available_drop := maxf(bounds.position.y - global_position.y - 0.02, 0.0)
