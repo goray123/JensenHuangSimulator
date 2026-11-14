@@ -1,8 +1,11 @@
 extends RigidBody3D
 
+const OUTLINE_MATERIAL := preload("res://pickup_outline.tres")
+
 var _armed := false
 var _thrower_id := 0
 var _hit_players: Array[int] = []
+var _outline_meshes: Array[MeshInstance3D] = []
 
 
 func _ready() -> void:
@@ -10,6 +13,25 @@ func _ready() -> void:
 	max_contacts_reported = 8
 	body_entered.connect(_on_body_entered)
 	sleeping_state_changed.connect(_on_sleeping_state_changed)
+
+
+func set_pickup_highlighted(highlighted: bool) -> void:
+	if highlighted and _outline_meshes.is_empty():
+		# Imported props receive their models after _ready(), so build on demand.
+		var meshes := find_children("*", "MeshInstance3D", true, false)
+		for source: MeshInstance3D in meshes:
+			if source.mesh == null:
+				continue
+			var outline := MeshInstance3D.new()
+			outline.name = "PickupOutline"
+			outline.mesh = source.mesh
+			outline.material_override = OUTLINE_MATERIAL
+			outline.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			outline.extra_cull_margin = 0.05
+			source.add_child(outline)
+			_outline_meshes.append(outline)
+	for outline in _outline_meshes:
+		outline.visible = highlighted
 
 
 func arm(thrower: PhysicsBody3D) -> void:

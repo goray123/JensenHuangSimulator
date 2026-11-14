@@ -28,6 +28,7 @@ var _flash_remaining := 0.0
 var _body_meshes: Array[MeshInstance3D]
 var _original_overlays: Array[Material]
 var _hit_material := StandardMaterial3D.new()
+var _highlighted_pickup: RigidBody3D
 
 @onready var _hand_socket: Marker3D = $RightArm/HandSocket
 @onready var _trajectory: MeshInstance3D = $ThrowTrajectory
@@ -135,9 +136,9 @@ func _throw_transform() -> Transform3D:
 	return launch_transform
 
 
-func pickup_nearest() -> void:
+func get_pickup_target() -> RigidBody3D:
 	if held_pickup != null:
-		return
+		return null
 	var nearest: RigidBody3D = null
 	var nearest_distance_squared := PICKUP_RANGE * PICKUP_RANGE
 	for node in get_tree().get_nodes_in_group(&"pickups"):
@@ -150,11 +151,35 @@ func pickup_nearest() -> void:
 		if distance_squared <= nearest_distance_squared:
 			nearest = pickup
 			nearest_distance_squared = distance_squared
-	if nearest != null:
-		hold_pickup(nearest)
+	return nearest
+
+
+func pickup_nearest() -> void:
+	var pickup := get_pickup_target()
+	if pickup != null:
+		hold_pickup(pickup)
+
+
+func _update_pickup_highlight() -> void:
+	# Selection is local feedback, even when the server handles E and movement.
+	_set_highlighted_pickup(get_pickup_target() if reads_local_input else null)
+
+
+func _set_highlighted_pickup(pickup: RigidBody3D) -> void:
+	if _highlighted_pickup != pickup and is_instance_valid(_highlighted_pickup):
+		_highlighted_pickup.set_pickup_highlighted(false)
+	_highlighted_pickup = pickup
+	if is_instance_valid(_highlighted_pickup):
+		_highlighted_pickup.set_pickup_highlighted(true)
+
+
+func _exit_tree() -> void:
+	_set_highlighted_pickup(null)
 
 
 func hold_pickup(pickup: RigidBody3D) -> void:
+	pickup.set_pickup_highlighted(false)
+	_set_highlighted_pickup(null)
 	if pickup.has_method(&"disarm"):
 		pickup.disarm()
 	pickup.freeze = true
@@ -215,6 +240,7 @@ func _physics_process(delta: float) -> void:
 		var input := read_movement() if reads_local_input else remote_input
 		_move(Vector2.ZERO if is_stunned() else input, delta)
 	_update_hit_effects(delta)
+	_update_pickup_highlight()
 	if reads_local_input and _is_aiming and held_pickup != null and Input.is_action_pressed(&"throw"):
 		_aim_elapsed = fmod(_aim_elapsed + delta, THROW_CYCLE_SECONDS)
 		_trajectory.update_trajectory(self, held_pickup, _throw_velocity(), _throw_transform())
