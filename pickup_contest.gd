@@ -5,6 +5,7 @@ signal active_changed(is_active: bool)
 const PRESENTATION := preload("res://contest_presentation.gd")
 const PRESS_ADVANTAGE_TO_WIN := 20
 const LOSS_STUN_SECONDS := 2.5
+const TUG_SYNC_SECONDS := 0.25
 
 var active := false:
 	set(value):
@@ -23,6 +24,7 @@ var _pickups: Array = []
 var _press_difference := 0
 var _grab_items := Vector2i(-1, -1)
 var _grab_times := Vector2.ZERO
+var _tug_sync_elapsed := 0.0
 
 
 func setup(apartment: Node3D, players: Array, pickups: Array) -> void:
@@ -78,7 +80,7 @@ func _set_grab(player_index: int, pickup_index: int) -> void:
 	if not can_process():
 		return
 	if pickup_index == -1:
-		_grab_items[player_index] = -1
+		_set_grab_item(player_index, -1)
 		return
 	if active or _grab_items[player_index] != -1 or pickup_index < 0 or pickup_index >= _pickups.size():
 		return
@@ -90,9 +92,35 @@ func _set_grab(player_index: int, pickup_index: int) -> void:
 		if _players[other_index].can_grab(pickup):
 			_start_contest(pickup_index)
 			return
-		_grab_items[other_index] = -1
-	_grab_items[player_index] = pickup_index
+		_set_grab_item(other_index, -1)
+	_set_grab_item(player_index, pickup_index)
 	_grab_times[player_index] = 0.0
+
+
+# Server-side grab state; the other peer only animates it (ownership stays with the server).
+func _set_grab_item(player_index: int, pickup_index: int) -> void:
+	if _grab_items[player_index] == pickup_index:
+		return
+	_grab_items[player_index] = pickup_index
+	_show_grab(player_index, pickup_index)
+	if _has_guest():
+		_sync_grab.rpc_id(_apartment.guest_peer_id, round_id, player_index, pickup_index)
+
+
+func _show_grab(player_index: int, pickup_index: int) -> void:
+	var player: CharacterBody3D = _players[player_index]
+	if is_instance_valid(player):
+		player.show_remote_grab(_pickups[pickup_index] if pickup_index >= 0 else null)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _sync_grab(id: int, player_index: int, pickup_index: int) -> void:
+	# Reliable events stay ordered, so a grab from an older round cannot follow its contest start.
+	if not can_process() or active or id != round_id or player_index < 0 or player_index >= _players.size() or pickup_index < -1 or pickup_index >= _pickups.size():
+		return
+	if pickup_index >= 0 and (not is_instance_valid(_pickups[pickup_index]) or not _pickups[pickup_index].is_in_group(&"pickups")):
+		return
+	_show_grab(player_index, pickup_index)
 
 
 func _handle_interaction(player_index: int, requested_round: int, requested_item: int) -> void:
@@ -120,6 +148,7 @@ func _begin_round(id: int, pickup_index: int) -> void:
 	round_id = id
 	item_index = pickup_index
 	active = true
+	_tug_sync_elapsed = 0.0
 	_grab_items = Vector2i(-1, -1)
 	progress = 0.5
 	_press_difference = 0
@@ -130,7 +159,7 @@ func _begin_round(id: int, pickup_index: int) -> void:
 	pickup.disarm()
 	for player in _players:
 		player.set_contest_active(true)
-	presentation.start_contest(str(pickup.get_meta(&"pickup_name", "구")))
+	presentation.start_contest(str(pickup.get_meta(&"pickup_name", "구")), pickup)
 	presentation.set_progress(progress)
 
 
@@ -217,6 +246,11 @@ func _physics_process(delta: float) -> void:
 			cancel_round()
 			if _has_guest():
 				_sync_cancel.rpc_id(_apartment.guest_peer_id, round_id, _apartment._ownership_revision)
+			return
+		_tug_sync_elapsed += delta
+		if _tug_sync_elapsed >= TUG_SYNC_SECONDS and _has_guest():
+			_tug_sync_elapsed = 0.0
+			_sync_tug.rpc_id(_apartment.guest_peer_id, round_id, item_index, _apartment._ownership_revision, presentation.tug_phase, presentation.is_tug_fast())
 		return
 	for index in _players.size():
 		if _grab_items[index] < 0:
@@ -224,13 +258,21 @@ func _physics_process(delta: float) -> void:
 		var player: CharacterBody3D = _players[index]
 		var pickup: RigidBody3D = _pickups[_grab_items[index]]
 		if not is_instance_valid(player) or not player.can_grab(pickup):
-			_grab_items[index] = -1
+			_set_grab_item(index, -1)
 			continue
 		_grab_times[index] += delta
 		var seconds: float = pickup.packing_seconds()
 		if _grab_times[index] >= seconds or is_equal_approx(_grab_times[index], seconds):
 			_grab_items[index] = -1
 			player.hold_pickup(pickup)
+
+
+# The host's tug phase/tempo is authoritative; the guest only advances locally between packets.
+@rpc("authority", "call_remote", "unreliable_ordered")
+func _sync_tug(id: int, pickup_index: int, state_revision: int, phase: float, fast: bool) -> void:
+	if not can_process() or not active or id != round_id or pickup_index != item_index or state_revision != _apartment._ownership_revision or not is_finite(phase):
+		return
+	presentation.apply_tug_sync(phase, fast)
 
 
 @rpc("authority", "call_remote", "reliable")

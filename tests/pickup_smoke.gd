@@ -122,6 +122,7 @@ func _run() -> void:
 		path_error = minf(path_error, first.global_position.distance_to(point))
 	_check(path_error < 0.2, "Actual flight follows the preview before impact")
 	await _wait_for_physics(120)
+	await _wait_settled(first)
 	_check(not impacts.is_empty() and impacts[0].distance_to(expected_impact) < 0.35, "The preview ends at the first actual collision")
 	_check(absf(first.global_position.y - pickup_y) < 0.07, "The thrown sphere lands on the floor")
 	_check(courtyard.find_children("*", "RigidBody3D", true, false).size() == total_bodies, "Throwing and key repeat preserve all objects")
@@ -151,6 +152,7 @@ func _run() -> void:
 		horizontal_velocity = first.linear_velocity * Vector3(1, 0, 1)
 		_check(absf(first.linear_velocity.length() - aimed_speed) < 0.002 and horizontal_velocity.normalized().dot(heading) > 0.99, "Throw at %s uses the current heading and speed" % throw_case.position)
 		await _wait_for_physics(120)
+		await _wait_settled(first)
 		_check(room_bounds.has_point(Vector2(first.global_position.x, first.global_position.z)), "Walls keep thrown spheres inside the apartment")
 		_check(first.global_position.y >= ground_y and first.global_position.y < 2.0, "Sphere thrown at %s lands on the floor or furniture" % throw_case.position)
 		player.global_position = Vector3(first.global_position.x, ground_y, first.global_position.z) + throw_case.recover * 0.6
@@ -215,3 +217,15 @@ func _set_key(key: Key, pressed: bool) -> void:
 func _wait_for_physics(frames: int) -> void:
 	for _frame in frames:
 		await physics_frame
+
+
+# A release from the real throwing hand can keep a sphere bouncing past a fixed wait;
+# recovery starts only after ten slow frames, and a sphere that never settles fails.
+func _wait_settled(body: RigidBody3D) -> void:
+	var stable := 0
+	for _frame in 600:
+		await physics_frame
+		stable = stable + 1 if body.linear_velocity.length() < 0.10 else 0
+		if stable >= 10:
+			return
+	_check(false, "Released sphere settles within ten seconds before recovery")

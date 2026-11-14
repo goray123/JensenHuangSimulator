@@ -13,6 +13,8 @@ signal contest_lost
 signal status_effect_applied(effect: StringName, seconds: float)
 signal shared_sfx_requested(sound: StringName)
 signal banana_peel_stepped
+## Emitted on the simulating peer after a validated launch (never for drops or transfers).
+signal pickup_launched(pickup: RigidBody3D)
 
 const SFX := preload("res://sfx.gd")
 
@@ -29,17 +31,25 @@ const HIT_FLASH_INTERVAL := 0.05
 const PEEL_STUN_DURATION := 2.0
 const PUSH_MASS := 60.0
 const PUSH_RESPONSE := 5.0
-const DEFAULT_MODEL := preload("res://assets/characters/thump/03_Young.glb")
+const DEFAULT_MODEL := preload("res://assets/characters/motions/03_Young.glb")
+const MOTION_MANIFEST := preload("res://assets/characters/motions/CHARACTER_MOTIONS_MANIFEST.json")
+const PAINTED_VERTEX_COLOR := preload("res://assets/characters/motions/painted_vertex_color.gdshader")
 const MODEL_SCALE := 0.45
-# The in-place Run clip covers ~0.46 m/s at the GLB's own scale (rig-report.json).
-const RUN_CLIP_SPEED := 0.46 * MODEL_SCALE
-# Covers MOVE_SPEED / RUN_CLIP_SPEED (~7.2x); the short-stepped clip needs fast playback.
-const MAX_RUN_PLAYBACK := 8.0
-const MIN_HAND_HEIGHT := 0.47
-const LOOPING_CLIPS := ["Idle", "Walk", "Run", "Carry"]
-const ONE_SHOT_CLIPS := ["Pickup", "Throw"]
+# The in-place Run clip covers 0.9 m/s at the GLB's own scale (motion manifest), ~2.47x at 1 m/s.
+const RUN_CLIP_SPEED := 0.9 * MODEL_SCALE
+# Covers MOVE_SPEED / RUN_CLIP_SPEED (~3.7x).
+const MAX_RUN_PLAYBACK := 4.0
+const PICKUP_PLAYBACK := 2.0
+const THROW_PLAYBACK := 1.5
+# Brisk windup: the 1.2 s Aim reaches its ready pose (= Throw release contact) after 0.48 s.
+const AIM_PLAYBACK := 2.5
+const LOOPING_CLIPS := ["Idle", "Run", "Carry", "RunCarry", "Tug_Fast", "Tug_Slow"]
+const ONE_SHOT_CLIPS := [&"Pickup", &"Throw"]
+# A remote grab whose end event was skipped (e.g. hold then instant bag) stops on its own.
+const REMOTE_GRAB_GRACE := 1.0
+const SOCKET_BLEND_RATE := 10.0
 
-## Rigged character from assets/characters/thump; set before adding the player to the tree.
+## Rigged character from assets/characters/motions; set before adding the player to the tree.
 @export var model_scene: PackedScene = DEFAULT_MODEL
 
 var held_pickup: RigidBody3D = null
@@ -62,7 +72,22 @@ var _highlighted_pickup: RigidBody3D
 
 var _anim: AnimationPlayer
 var _clip_prefix := ""
-var _grip: BoneAttachment3D
+var _model: Node3D
+var _model_rest := Transform3D.IDENTITY
+var _skeleton: Skeleton3D
+var _carry_bone := -1
+var _throw_bone := -1
+# Model-local authored release contact (Aim end = Throw frame 0): the one launch point.
+var _aim_anchor := Vector3.ZERO
+# Held here so it outlives the meshes on free (the renderer reads it while they detach).
+var _painted_material := ShaderMaterial.new()
+var _socket_blend := 0.0
+## The clip the state machine last chose (without prefix); seeked clips use speed 0.
+var motion: StringName = &""
+var _remote_grab_target: RigidBody3D
+var _remote_grab_elapsed := -1.0
+var _tug_side := -1
+var _tug_phase_offset := 0.0
 var _last_position := Vector3.ZERO
 var last_hit_sound: StringName = &"hit_bonk"
 var _peak_sound_played := false
@@ -96,51 +121,180 @@ func _setup_model() -> Node3D:
 	# The exported characters face +Z; the player faces -Z.
 	model.rotation.y = PI
 	add_child(model)
+	_model = model
+	_model_rest = model.transform
 	_anim = model.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 	_clip_prefix = _anim.get_animation_list()[0].get_slice("__", 0) + "__"
+	# Advanced from _update_animation, so the hand socket reads this frame's pose (no lag).
+	_anim.callback_mode_process = AnimationMixer.ANIMATION_CALLBACK_MODE_PROCESS_MANUAL
 	for clip: String in LOOPING_CLIPS:
 		_anim.get_animation(_clip_prefix + clip).loop_mode = Animation.LOOP_LINEAR
-	_grip = BoneAttachment3D.new()
-	_grip.bone_name = "socket_grip.R"
-	model.find_children("*", "Skeleton3D", true, false)[0].add_child(_grip)
+	_skeleton = model.find_children("*", "Skeleton3D", true, false)[0] as Skeleton3D
+	var sockets: Dictionary = MOTION_MANIFEST.data.sockets
+	_carry_bone = _skeleton.find_bone(sockets.carry)
+	_throw_bone = _skeleton.find_bone(sockets.throw)
+	var anchor: Array = MOTION_MANIFEST.data.assets[motion_asset()].release_anchor_model_local
+	_aim_anchor = Vector3(anchor[0], anchor[1], anchor[2])
+	_restore_vertex_colors(model)
 	_last_position = global_position
-	_play(&"Idle", 1.0)
+	_play(&"Idle", 1.0, 0.0)
 	return model
+
+
+# Painted faces keep COLOR_0, which the imported StandardMaterial3D ignores; only those
+# surfaces get a per-instance override, so every other surface keeps its own colour.
+func _restore_vertex_colors(model: Node3D) -> void:
+	_painted_material.shader = PAINTED_VERTEX_COLOR
+	for mesh_instance: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		for surface in mesh_instance.mesh.get_surface_count():
+			if mesh_instance.mesh.surface_get_format(surface) & Mesh.ARRAY_FORMAT_COLOR:
+				mesh_instance.set_surface_override_material(surface, _painted_material)
+
+
+func _bone_position(bone: int) -> Vector3:
+	return _skeleton.global_transform * _skeleton.get_bone_global_pose(bone).origin
+
+
+## Name of this character's motion asset, e.g. "03_Young".
+func motion_asset() -> String:
+	return _clip_prefix.trim_suffix("__")
 
 
 func _update_animation(delta: float) -> void:
 	var moved := global_position - _last_position
 	_last_position = global_position
-	# Follow the grip bone's position only, so held items keep the player's heading and size.
-	# Crouching clips lower the hand to the floor; held items would then block every throw.
-	var hand := _grip.global_position
-	var minimum_height := MIN_HAND_HEIGHT
-	if held_pickup != null:
-		var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
-		var local_bounds := (held_pickup.transform * collider.transform) * collider.shape.get_debug_mesh().get_aabb()
-		minimum_height = maxf(minimum_height, THROW_HEIGHT_DROP + 0.021 - local_bounds.position.y)
-	hand.y = maxf(hand.y, global_position.y + minimum_height)
-	_hand_socket.global_position = hand
-	if _anim.is_playing() and _anim.current_animation.trim_prefix(_clip_prefix) in ONE_SHOT_CLIPS:
+	if _remote_grab_elapsed >= 0.0:
+		_remote_grab_elapsed += delta
+	_update_motion(Vector2(moved.x, moved.z).length() / delta)
+	_anim.advance(delta)
+	_update_hand_socket(delta)
+
+
+## Explicit motion priority: tug > grab > aim > unfinished Pickup/Throw > Run(Carry) > Carry/Idle.
+## Stuns cut grabs, aims and one-shots; a still player falls back to the breathing Idle.
+func _update_motion(ground_speed: float) -> void:
+	if _tug_side >= 0:
 		return
-	var ground_speed := Vector2(moved.x, moved.z).length() / delta
-	if ground_speed > 0.001:
-		_play(&"Run", minf(ground_speed / RUN_CLIP_SPEED, MAX_RUN_PLAYBACK))
+	var grab_progress := grab_motion_progress()
+	if grab_progress >= 0.0:
+		_seek(&"Grab", grab_progress * _clip_length(&"Grab"))
+		return
+	if _is_aiming and held_pickup != null and not is_stunned():
+		# Windup while aiming, then the non-looping clip holds its ready pose.
+		_play(&"Aim", AIM_PLAYBACK, 0.1)
+		return
+	if motion in ONE_SHOT_CLIPS and _anim.is_playing() and not is_stunned():
+		return
+	if ground_speed > 0.001 and not is_stunned():
+		_play(&"RunCarry" if held_pickup != null else &"Run", minf(ground_speed / RUN_CLIP_SPEED, MAX_RUN_PLAYBACK))
 	else:
 		_play(&"Carry" if held_pickup != null else &"Idle", 1.0)
 
 
-func _play(clip: StringName, speed: float) -> void:
-	var animation_name := _clip_prefix + clip
-	if _anim.current_animation != animation_name:
-		_anim.play(animation_name, 0.15)
+# Follow the real contact bone by position only, so held items keep the player's heading and
+# size: the carry contact normally, the throwing hand during Aim/Throw.
+func _update_hand_socket(delta: float) -> void:
+	var throwing := 1.0 if motion == &"Aim" or motion == &"Throw" else 0.0
+	_socket_blend = move_toward(_socket_blend, throwing, SOCKET_BLEND_RATE * delta)
+	_hand_socket.global_position = _clear_of_floor(_bone_position(_carry_bone).lerp(_bone_position(_throw_bone), _socket_blend))
+
+
+# Crouching clips lower the hand to the floor; keep the lowered launch origin clear of it.
+func _clear_of_floor(hand: Vector3) -> Vector3:
+	if held_pickup != null:
+		var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
+		var local_bounds := (held_pickup.transform * collider.transform) * collider.shape.get_debug_mesh().get_aabb()
+		hand.y = maxf(hand.y, global_position.y + THROW_HEIGHT_DROP + 0.021 - local_bounds.position.y)
+	return hand
+
+
+func _clip_length(clip: StringName) -> float:
+	return _anim.get_animation(_clip_prefix + clip).length
+
+
+func _play(clip: StringName, speed: float, blend := 0.15) -> void:
+	if motion != clip:
+		motion = clip
+		_anim.play(_clip_prefix + clip, blend)
 	_anim.speed_scale = speed
 
 
-func _play_once(clip: StringName, from_seconds: float, speed: float) -> void:
+## Starts a non-looping clip from its first frame; the state machine resumes when it ends.
+func _play_once(clip: StringName, speed: float) -> void:
+	motion = clip
 	_anim.play(_clip_prefix + clip, 0.1)
-	_anim.seek(from_seconds, true)
+	_anim.seek(0.0, true)
 	_anim.speed_scale = speed
+
+
+# Seek-driven clips stay paused at the requested time (grab progress, shared tug phase).
+func _seek(clip: StringName, seconds: float) -> void:
+	if motion != clip:
+		motion = clip
+		_anim.play(_clip_prefix + clip, 0.0)
+	_anim.speed_scale = 0.0
+	_anim.seek(seconds, true)
+
+
+## Grab progress shown by the model: the local validated grab, or a server-reported one; -1 if none.
+func grab_motion_progress() -> float:
+	if contest_active or held_pickup != null or is_stunned():
+		return -1.0
+	if _grab_elapsed >= 0.0 and is_instance_valid(_grab_target):
+		return clampf(_grab_elapsed / _grab_target.packing_seconds(), 0.0, 1.0)
+	if _remote_grab_elapsed >= 0.0 and is_instance_valid(_remote_grab_target):
+		var seconds: float = _remote_grab_target.packing_seconds()
+		if _remote_grab_elapsed <= seconds + REMOTE_GRAB_GRACE:
+			return clampf(_remote_grab_elapsed / seconds, 0.0, 1.0)
+	return -1.0
+
+
+## Shows a server-validated grab on a player this peer does not control (null ends it).
+func show_remote_grab(target: RigidBody3D) -> void:
+	if reads_local_input:
+		return
+	_remote_grab_target = target
+	_remote_grab_elapsed = 0.0 if target != null else -1.0
+
+
+## Plays the one-hand Throw from its release pose; call only for a validated launch.
+func play_throw_motion() -> void:
+	if _tug_side < 0:
+		_play_once(&"Throw", THROW_PLAYBACK)
+
+
+## Moves the visual model into the authored tug stance around the shared contest object.
+## Side 0 stands at -axis facing +axis; side 1 mirrors it. The body itself never moves.
+func begin_tug(center: Vector3, axis: Vector3, side: int) -> void:
+	var asset: Dictionary = MOTION_MANIFEST.data.assets[motion_asset()]
+	var facing := axis if side == 0 else -axis
+	var stance := center - facing * float(asset.tug_body_spacing) * 0.5 * MODEL_SCALE
+	stance.y = global_position.y
+	_model.global_transform = Transform3D(Basis.looking_at(-facing).scaled(Vector3.ONE * MODEL_SCALE), stance)
+	# Clips are authored for one side; the other side is the same pull half a cycle later.
+	_tug_phase_offset = 0.0 if int(asset.tug_model_side) == side else 0.5
+	_tug_side = side
+
+
+## Poses the tug clip at the shared normalized phase; a tempo change keeps the phase.
+func update_tug(phase: float, fast: bool) -> void:
+	if _tug_side < 0:
+		return
+	var clip := &"Tug_Fast" if fast else &"Tug_Slow"
+	_seek(clip, fposmod(phase + _tug_phase_offset, 1.0) * _clip_length(clip))
+
+
+## Restores the model's original transform; the state machine picks the next clip.
+func end_tug() -> void:
+	if _tug_side < 0:
+		return
+	_tug_side = -1
+	_model.transform = _model_rest
+	motion = &""
+
+
+func is_tugging() -> bool:
+	return _tug_side >= 0
 
 
 func receive_hit(sound: StringName = &"") -> void:
@@ -174,6 +328,9 @@ func receive_banana_peel() -> void:
 
 func set_contest_active(value: bool) -> void:
 	contest_active = value
+	show_remote_grab(null)
+	if not value:
+		end_tug()
 	if value:
 		_cancel_grab()
 		_cancel_aim()
@@ -286,8 +443,11 @@ func throw_velocity_at_speed(speed: float) -> Vector3:
 
 func _throw_transform() -> Transform3D:
 	var launch_transform := held_pickup.global_transform
+	# Launch from the authored release contact whatever pose the model shows (e.g. a remote
+	# player still mid-Pickup on the host); a held Aim ready pose is exactly this point.
+	launch_transform.origin += _clear_of_floor(_model.global_transform * _aim_anchor) - _hand_socket.global_position
 	var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
-	var bounds := collider.global_transform * collider.shape.get_debug_mesh().get_aabb()
+	var bounds := (launch_transform * collider.transform) * collider.shape.get_debug_mesh().get_aabb()
 	var available_drop := maxf(bounds.position.y - global_position.y - 0.02, 0.0)
 	launch_transform.origin.y -= minf(THROW_HEIGHT_DROP, available_drop)
 	return launch_transform
@@ -364,7 +524,12 @@ func hold_pickup(pickup: RigidBody3D) -> void:
 	pickup.position = pickup.get_meta(&"hold_offset", Vector3.ZERO)
 	held_pickup = pickup
 	_cancel_grab()
-	_play_once(&"Pickup", 0.45, 2.0)
+	show_remote_grab(null)
+	# Ownership is confirmed: contact-to-carry lift from its first frame, then Carry/RunCarry.
+	_play_once(&"Pickup", PICKUP_PLAYBACK)
+	# Place the item at the contact pose now, not where the last clip left the empty socket.
+	_socket_blend = 0.0
+	_update_hand_socket(0.0)
 	_shared_sound(&"pickup_grab")
 	held_pickup_changed.emit(true)
 
@@ -403,7 +568,12 @@ func release_pickup(launch: bool, launch_velocity := Vector3.ZERO) -> void:
 		if pickup.has_method(&"arm"):
 			pickup.arm(self)
 	pickup.add_to_group(&"pickups")
-	_play_once(&"Throw", 0.45, 1.5)
+	if launch:
+		play_throw_motion()
+		pickup_launched.emit(pickup)
+	elif motion in ONE_SHOT_CLIPS:
+		# Drops, transfers and bagging never play Throw; an interrupted lift returns to Idle/Run.
+		motion = &""
 	held_pickup_changed.emit(false)
 
 
