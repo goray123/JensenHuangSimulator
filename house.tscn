@@ -1,0 +1,366 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://player.tscn" id="1_player"]
+[ext_resource type="PackedScene" path="res://assets/ownership_dispute_map.tscn" id="2_map"]
+[ext_resource type="PackedScene" path="res://pickup.tscn" id="2_pickup"]
+[ext_resource type="Script" uid="uid://o1t28ps6mq6g" path="res://courtyard.gd" id="3_courtyard"]
+[ext_resource type="Script" path="res://household_items.gd" id="4_props"]
+[ext_resource type="Texture2D" uid="uid://ccdp5gmk5qcdy" path="res://assets/Sprites/WifeProfile.png" id="5_wife"]
+[ext_resource type="Texture2D" uid="uid://c6x75ooanv5yq" path="res://assets/Sprites/HusbandProfile.png" id="6_husband"]
+[ext_resource type="Texture2D" uid="uid://bdjnjaubptlbk" path="res://assets/Sprites/BagBG.png" id="7_bag"]
+[ext_resource type="Texture2D" uid="uid://p4l46rmyyi1b" path="res://assets/Sprites/TimerBG.png" id="8_timer"]
+[ext_resource type="FontFile" uid="uid://byxdr0v4mkixn" path="res://assets/Fonts/IntelOneMono-Bold.otf" id="9_timer_font"]
+[ext_resource type="Script" path="res://courtyard_hud.gd" id="10_hud"]
+[ext_resource type="Texture2D" path="res://assets/Sprites/LogBG.png" id="11_log"]
+
+[sub_resource type="Environment" id="Environment_apartment"]
+background_mode = 3
+background_canvas_max_layer = -1
+ambient_light_source = 2
+ambient_light_color = Color(0.83, 0.9, 1, 1)
+ambient_light_energy = 0.49
+ssao_enabled = true
+ssao_radius = 1.05
+ssao_intensity = 1.45
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_boundary_x"]
+size = Vector3(0.2, 5, 8.5)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_boundary_z"]
+size = Vector3(14.4, 5, 0.2)
+
+[sub_resource type="Gradient" id="Gradient_backdrop"]
+colors = PackedColorArray(0.824, 0.325, 0.675, 1, 0.494, 0.255, 0.804, 1)
+
+[sub_resource type="GradientTexture2D" id="GradientTexture2D_backdrop"]
+gradient = SubResource("Gradient_backdrop")
+width = 512
+height = 512
+fill_to = Vector2(1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_coin"]
+bg_color = Color(0.98, 0.76, 0.3, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.86, 0.58, 0.14, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_left = 14
+corner_radius_bottom_right = 14
+
+[sub_resource type="LabelSettings" id="LabelSettings_gold"]
+font = ExtResource("9_timer_font")
+font_size = 23
+font_color = Color(1, 0.96, 0.86, 1)
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_log"]
+content_margin_left = 16.0
+content_margin_right = 16.0
+texture = ExtResource("11_log")
+
+[sub_resource type="Theme" id="Theme_log"]
+Label/font_sizes/font_size = 17
+Label/styles/normal = SubResource("StyleBoxTexture_log")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grab_background"]
+bg_color = Color(0.14, 0.07, 0.2, 0.95)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_grab_fill"]
+bg_color = Color(0.46, 0.79, 0.25, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+
+[node name="Apartment" type="Node3D" unique_id=698934390]
+script = ExtResource("3_courtyard")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1394833072]
+environment = SubResource("Environment_apartment")
+
+[node name="Sun" type="DirectionalLight3D" parent="." unique_id=1118367994]
+transform = Transform3D(0.8191493, 0.52798337, -0.22411598, 0, 0.39073163, 0.9205046, 0.5735803, -0.75403076, 0.32006755, 0, 0, 0)
+light_color = Color(1, 0.95, 0.87, 1)
+light_energy = 0.9
+shadow_enabled = true
+shadow_opacity = 0.7
+
+[node name="Map" parent="." unique_id=499345440 instance=ExtResource("2_map")]
+
+[node name="Items" type="Node3D" parent="."]
+script = ExtResource("4_props")
+
+[node name="PlayAreaBoundary" type="StaticBody3D" parent="." unique_id=1680432007]
+collision_mask = 0
+
+[node name="West" type="CollisionShape3D" parent="PlayAreaBoundary" unique_id=927750426]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 2.2, -3.75)
+shape = SubResource("BoxShape3D_boundary_x")
+
+[node name="East" type="CollisionShape3D" parent="PlayAreaBoundary" unique_id=1329461971]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.1, 2.2, -3.75)
+shape = SubResource("BoxShape3D_boundary_x")
+
+[node name="North" type="CollisionShape3D" parent="PlayAreaBoundary" unique_id=1262312853]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 2.2, -7.6)
+shape = SubResource("BoxShape3D_boundary_z")
+
+[node name="South" type="CollisionShape3D" parent="PlayAreaBoundary" unique_id=1339188114]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 2.2, 0.1)
+shape = SubResource("BoxShape3D_boundary_z")
+
+[node name="Player" parent="." unique_id=1551723369 instance=ExtResource("1_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7, 0.065, -2.1)
+
+[node name="Pickup1" parent="." unique_id=669713500 instance=ExtResource("2_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1, 0.13666667, -1.05)
+
+[node name="Pickup2" parent="." unique_id=1236803442 instance=ExtResource("2_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.13666667, -3.5)
+
+[node name="Pickup3" parent="." unique_id=1786193243 instance=ExtResource("2_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.13666667, -2.4)
+
+[node name="Overview" type="Camera3D" parent="." unique_id=2101783900]
+transform = Transform3D(0.91629654, 0.30255362, -0.2624156, -1.2129094e-08, 0.6552192, 0.75543886, 0.40050048, -0.692206, 0.60037506, 0.427, 21, 11.735)
+projection = 1
+current = true
+size = 13.6
+far = 150.0
+
+[node name="RoundTimer" type="Timer" parent="." unique_id=1442103769]
+wait_time = 60.0
+one_shot = true
+ignore_time_scale = true
+
+[node name="Backdrop" type="CanvasLayer" parent="." unique_id=860664763]
+layer = -1
+
+[node name="Gradient" type="TextureRect" parent="Backdrop" unique_id=1159199657]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = SubResource("GradientTexture2D_backdrop")
+expand_mode = 1
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=1501621115]
+process_mode = 3
+script = ExtResource("10_hud")
+
+[node name="WifeProfile" type="TextureRect" parent="HUD" unique_id=1888945962]
+anchors_preset = -1
+anchor_left = 0.025
+anchor_right = 0.3425
+offset_top = 40.0
+offset_bottom = 166.0
+mouse_filter = 2
+texture = ExtResource("5_wife")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HusbandProfile" type="TextureRect" parent="HUD" unique_id=1299687456]
+anchors_preset = -1
+anchor_left = 0.645
+anchor_right = 0.975
+offset_top = 40.0
+offset_bottom = 166.0
+mouse_filter = 2
+texture = ExtResource("6_husband")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="WifeWallet" type="HBoxContainer" parent="HUD/WifeProfile"]
+layout_mode = 1
+offset_left = 43.0
+offset_top = 17.0
+offset_bottom = 45.0
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Coin" type="Label" parent="HUD/WifeProfile/WifeWallet"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.36, 0.2, 0.07, 1)
+theme_override_fonts/font = ExtResource("9_timer_font")
+theme_override_styles/normal = SubResource("StyleBoxFlat_coin")
+text = "G"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Gold" type="Label" parent="HUD/WifeProfile/WifeWallet"]
+layout_mode = 2
+mouse_filter = 2
+text = "000000"
+label_settings = SubResource("LabelSettings_gold")
+vertical_alignment = 1
+
+[node name="HusbandWallet" type="HBoxContainer" parent="HUD/HusbandProfile"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -165.0
+offset_top = 17.0
+offset_right = -42.0
+offset_bottom = 45.0
+mouse_filter = 2
+theme_override_constants/separation = 10
+
+[node name="Coin" type="Label" parent="HUD/HusbandProfile/HusbandWallet"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.36, 0.2, 0.07, 1)
+theme_override_fonts/font = ExtResource("9_timer_font")
+theme_override_styles/normal = SubResource("StyleBoxFlat_coin")
+text = "G"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Gold" type="Label" parent="HUD/HusbandProfile/HusbandWallet"]
+layout_mode = 2
+mouse_filter = 2
+text = "000000"
+label_settings = SubResource("LabelSettings_gold")
+vertical_alignment = 1
+
+[node name="WifeBag" type="TextureRect" parent="HUD" unique_id=439223]
+anchors_preset = -1
+anchor_left = 0.025
+anchor_right = 0.025
+offset_top = 118.0
+offset_right = 124.0
+offset_bottom = 528.0
+mouse_filter = 2
+texture = ExtResource("7_bag")
+expand_mode = 1
+
+[node name="Items" type="GridContainer" parent="HUD/WifeBag"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 18.0
+mouse_filter = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="HusbandBag" type="TextureRect" parent="HUD" unique_id=1680505510]
+anchors_preset = -1
+anchor_left = 0.975
+anchor_right = 0.975
+offset_left = -124.0
+offset_top = 118.0
+offset_bottom = 528.0
+mouse_filter = 2
+texture = ExtResource("7_bag")
+expand_mode = 1
+
+[node name="Items" type="GridContainer" parent="HUD/HusbandBag"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 18.0
+mouse_filter = 2
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 2
+columns = 2
+
+[node name="TimeLeft" type="Label" parent="HUD" unique_id=1218965045]
+anchors_preset = -1
+anchor_left = 0.402
+anchor_right = 0.598
+offset_top = 40.0
+offset_bottom = 117.0
+theme_override_colors/font_color = Color(0.863, 0.2, 0.137, 1)
+theme_override_fonts/font = ExtResource("9_timer_font")
+theme_override_font_sizes/font_size = 50
+text = "01:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TimerBackground" type="TextureRect" parent="HUD/TimeLeft" unique_id=698753130]
+show_behind_parent = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 8.0
+mouse_filter = 2
+texture = ExtResource("8_timer")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ThrowPower" type="ProgressBar" parent="HUD" unique_id=736468666]
+visible = false
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -44.0
+offset_right = 120.0
+offset_bottom = -28.0
+mouse_filter = 2
+max_value = 10.0
+step = 0.001
+show_percentage = false
+
+[node name="GrabProgress" type="ProgressBar" parent="HUD"]
+visible = false
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -120.0
+offset_top = -44.0
+offset_right = 120.0
+offset_bottom = -28.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_grab_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_grab_fill")
+max_value = 1.0
+step = 0.001
+show_percentage = false
+
+[node name="AcquisitionLogs" type="VBoxContainer" parent="HUD"]
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -502.0
+offset_top = -28.0
+offset_right = -32.0
+offset_bottom = -28.0
+grow_vertical = 0
+mouse_filter = 2
+theme = SubResource("Theme_log")
+theme_override_constants/separation = 8
+
+[node name="RoundEnd" type="ColorRect" parent="HUD" unique_id=173380585]
+visible = false
+z_index = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.06, 0.08, 0.86)
+
+[node name="Message" type="Label" parent="HUD/RoundEnd" unique_id=964137031]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/font_size = 30
+text = "시간 종료   ·   00:00"
+horizontal_alignment = 1
+vertical_alignment = 1

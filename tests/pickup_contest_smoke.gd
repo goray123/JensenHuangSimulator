@@ -126,7 +126,7 @@ func _run() -> void:
 		return
 	_check(opponent.held_pickup == tv and player.held_pickup == null, "The second player takes the TV when they win")
 	_check(player.is_stunned() and not opponent.is_stunned(), "The loser receives the same 2.5-second stun")
-	_check(not tv.is_in_group(&"pickups") and tv.get_parent() == opponent.get_node("RightArm/HandSocket"), "The won object belongs to exactly one player's hand")
+	_check(not tv.is_in_group(&"pickups") and tv.get_parent() == opponent.get_node("HandSocket"), "The won object belongs to exactly one player's hand")
 	await _wait_for_physics(165)
 	_check(not player.is_stunned() and camera.transform.is_equal_approx(original_camera), "A second round also restores control and the overview camera")
 	opponent.release_pickup(false)

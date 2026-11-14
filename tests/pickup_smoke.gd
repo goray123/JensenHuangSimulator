@@ -11,7 +11,7 @@ func _run() -> void:
 	var courtyard := preload("res://courtyard.tscn").instantiate()
 	root.add_child(courtyard)
 	var player := courtyard.get_node("Player") as CharacterBody3D
-	var hand := player.get_node("RightArm/HandSocket") as Marker3D
+	var hand := player.get_node("HandSocket") as Marker3D
 	var trajectory := player.get_node("ThrowTrajectory") as MeshInstance3D
 	var power := courtyard.get_node("HUD/ThrowPower") as ProgressBar
 	var holding_changes: Array[bool] = []
@@ -23,11 +23,9 @@ func _run() -> void:
 	# The prop smoke test covers furniture selection separately.
 	for prop in get_nodes_in_group(&"apartment_props"):
 		prop.remove_from_group(&"pickups")
-	var head := player.get_node("Head") as MeshInstance3D
-	var head_mesh := head.mesh as SphereMesh
 	for pickup: RigidBody3D in pickups:
 		var sphere := (pickup.get_node("Sphere") as MeshInstance3D).mesh as SphereMesh
-		_check(is_equal_approx(sphere.radius, head_mesh.radius / 3.0), "Pickup diameter is one third of the head diameter")
+		_check(is_equal_approx(sphere.radius, 0.23 / 3.0), "The original pickup radius is preserved with the new character")
 		_check(is_equal_approx(sphere.height, sphere.radius * 2.0), "Pickup is a sphere")
 		_check(absf(pickup.global_position.y - ground_y - sphere.radius) < 0.002, "Pickup rests above the floor")
 

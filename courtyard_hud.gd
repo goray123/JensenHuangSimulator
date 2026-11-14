@@ -20,8 +20,8 @@ func _ready() -> void:
 func add_bag_item(player_index: int, item_name: String) -> void:
 	var icon := TextureRect.new()
 	icon.texture = ITEM_ICON
-	# shortcut: 11 rows fit the current 21 items, add scrolling if the map grows.
-	icon.custom_minimum_size = Vector2(42, 32)
+	# shortcut: 12 rows fit the current 24 pickups, add scrolling if the map grows.
+	icon.custom_minimum_size = Vector2(42, 30)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE

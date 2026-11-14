@@ -2,7 +2,7 @@ extends Node
 
 enum State { IDLE, HOSTING, SEARCHING, CONNECTING, JOINED, TESTING }
 
-const APARTMENT := preload("res://courtyard.tscn")
+const APARTMENT := preload("res://house.tscn")
 const TEST_MODE := preload("res://test_mode.gd")
 const GAME_PORT := 33443
 const DISCOVERY_PORT := 33444

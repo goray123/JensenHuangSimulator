@@ -1,9 +1,10 @@
 extends Node3D
 
+const SFX := preload("res://sfx.gd")
 const Player := preload("res://player.gd")
 const PLAYER_SCENE := preload("res://player.tscn")
 const PICKUP_CONTEST := preload("res://pickup_contest.gd")
-const GUEST_COLOR := Color(0.16, 0.65, 0.98)
+const GUEST_MODEL := preload("res://assets/characters/thump/02_Woman.glb")
 const INPUT_TIMEOUT_MS := 500
 
 var guest_peer_id := 0
@@ -39,11 +40,7 @@ func _ready() -> void:
 		_guest.position = to_local($Map/Markers/Player2Spawn.global_position)
 		_guest.reads_local_input = not is_host
 		_guest.simulates_movement = is_host
-		var jacket := StandardMaterial3D.new()
-		jacket.albedo_color = GUEST_COLOR
-		jacket.roughness = 0.88
-		for part in [&"Torso", &"LeftArm", &"RightArm"]:
-			(_guest.get_node(NodePath(part)) as MeshInstance3D).material_override = jacket
+		_guest.model_scene = GUEST_MODEL
 		add_child(_guest)
 		_guest.add_collision_exception_with(_host)
 		_host.add_collision_exception_with(_guest)
@@ -56,6 +53,13 @@ func _ready() -> void:
 			_local_player = _guest
 			_guest.throw_requested.connect(_send_throw)
 	_local_player.get_node("Head/PlayerPosPointer").show()
+	if guest_peer_id != 0:
+		for index in _players.size():
+			_players[index].shared_sfx_requested.connect(_broadcast_player_sound.bind(index))
+	var listener := AudioListener3D.new()
+	listener.position.y = 0.7
+	_local_player.add_child(listener)
+	listener.make_current()
 	_local_player.aim_changed.connect(_update_throw_power)
 	_local_player.grab_changed.connect(_update_grab_progress)
 	_local_player.bag_requested.connect(_request_bag_item)
@@ -100,7 +104,11 @@ func _physics_process(_delta: float) -> void:
 	for pickup in _pickups:
 		transforms.append(pickup.global_transform)
 	var holding := Vector2i(_pickups.find(_host.held_pickup), _pickups.find(_guest.held_pickup))
-	_apply_snapshot.rpc_id(guest_peer_id, transforms, holding, _contest.revision, seconds_left)
+	# Keep the same object order, using packed floats to fit one ENet packet.
+	var poses := PackedFloat32Array()
+	for pose in transforms:
+		poses.append_array(PackedFloat32Array([pose.basis.x.x, pose.basis.x.y, pose.basis.x.z, pose.basis.y.x, pose.basis.y.y, pose.basis.y.z, pose.basis.z.x, pose.basis.z.y, pose.basis.z.z, pose.origin.x, pose.origin.y, pose.origin.z]))
+	_receive_snapshot.rpc_id(guest_peer_id, poses, Vector4i(holding.x, holding.y, _contest.revision, seconds_left))
 
 
 func _update_time_left(seconds: int) -> void:
@@ -193,13 +201,24 @@ func _is_guest_request() -> bool:
 
 
 func _broadcast_hit(player_index: int) -> void:
-	_apply_hit.rpc_id(guest_peer_id, player_index)
+	_apply_hit.rpc_id(guest_peer_id, player_index, _players[player_index].last_hit_sound)
 
 
 @rpc("authority", "call_remote", "reliable")
-func _apply_hit(player_index: int) -> void:
+func _apply_hit(player_index: int, sound: StringName = &"") -> void:
 	if not _round_finished and player_index >= 0 and player_index < _players.size():
-		_players[player_index].receive_hit()
+		_players[player_index].receive_hit(sound)
+
+
+@rpc("authority", "call_remote", "unreliable_ordered")
+func _receive_snapshot(poses: PackedFloat32Array, state: Vector4i) -> void:
+	if poses.size() != (_players.size() + _pickups.size()) * 12:
+		return
+	var transforms: Array[Transform3D] = []
+	for offset in range(0, poses.size(), 12):
+		var basis := Basis(Vector3(poses[offset], poses[offset + 1], poses[offset + 2]), Vector3(poses[offset + 3], poses[offset + 4], poses[offset + 5]), Vector3(poses[offset + 6], poses[offset + 7], poses[offset + 8]))
+		transforms.append(Transform3D(basis, Vector3(poses[offset + 9], poses[offset + 10], poses[offset + 11])))
+	_apply_snapshot(transforms, Vector2i(state.x, state.y), state.z, state.w)
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")
@@ -234,3 +253,46 @@ func _apply_snapshot(transforms: Array, holding: Vector2i, ownership_revision: i
 	for index in _pickups.size():
 		if index != holding.x and index != holding.y and not _bagged_items.has(index) and is_instance_valid(_pickups[index]):
 			_pickups[index].global_transform = transforms[_players.size() + index]
+
+
+func _broadcast_player_sound(sound: StringName, player_index: int) -> void:
+	if multiplayer.is_server() and not _round_finished:
+		_play_player_sound.rpc(player_index, sound)
+
+
+@rpc("authority", "call_local", "reliable")
+func _play_player_sound(player_index: int, sound: StringName) -> void:
+	if player_index < 0 or player_index >= _players.size() or sound not in [&"pickup_grab", &"throw_light", &"throw_heavy", &"throw_spin", &"throw_cartoon"]:
+		return
+	SFX.play_at(_players[player_index], sound, -4.0 if sound == &"pickup_grab" else 0.0)
+
+
+func broadcast_prop_impact(pickup: RigidBody3D, sound: StringName) -> void:
+	if not multiplayer.is_server() or _round_finished:
+		return
+	var index := _pickups.find(pickup)
+	if guest_peer_id != 0:
+		_play_prop_impact.rpc(index, sound)
+	else:
+		_play_prop_impact(index, sound)
+
+
+@rpc("authority", "call_local", "reliable")
+func _play_prop_impact(pickup_index: int, sound: StringName) -> void:
+	if pickup_index >= 0 and pickup_index < _pickups.size() and sound in [&"hit_thud", &"hit_soft", &"hit_metal", &"hit_shatter"]:
+		SFX.play_at(_pickups[pickup_index], sound)
+
+
+func reward_thrower(thrower: Node3D) -> void:
+	if not multiplayer.is_server():
+		return
+	if thrower.reads_local_input:
+		SFX.play_ui(thrower, &"pickup_coin", -6.0)
+	elif guest_peer_id != 0 and thrower == _guest:
+		_play_hit_reward.rpc_id(guest_peer_id)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _play_hit_reward() -> void:
+	if not _round_finished and is_instance_valid(_local_player):
+		SFX.play_ui(_local_player, &"pickup_coin", -6.0)

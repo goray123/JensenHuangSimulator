@@ -11,6 +11,7 @@ class StartBarrier:
 	extends Node
 	var started := false
 	var hits_verified := false
+	var tv_verified := false
 	var tv_requested := false
 	@rpc("authority", "call_remote", "reliable")
 	func begin() -> void:
@@ -18,6 +19,9 @@ class StartBarrier:
 	@rpc("authority", "call_remote", "reliable")
 	func finish_hits() -> void:
 		hits_verified = true
+	@rpc("any_peer", "call_remote", "reliable")
+	func confirm_tv() -> void:
+		tv_verified = true
 	@rpc("any_peer", "call_remote", "reliable")
 	func request_tv() -> void:
 		tv_requested = true
@@ -39,7 +43,7 @@ func _run() -> void:
 		push_error("Specify host or guest after --.")
 		quit(1)
 		return
-	create_timer(20.0).timeout.connect(func() -> void:
+	create_timer(35.0).timeout.connect(func() -> void:
 		push_error("LAN smoke test timed out (%s)." % args[0])
 		quit(1)
 	)
@@ -67,7 +71,7 @@ func _run() -> void:
 	_host = apartment.get_node("Player")
 	_guest = apartment.get_node("Guest")
 	_pickup = apartment.get_node("Pickup3")
-	_check(apartment._pickups.size() == 21, "All spheres, TV, and small props have shared network indices")
+	_check(apartment._pickups.size() == 24, "All spheres, TV, and small props have shared network indices")
 	await _wait_frames(8)
 	_check(not _lobby.get_node("Menu").visible, "Start opens the new map for both players")
 	_check(_host.position.distance_to(HOST_SPAWN) < 0.08, "Host uses the first map spawn")
@@ -130,12 +134,13 @@ func _test_host(second: RigidBody3D) -> void:
 	_mouse(MOUSE_BUTTON_LEFT, true)
 	await _wait_frames(20)
 	_mouse(MOUSE_BUTTON_LEFT, false)
-	var tv := _lobby.get_node("Apartment/Furnishings/LivingRoom/Television") as RigidBody3D
+	var apartment := _lobby.get_node("Apartment")
+	var tv: RigidBody3D = apartment._pickups.filter(func(item: RigidBody3D) -> bool: return item.get_meta(&"item_id", "") == "17-tv")[0]
 	tv.global_position = _guest.global_position + Vector3.UP * 0.8
 	await _expect(func() -> bool: return _guest.held_pickup == tv, "A guest can also pick up the shared TV")
 	var tv_from := tv.global_position
 	await _expect(func() -> bool: return _guest.held_pickup == null and tv.global_position.distance_to(tv_from) > 0.35, "A charged TV throw is simulated by the host")
-	var apartment := _lobby.get_node("Apartment")
+	await _expect(func() -> bool: return root.get_node("SmokeBarrier").tv_verified, "The guest observes the TV flight before the hit fixture is reset")
 	await _test_hits_host(apartment)
 	await _expect(func() -> bool: return root.get_node("SmokeBarrier").tv_requested, "The guest is ready to test bagging")
 	_guest.hold_pickup(tv)
@@ -173,7 +178,8 @@ func _test_guest() -> void:
 	var host_release := host_pickup.global_position
 	await _expect(func() -> bool: return _host.held_pickup == null and host_pickup.global_position.distance_to(host_release) > 0.35,
 		"Guest sees the host throw the shared sphere")
-	var tv := _lobby.get_node("Apartment/Furnishings/LivingRoom/Television") as RigidBody3D
+	var apartment := _lobby.get_node("Apartment")
+	var tv: RigidBody3D = apartment._pickups.filter(func(item: RigidBody3D) -> bool: return item.get_meta(&"item_id", "") == "17-tv")[0]
 	await _expect(func() -> bool: return tv.global_position.distance_to(_guest.global_position + Vector3.UP * 0.8) < 0.1, "Guest receives the shared TV transform")
 	await _hold_left(75)
 	await _expect(func() -> bool: return _guest.held_pickup == tv, "Guest sees the TV attached with its prop-specific hand offset")
@@ -183,7 +189,7 @@ func _test_guest() -> void:
 	var tv_from := tv.global_position
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	await _expect(func() -> bool: return _guest.held_pickup == null and tv.global_position.distance_to(tv_from) > 0.35, "Guest sees the charged TV throw")
-	var apartment := _lobby.get_node("Apartment")
+	root.get_node("SmokeBarrier").confirm_tv.rpc_id(1)
 	await _test_hits_guest(apartment.get_node("Pickup1"))
 	await _expect(func() -> bool: return tv.global_position.distance_to(_guest.global_position) > 0.35, "The thrown TV is in the world before the deposit fixture")
 	root.get_node("SmokeBarrier").request_tv.rpc_id(1)
@@ -224,7 +230,7 @@ func _test_hits_host(apartment: Node3D) -> void:
 
 func _test_hits_guest(sphere: RigidBody3D) -> void:
 	await _expect(func() -> bool: return _guest.is_stunned(), "The guest receives the reliable hit event from the host")
-	var torso := _guest.get_node("Torso") as MeshInstance3D
+	var torso := _guest._body_meshes[0] as MeshInstance3D
 	var hit_position := _guest.global_position
 	var saw_red := false
 	_key(KEY_D, true)
@@ -242,7 +248,7 @@ func _test_hits_guest(sphere: RigidBody3D) -> void:
 	await _expect(func() -> bool: return _host.is_stunned(), "A guest throw produces a synchronized hit on the host")
 	_check(not _guest.is_stunned(), "Throwing does not stun the thrower")
 	await _wait_frames(15)
-	_check(_host.get_node("Torso").material_overlay == null, "The remote host's red flash restores its appearance")
+	_check(_host._body_meshes[0].material_overlay == null, "The remote host's red flash restores its appearance")
 	await _expect(func() -> bool: return not _host.is_stunned(), "The remote host's stun also expires")
 	await _expect(func() -> bool: return root.get_node("SmokeBarrier").hits_verified, "The host finishes hit checks before the guest disconnects")
 
