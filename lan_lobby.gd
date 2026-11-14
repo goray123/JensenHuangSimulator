@@ -6,6 +6,7 @@ const APARTMENT := preload("res://house.tscn")
 const TEST_MODE := preload("res://test_mode.gd")
 const GUIDED_TUTORIAL := preload("res://guided_tutorial.gd")
 const INTRO := preload("res://intro_cutscene.gd")
+const BGM := preload("res://bgm.gd")
 const GAME_PORT := 33443
 const DISCOVERY_PORT := 33444
 const TIMEOUT_MS := 4500
@@ -16,6 +17,8 @@ const AUTO_SEARCH_MAX_MS := 2000
 const START_HOVER_SCALE := 1.15
 const START_HOVER_TIME := 0.12
 const READY_MESSAGE := ""
+## The round music switches to the last-round track once this many seconds or fewer are left.
+const FINAL_MUSIC_SECONDS := 20
 
 ## Off in automated tests so they enter the game without waiting for the comic intro.
 @export var play_intro := true
@@ -32,6 +35,7 @@ var _intro: CanvasLayer
 var _intro_done_peers: Array[int] = []
 var _host_if_none := false
 var _hover_tween: Tween
+var _bgm: Node
 
 @onready var _menu: Control = $Menu
 @onready var _status: Label = %Status
@@ -42,6 +46,9 @@ var _hover_tween: Tween
 
 
 func _ready() -> void:
+	_bgm = BGM.new()
+	_bgm.name = "Bgm"
+	add_child(_bgm)
 	_start_button.pressed.connect(_find_room.bind(true))
 	_start_button.mouse_entered.connect(_set_start_hover.bind(true))
 	_start_button.mouse_exited.connect(_set_start_hover.bind(false))
@@ -130,6 +137,7 @@ func _find_room(host_if_none := false) -> void:
 	_host_if_none = host_if_none
 	_deadline = Time.get_ticks_msec() + (randi_range(AUTO_SEARCH_MIN_MS, AUTO_SEARCH_MAX_MS) if host_if_none else TIMEOUT_MS)
 	_next_search = 0
+	_bgm.play(&"brawl")
 	_show_lobby("같은 네트워크에서 참여 가능한 방을 찾는 중입니다…")
 
 
@@ -197,6 +205,7 @@ func _on_peer_disconnected(_peer_id: int) -> void:
 	if _state == State.HOSTING:
 		_remove_apartment()
 		_peer.refuse_new_connections = false
+		_bgm.play(&"lobby")
 		_show_lobby("상대의 연결이 끊겼습니다. 새 상대를 기다리는 중입니다. (1/2)")
 
 
@@ -228,6 +237,7 @@ func _start_game() -> void:
 func _play_match_intro(guest_id: int) -> void:
 	if _apartment != null or _intro != null or (_state != State.HOSTING and multiplayer.get_unique_id() != guest_id):
 		return
+	_bgm.play(&"brawl")
 	_run_intro(_on_match_intro_done)
 
 
@@ -260,6 +270,7 @@ func _open_apartment(guest_id: int) -> void:
 	_remove_intro()
 	_apartment = APARTMENT.instantiate()
 	_apartment.guest_peer_id = guest_id
+	_connect_round_music()
 	add_child(_apartment)
 	_menu.hide()
 
@@ -269,6 +280,7 @@ func _start_test_mode() -> void:
 		return
 	_close_network()
 	_state = State.TESTING
+	_bgm.play(&"brawl")
 	_run_intro(_on_test_intro_done)
 
 
@@ -298,6 +310,7 @@ func _remove_intro() -> void:
 func _open_test_apartment() -> void:
 	_remove_intro()
 	_apartment = APARTMENT.instantiate()
+	_connect_round_music()
 	add_child(_apartment)
 	var test_mode := TEST_MODE.new()
 	test_mode.name = "TestMode"
@@ -310,6 +323,18 @@ func _restart_test_mode() -> void:
 		return
 	_remove_apartment()
 	_open_test_apartment()
+
+
+## Every new round (match, test, test restart) starts on the brawl track; the host's seconds pick the last-round track.
+func _connect_round_music() -> void:
+	_bgm.play(&"brawl")
+	_apartment.round_seconds_changed.connect(_on_round_seconds_changed)
+	_apartment.round_ended.connect(_bgm.stop)
+
+
+func _on_round_seconds_changed(seconds: int) -> void:
+	if seconds <= FINAL_MUSIC_SECONDS:
+		_bgm.play(&"final")
 
 
 func _remove_apartment() -> void:
@@ -336,6 +361,8 @@ func _close_network() -> void:
 
 
 func _show_lobby(message: String) -> void:
+	if _state == State.IDLE:
+		_bgm.play(&"lobby")
 	_status.text = message
 	_start_button.visible = _state == State.IDLE
 	_tutorial_button.visible = _state == State.IDLE
