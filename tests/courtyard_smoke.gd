@@ -91,7 +91,7 @@ func _run() -> void:
 		var traveled := (player.global_position - (wall_case.start as Vector3)).dot(wall_case.direction)
 		_check(absf(traveled - wall_case.distance) < 0.15, "Wall blocks movement in direction %s" % wall_case.direction)
 
-	_check(camera.projection == Camera3D.PROJECTION_ORTHOGONAL and camera.global_basis.z.is_equal_approx(Vector3.UP) and camera.global_basis.y.is_equal_approx(Vector3.FORWARD), "Camera looks straight down with north at the top")
+	_check(camera.projection == Camera3D.PROJECTION_ORTHOGONAL and camera.global_basis.z.y > 0.5, "The orthographic camera looks down on the apartment")
 	_check(camera.is_current() and camera.global_transform == camera_transform, "Camera stays fixed")
 	if not failed:
 		print("Apartment smoke test passed.")

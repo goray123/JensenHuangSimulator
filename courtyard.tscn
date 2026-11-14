@@ -3,6 +3,8 @@
 [ext_resource type="PackedScene" path="res://player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://apartment_furnishings.tscn" id="2_furnishings"]
 [ext_resource type="Shader" uid="uid://pkh1um28fou8" path="res://assets/apartment/floor.gdshader" id="3_floor"]
+[ext_resource type="PackedScene" path="res://pickup.tscn" id="2_pickup"]
+[ext_resource type="Script" path="res://courtyard.gd" id="3_courtyard"]
 
 [sub_resource type="Environment" id="Environment_apartment"]
 background_mode = 1
@@ -31,6 +33,7 @@ albedo_color = Color(0.43, 0.25, 0.13, 1)
 roughness = 0.88
 
 [node name="Apartment" type="Node3D" unique_id=698934390]
+script = ExtResource("3_courtyard")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1394833072]
 environment = SubResource("Environment_apartment")
@@ -155,6 +158,15 @@ material = SubResource("StandardMaterial3D_door")
 [node name="Player" parent="." unique_id=1551723369 instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 0.04, 5.36)
 
+[node name="Pickup1" parent="." instance=ExtResource("2_pickup")]
+position = Vector3(-2, 0.07666667, -1)
+
+[node name="Pickup2" parent="." instance=ExtResource("2_pickup")]
+position = Vector3(2, 0.07666667, -2)
+
+[node name="Pickup3" parent="." instance=ExtResource("2_pickup")]
+position = Vector3(0, 0.07666667, 2)
+
 [node name="Overview" type="Camera3D" parent="." unique_id=2101783900]
 transform = Transform3D(0.70710677, -0.45451945, 0.5416752, 0, 0.76604444, 0.6427876, -0.70710677, -0.45451945, 0.5416752, 8.404, 12.5, 10.2)
 projection = 1
@@ -173,6 +185,16 @@ offset_top = -60.0
 offset_bottom = -22.0
 theme_override_colors/font_color = Color(0.83, 0.87, 0.92, 1)
 theme_override_font_sizes/font_size = 18
-text = "W A S D  이동 + 이동 방향 바라보기"
+text = "W A S D  이동 + 방향 전환     E  구 줍기     T 누르기: 궤적 / 떼기: 던지기"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="PickupStatus" type="Label" parent="HUD"]
+offset_left = 24.0
+offset_top = 20.0
+offset_right = 700.0
+offset_bottom = 52.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.84, 0.3, 1)
+theme_override_font_sizes/font_size = 20
+text = "손: 비어 있음"

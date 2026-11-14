@@ -1,0 +1,40 @@
+[gd_scene format=3]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pickup"]
+albedo_color = Color(1, 0.78, 0.12, 1)
+metallic = 0.25
+roughness = 0.3
+emission_enabled = true
+emission = Color(1, 0.58, 0.06, 1)
+emission_energy_multiplier = 0.6
+
+[sub_resource type="SphereMesh" id="SphereMesh_pickup"]
+material = SubResource("StandardMaterial3D_pickup")
+radius = 0.07666667
+height = 0.15333334
+radial_segments = 24
+rings = 12
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_pickup"]
+radius = 0.07666667
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_pickup"]
+friction = 0.8
+bounce = 0.2
+
+[node name="Pickup" type="RigidBody3D" groups=["pickups"]]
+collision_layer = 2
+collision_mask = 3
+mass = 0.1
+physics_material_override = SubResource("PhysicsMaterial_pickup")
+continuous_cd = true
+freeze = true
+linear_damp_mode = 1
+linear_damp = 0.0
+angular_damp = 1.0
+
+[node name="Sphere" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_pickup")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("SphereShape3D_pickup")
