@@ -33,6 +33,13 @@ func _run() -> void:
 		var shape := (body.get_node("CollisionShape3D") as CollisionShape3D).shape as BoxShape3D
 		var collider_bounds := AABB(-shape.size * 0.5, shape.size).grow(0.001)
 		_check(collider_bounds.encloses(_mesh_bounds(model, body.global_transform.affine_inverse())), "%s has a collider enclosing its scaled meshes" % body.name)
+	# Keep targeting fixtures in place; room_physics_smoke covers furniture contact.
+	for furniture: RigidBody3D in get_nodes_in_group(&"dynamic_furniture"):
+		furniture.freeze = true
+		furniture.collision_layer = 0
+		furniture.collision_mask = 0
+	for pickup: RigidBody3D in get_nodes_in_group(&"pickups"):
+		pickup.freeze = true
 	await _wait_for_physics(15)
 	var ground_y := player.global_position.y
 	var launch_position := Vector3(7.5, ground_y, -1.6)
@@ -78,6 +85,12 @@ func _run() -> void:
 		_check(error < 0.25, "%s follows its predicted flight" % body.name)
 		await _wait_for_physics(90)
 		_check(body.global_position.y > -0.05, "%s collides with the apartment floor" % body.name)
+		if body.name in [&"Banana", &"SecondBanana"]:
+			_check(body.is_banana_peel and body.freeze and not body.is_in_group(&"pickups"), "%s becomes a fixed peel after landing" % body.name)
+			# Leave the slip interaction to banana_peel_smoke; later targets need a mobile player.
+			body.consume_banana_peel()
+			await _wait_for_physics(125)
+			continue
 		_check(model.scale.is_equal_approx(model_scale), "%s retains its visual scale after a throw" % body.name)
 		player.global_position = Vector3(body.global_position.x, ground_y, body.global_position.z + 0.7)
 		await _tap(KEY_E)

@@ -1,6 +1,7 @@
 extends Node3D
 
 const THROWABLE := preload("res://throwable.gd")
+const PHYSICS_MASS := preload("res://physics_mass.gd")
 
 const ITEM_NAMES := {
 	"Television": "TV", "Laptop": "노트북", "CoffeeMug": "머그컵",
@@ -47,7 +48,7 @@ func _make_pickup(model: Node3D) -> void:
 	body.linear_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
 	body.linear_damp = 0.0
 	body.angular_damp = 1.0
-	body.mass = clampf(bounds.get_volume() * 20.0, 0.1, 6.0)
+	body.mass = PHYSICS_MASS.from_bounds(bounds)
 	var material := PhysicsMaterial.new()
 	material.friction = 0.8
 	material.bounce = 0.2
@@ -62,6 +63,10 @@ func _make_pickup(model: Node3D) -> void:
 	collider.shape = shape
 	body.add_child(collider)
 	body.set_meta(&"pickup_name", ITEM_NAMES.get(item_name, item_name))
+	body.set_meta(&"physics_volume", bounds.get_volume())
+	if item_name in ["Banana", "SecondBanana"]:
+		body.set_meta(&"item_id", "01-banana")
 	body.set_meta(&"hold_offset", Vector3(0, maxf(shape.size.y * 0.5 - 0.65, 0), -shape.size.z * 0.5 - 0.12))
 	body.add_to_group(&"pickups")
 	body.add_to_group(&"apartment_props")
+	body.freeze = not multiplayer.is_server()

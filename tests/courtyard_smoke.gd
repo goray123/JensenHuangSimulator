@@ -13,6 +13,12 @@ func _run() -> void:
 	var player := apartment.get_node("Player") as CharacterBody3D
 	var camera := apartment.get_node("Overview") as Camera3D
 	var camera_transform := camera.global_transform
+	# Check authored passages and walls independently of movable obstacles.
+	# The room physics smoke test covers pushing, impacts, and furniture motion.
+	for body: RigidBody3D in apartment.find_children("*", "RigidBody3D", true, false):
+		body.freeze = true
+		body.collision_layer = 0
+		body.collision_mask = 0
 	await _wait_for_physics(15)
 	var spawn := player.global_position
 	var spawn_marker := apartment.get_node("Map/Markers/Player1Spawn") as Marker3D
@@ -33,11 +39,14 @@ func _run() -> void:
 
 	var sofa_approach := Transform3D(Basis.IDENTITY, Vector3(1.8, spawn.y, -1.2))
 	var hit := KinematicCollision3D.new()
+	var sofa := apartment.get_node("Map/LivingRoom/Sofa") as RigidBody3D
+	sofa.collision_layer = 2
 	_check(
 		player.test_move(sofa_approach, Vector3.LEFT, hit)
-		and hit.get_collider() == apartment.get_node("Map/LivingRoom/Sofa/SofaCollision"),
-		"The living room sofa blocks the player"
+		and hit.get_collider() == sofa,
+		"The living room sofa has collision against the player"
 	)
+	sofa.collision_layer = 0
 
 	var living_room := Vector3(6.4, spawn.y, -2.2)
 	var movement_cases := [
@@ -78,9 +87,9 @@ func _run() -> void:
 
 	for wall_case in [
 		{"start": Vector3(6.4, spawn.y, -3.7), "key": KEY_W, "direction": Vector3.FORWARD, "distance": 0.78},
-		{"start": living_room, "key": KEY_A, "direction": Vector3.LEFT, "distance": 1.90},
+		{"start": Vector3(0.8, spawn.y, -3.5), "key": KEY_A, "direction": Vector3.LEFT, "distance": 0.48},
 		{"start": living_room, "key": KEY_S, "direction": Vector3.BACK, "distance": 1.83},
-		{"start": living_room, "key": KEY_D, "direction": Vector3.RIGHT, "distance": 2.09},
+		{"start": Vector3(13.2, spawn.y, -3.5), "key": KEY_D, "direction": Vector3.RIGHT, "distance": 0.48},
 	]:
 		player.global_position = wall_case.start
 		await _hold_key(wall_case.key, 45)

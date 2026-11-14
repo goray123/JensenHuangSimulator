@@ -1,5 +1,7 @@
 [gd_scene format=4]
 
+[ext_resource type="Script" path="res://banana_peel.gd" id="1_peel"]
+
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ki53b"]
 resource_name = "MapStyle_Unshaded_VertexColors"
 cull_mode = 2
@@ -27,12 +29,13 @@ size = Vector3(0.48665065, 0.273, 0.5619357)
 
 [node name="Item_03_banana_peel" type="Area3D" unique_id=80374857 groups=["floor_hazard"]]
 collision_layer = 8
-collision_mask = 2
+collision_mask = 1
+script = ExtResource("1_peel")
 metadata/item_id = "03-banana-peel"
 metadata/display_name = "바나나껍질"
 metadata/room = "부엌"
 metadata/gameplay_note = "미끄러짐 함정"
-metadata/gameplay_implemented = false
+metadata/gameplay_implemented = true
 metadata/origin = "bottom center, metres, Y up"
 
 [node name="Visual" type="MeshInstance3D" parent="." unique_id=370070663]

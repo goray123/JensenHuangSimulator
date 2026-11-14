@@ -36,7 +36,9 @@ func _run() -> void:
 	_set_key(KEY_W, true)
 	await _wait_for_physics(18)
 	_set_key(KEY_W, false)
-	_check(player.global_position.z < start.z - 1.0 and target.global_position.distance_to(target_start) < 0.02, "WASD moves only the controllable player")
+	# The nearby sphere now has a physical response when the player walks into it.
+	_check(player.global_position.z < start.z - 0.5 and target.global_position.distance_to(target_start) < 0.02,
+		"WASD moves only the controllable player (player %s -> %s, target %s -> %s)" % [start, player.global_position, target_start, target.global_position])
 	_check(pointer.visible and not target.get_node("Head/PlayerPosPointer").visible and pointer_start.y > start.y + 1.85
 		and (pointer.global_position - pointer_start).is_equal_approx(player.global_position - start),
 		"Only the controllable player has a pointer, and it follows their movement above their head")
