@@ -27,8 +27,9 @@ const HIT_FLASH_DURATION := 0.2
 const HIT_STUN_DURATION := 0.5
 const HIT_FLASH_INTERVAL := 0.05
 const PEEL_STUN_DURATION := 2.0
-const PUSH_MASS := 60.0
-const PUSH_RESPONSE := 5.0
+# Sustained contact must overcome floor friction, including on large furniture.
+const PUSH_MASS := 120.0
+const PUSH_RESPONSE := 20.0
 const DEFAULT_MODEL := preload("res://assets/characters/thump/03_Young.glb")
 const MODEL_SCALE := 0.45
 # The in-place Run clip covers ~0.46 m/s at the GLB's own scale (rig-report.json).

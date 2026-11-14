@@ -100,8 +100,8 @@ func _verify_body_lists(is_host: bool) -> void:
 				"Furniture follows the pickup range without becoming E-pickable")
 		var volume: float = body.get_meta(&"physics_volume", 0.0)
 		var weight_scale := 0.75 if index < 21 else 1.0
-		_check(volume > 0.0 and is_equal_approx(body.mass, maxf(volume * 40.0, 0.02) * weight_scale),
-			"Both peers use the reduced item mass and volume-proportional furniture mass")
+		_check(volume > 0.0 and is_equal_approx(body.mass, maxf(volume * 40.0, 0.02) * weight_scale * 0.5),
+			"Both peers use half the previous physical mass for pickups and furniture")
 		_check(body.freeze != is_host,
 			"Only the host simulates unheld bodies; the guest keeps snapshot bodies frozen")
 		if body.name == &"Stool00":
