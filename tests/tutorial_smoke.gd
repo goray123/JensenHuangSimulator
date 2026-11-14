@@ -211,9 +211,11 @@ func _run() -> void:
 	_check(apartment.bag_gold() == Vector2i(cake.gold_value + ring.gold_value, lesson._opponent_item.gold_value),
 		"The final deposit updates authoritative bag totals")
 	if await _expect(func() -> bool: return lesson.step == lesson.Step.COMPLETE,
-		"The real final countdown and victory animation finish before completion", 720):
-		_check(apartment._round_finished and apartment.get_node_or_null("Ending") != null,
-			"Completion uses the real 3D ending and winner calculation")
+		"The real final countdown, settlement reveal and victory animation finish before completion", 1500):
+		var ending := apartment.get_node_or_null("Ending")
+		_check(apartment._round_finished and ending != null and ending.verdict_shown and ending.reveal.evidence_count == 1
+			and apartment.final_gold == Vector2i(cake.gold_value + ring.gold_value, lesson._opponent_item.gold_value),
+			"Completion uses the real 3D ending, the genuine ring and the winner calculation")
 		var replay := lesson.hud.get_node("Overlay/Completion/CompletionCard/Content/Actions/Replay") as Button
 		old_apartment = apartment
 		await _click(replay.get_global_rect().get_center())

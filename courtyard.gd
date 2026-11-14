@@ -11,6 +11,7 @@ const HIT_DROP_COUNTS := [0, 1, 2, 2, 3, 3]
 const HIT_EXTRA_DROP_CHANCES := [0.0, 0.0, 0.0, 0.3, 0.0, 0.5]
 const ROOM_PHYSICS := preload("res://room_physics.gd")
 const PHYSICS_MASS := preload("res://physics_mass.gd")
+const SETTLEMENT := preload("res://settlement.gd")
 const FURNITURE_SNAPSHOT_BATCH := 16
 
 ## Host-decided whole seconds left (the guest receives them in snapshots); not emitted after the round ends.
@@ -18,6 +19,11 @@ signal round_seconds_changed(seconds: int)
 signal round_ended
 
 var guest_peer_id := 0
+## Off in the tutorial so its scripted win cannot be reversed by a fake ring or a letter.
+var settlement_surprises := true
+var settlement_rng := RandomNumberGenerator.new()
+## Gold after special evidence, set when the round ends (x = husband/host, y = wife/guest).
+var final_gold := Vector2i.ZERO
 var _last_guest_input := -1
 var _guest: Player
 var _local_player: Player
@@ -38,6 +44,7 @@ var _contest: Node
 
 
 func _ready() -> void:
+	settlement_rng.randomize()
 	_room_physics = ROOM_PHYSICS.new()
 	_room_physics.name = "RoomPhysics"
 	add_child(_room_physics)
@@ -161,14 +168,15 @@ func _update_time_left(seconds: int) -> void:
 
 
 func _on_round_timeout() -> void:
-	var gold := bag_gold()
+	var entries := settlement()
 	if guest_peer_id != 0:
-		_end_round.rpc(gold)
+		_end_round.rpc(entries)
 	else:
-		_end_round(gold)
+		_end_round(entries)
 
 
-## Final bag value per player index, summed from the host's bag ownership, not the HUD tween.
+## Face value of each bag per player index, summed from the host's bag ownership, not the HUD tween.
+## Special evidence is only rolled at the end; see settlement() and final_gold.
 func bag_gold() -> Vector2i:
 	var gold := Vector2i.ZERO
 	for pickup_index in _bagged_items:
@@ -176,12 +184,25 @@ func bag_gold() -> Vector2i:
 	return gold
 
 
-## gold.x = player0 (host, husband), gold.y = player1 (guest or test dummy, wife); decided by the host.
+## Host-rolled settlement of the current bags, in reveal order (layout in settlement.gd).
+func settlement() -> PackedInt32Array:
+	var items: Array = []
+	for pickup_index in _bagged_items:
+		var pickup := _pickups[pickup_index]
+		items.append([_bagged_items[pickup_index], pickup_index, str(pickup.get_meta(&"item_id", "")), pickup.gold_value])
+	return SETTLEMENT.build(items, settlement_rng, settlement_surprises)
+
+
+## Entries come from the host: player0 = host/husband, player1 = guest or test dummy/wife.
 @rpc("authority", "call_local", "reliable")
-func _end_round(gold: Vector2i) -> void:
+func _end_round(entries: PackedInt32Array) -> void:
 	if _round_finished:
 		return
+	if not SETTLEMENT.is_valid(entries, _pickups.size()):
+		push_warning("Ignoring an invalid settlement list from the host.")
+		entries = PackedInt32Array()
 	_round_finished = true
+	final_gold = SETTLEMENT.totals(entries)
 	_contest.cancel_round()
 	_grab_progress.hide()
 	_throw_power.hide()
@@ -197,7 +218,20 @@ func _end_round(gold: Vector2i) -> void:
 	ending.name = "Ending"
 	ending.process_mode = Node.PROCESS_MODE_ALWAYS
 	add_child(ending)
-	ending.show_scores(gold.x, gold.y)
+	ending.show_settlement(_settlement_rows(entries))
+
+
+## What the ending needs per entry; icons and names come from this peer's copy of the pickup.
+func _settlement_rows(entries: PackedInt32Array) -> Array[Dictionary]:
+	var rows: Array[Dictionary] = []
+	for offset in range(0, entries.size(), SETTLEMENT.STRIDE):
+		var pickup := _pickups[entries[offset + 1]]
+		rows.append({
+			player = entries[offset], icon = pickup.bag_icon if pickup.bag_icon != null else $HUD.FALLBACK_ICON,
+			name = $HUD.item_name(pickup), face = pickup.gold_value,
+			gold = entries[offset + 2], effect = entries[offset + 3], taken = entries[offset + 4],
+		})
+	return rows
 
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")

@@ -123,8 +123,12 @@ func _run() -> void:
 		and apartment.process_mode == Node.PROCESS_MODE_DISABLED, "The finished round displays zero and freezes play")
 	# The host's 20-gold tissue box stays bagged and the guest's TV was dropped, so both peers must agree.
 	var ending := apartment.get_node_or_null("Ending")
+	_check(ending != null and ending.final_gold == Vector2i(20, 0) and apartment.final_gold == Vector2i(20, 0) and not ending.verdict_shown,
+		"Both peers replay the host's settlement list before the verdict")
+	if ending != null:
+		ending.skip_reveal()
 	_check(ending != null and ending.outcome == preload("res://courtroom_ending.gd").Outcome.HUSBAND_WINS
-		and ending.get_node("Result").text.ends_with("아내 0 G   ·   남편 20 G") and ending.husband_animation.current_animation == &"celebrate_jump",
+		and ending.get_node("Result").text.ends_with("WIFE 0 G   ·   HUSBAND 20 G") and ending.husband_animation.current_animation == &"celebrate_jump",
 		"Both peers show the host-decided husband win with the same bag totals")
 	if is_host:
 		await _expect(func() -> bool: return _lobby.get_node_or_null("Apartment") == null, "The host returns to the lobby when the guest leaves")

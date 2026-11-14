@@ -101,7 +101,7 @@ func _run() -> void:
 	replay.free()
 
 	player.receive_hit()
-	apartment._end_round(Vector2i.ZERO)
+	apartment._end_round(PackedInt32Array())
 	_check(speech.bubble(0) == null and speech.bubble(1) == null, "The round end clears every bubble")
 	if not failed:
 		print("Speech bubble smoke test passed.")

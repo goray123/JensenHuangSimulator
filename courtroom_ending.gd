@@ -1,18 +1,28 @@
 extends CanvasLayer
-## Courtroom result screen. Plays each actor's 6-second clip once and holds the last pose.
+## Courtroom result screen. The settlement reveal counts both bags and the special evidence,
+## then the gavel picks the outcome; each actor's 6-second clip plays once and holds the last pose.
 ## The 3D stage lives in its own World3D, so the house never shows through it.
+
+signal verdict_reached(outcome: Outcome)
 
 enum Outcome { DRAW, WIFE_WINS, HUSBAND_WINS }
 
 const WIN_CLIP := &"celebrate_jump"
 const LOSE_CLIP := &"defeat_kneel"
 const PAINTED_VERTEX_SHADER := preload("res://assets/endings/painted_vertex_color.gdshader")
-const TITLES := { Outcome.DRAW: "무승부", Outcome.WIFE_WINS: "아내 승리!", Outcome.HUSBAND_WINS: "남편 승리!" }
-
-## Played when this scene is run on its own (F6 in the editor).
-@export var preview_outcome := Outcome.WIFE_WINS
+## English, so the HUD's IntelOneMono font (like the "WIFE" badge) can draw it.
+const TITLES := { Outcome.DRAW: "DRAW", Outcome.WIFE_WINS: "WIFE WINS!", Outcome.HUSBAND_WINS: "HUSBAND WINS!" }
+const REVEAL := preload("res://settlement_reveal.gd")
+const SETTLEMENT := preload("res://settlement.gd")
+const ITEM_ICONS := "res://assets/Sprites/Items/Item_%s.png"
+const SKIP_GRACE_MSEC := 1000
 
 var outcome := Outcome.DRAW
+## Gold after special evidence (x = husband, y = wife); known as soon as the reveal starts.
+var final_gold := Vector2i.ZERO
+var verdict_shown := false
+var reveal: Control
+var _reveal_started_msec := 0
 
 @onready var wife_animation: AnimationPlayer = _find_player($View/World/Wife)
 @onready var husband_animation: AnimationPlayer = _find_player($View/World/Husband)
@@ -30,17 +40,67 @@ func _ready() -> void:
 	$View/World/Camera3D.look_at_from_position(Vector3(0, 6, 24), Vector3(0, 1.77, -1.8))
 	for actor: Node in [$View/World/Wife, $View/World/Husband]:
 		use_vertex_colors(actor)
+	REVEAL.badge_style(_result, 34)
+	# Both actors wait in the neutral pose until the gavel.
+	play(Outcome.DRAW)
+	_result.text = ""
 	if get_tree().current_scene == self:
-		play(preview_outcome)
-	else:
-		play(Outcome.DRAW)
+		show_settlement(preview_rows())
 
 
-## Shows the result for the final bag totals (player0 host = husband, player1 guest = wife).
-func show_scores(husband_gold: int, wife_gold: int) -> Outcome:
-	play(outcome_for(husband_gold, wife_gold))
-	_result.text += "\n아내 %d G   ·   남편 %d G" % [wife_gold, husband_gold]
-	return outcome
+## Rows from courtyard.gd (player0 host = husband, player1 guest = wife), in reveal order.
+func show_settlement(rows: Array) -> void:
+	if reveal != null:
+		return
+	reveal = REVEAL.new()
+	reveal.name = "Reveal"
+	add_child(reveal)
+	# Below the result title, above the 3D view.
+	move_child(reveal, _result.get_index())
+	reveal.finished.connect(_show_verdict)
+	_reveal_started_msec = Time.get_ticks_msec()
+	reveal.start(rows)
+	final_gold = reveal.final_gold
+
+
+## Jumps straight to the verdict on this screen only (Space, Enter or a click after SKIP_GRACE).
+func skip_reveal() -> void:
+	if reveal != null and not verdict_shown:
+		reveal.skip()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Players are often still mashing the throw button when time runs out.
+	if reveal == null or verdict_shown or Time.get_ticks_msec() - _reveal_started_msec < SKIP_GRACE_MSEC:
+		return
+	var click: bool = event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT
+	if click or event.is_action_pressed(&"ui_accept"):
+		skip_reveal()
+		get_viewport().set_input_as_handled()
+
+
+func _show_verdict(gold: Vector2i) -> void:
+	if verdict_shown:
+		return
+	play(outcome_for(gold.x, gold.y))
+	_result.text += "\nWIFE %d G   ·   HUSBAND %d G" % [gold.y, gold.x]
+	verdict_shown = true
+	verdict_reached.emit(outcome)
+
+
+## Sample bags for running this scene on its own (F6): every kind of evidence, a close finish.
+static func preview_rows() -> Array:
+	var rows := []
+	for item: Array in [
+		[0, "Egg", "계란", 10], [1, "Banana", "바나나", 20], [0, "Shampoo", "샴푸", 80], [1, "Kimchi", "김치통", 120],
+		[0, "Cake", "케이크", 150], [1, "Shoes", "신발", 180], [0, "FryingPan", "프라이팬", 200], [1, "Desk", "책상", 500],
+		[1, "TV", "TV", 900], [0, "Computer", "컴퓨터", 1000],
+	]:
+		rows.append({player = item[0], icon = load(ITEM_ICONS % item[1]), name = item[2], face = item[3], gold = item[3], effect = SETTLEMENT.Effect.NONE, taken = 0})
+	rows.append({player = 0, icon = load(ITEM_ICONS % "PiggyBank"), name = "저금통", face = 0, gold = 340, effect = SETTLEMENT.Effect.PIGGY, taken = 0})
+	rows.append({player = 1, icon = load(ITEM_ICONS % "Ring"), name = "반지", face = 800, gold = 50, effect = SETTLEMENT.Effect.RING_FAKE, taken = 0})
+	rows.append({player = 1, icon = load(ITEM_ICONS % "Letter"), name = "편지", face = 150, gold = 150, effect = SETTLEMENT.Effect.LETTER_AFFAIR, taken = 500})
+	return rows
 
 
 func play(result: Outcome) -> void:

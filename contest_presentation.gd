@@ -93,7 +93,7 @@ func finish_contest(winner_index: int) -> void:
 	active = false
 	_contest_panel.hide()
 	_restore_camera(true)
-	_result.text = "%s 승리!" % ("주황 플레이어" if winner_index == 0 else "파란 플레이어")
+	_result.text = "%s 승리!" % ("남편" if winner_index == 0 else "아내")
 	_result.add_theme_color_override(&"font_color", GOLD if winner_index == 0 else BLUE)
 	_result.modulate.a = 1.0
 	_result.show()
@@ -277,11 +277,11 @@ func _build_ui(hud: Node) -> void:
 	var labels := HBoxContainer.new()
 	labels.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	column.add_child(labels)
-	var host_label := _make_label("주황 플레이어", 17, GOLD)
+	var host_label := _make_label("남편", 17, GOLD)
 	host_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	host_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	labels.add_child(host_label)
-	var guest_label := _make_label("파란 플레이어", 17, BLUE)
+	var guest_label := _make_label("아내", 17, BLUE)
 	guest_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	labels.add_child(guest_label)
 	gauge = ColorRect.new()
