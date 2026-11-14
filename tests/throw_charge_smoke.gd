@@ -87,8 +87,8 @@ func _prepare(player: CharacterBody3D, sphere: RigidBody3D, ground_y: float) -> 
 	sphere.freeze = true
 	sphere.linear_velocity = Vector3.ZERO
 	sphere.angular_velocity = Vector3.ZERO
-	sphere.global_position = Vector3(-2, 0.07666667, 1.2)
-	player.global_position = Vector3(-2, ground_y, 2.0)
+	sphere.global_position = Vector3(6.5, ground_y + 0.07666667, -2.0)
+	player.global_position = Vector3(6.5, ground_y, -1.2)
 	player.rotation.y = 0.0
 	_set_key(KEY_E, true)
 	_set_key(KEY_E, false)

@@ -21,13 +21,15 @@ func _run() -> void:
 	var target: CharacterBody3D = mode.target
 	_check(lobby._peer == null and not lobby._discovery.is_bound() and lobby.multiplayer.get_peers().is_empty(), "Test Mode opens without hosting, discovery, or another peer")
 	_check(not lobby.get_node("Menu").visible and apartment.guest_peer_id == 0, "Test Mode opens the offline apartment directly")
+	_check(apartment.get_node("RoundTimer").is_stopped() and not apartment.get_node("HUD/TimeLeft").visible, "Practice can continue without a round timer")
 	_check(target.is_on_floor() and not target.reads_local_input and player.is_on_floor(), "The player and the blue test target stand on the floor")
 	_check(get_nodes_in_group(&"pickups").size() == 21, "All spheres and apartment props remain available")
 	var start := player.global_position
+	var target_start := target.global_position
 	_set_key(KEY_W, true)
 	await _wait_for_physics(18)
 	_set_key(KEY_W, false)
-	_check(player.global_position.z < start.z - 1.0 and target.global_position.z < 1.0, "WASD moves only the controllable player")
+	_check(player.global_position.z < start.z - 1.0 and target.global_position.distance_to(target_start) < 0.02, "WASD moves only the controllable player")
 	await _tap(KEY_E)
 	_check(player.held_pickup != null, "Nearby test spheres can be picked up with E")
 	_set_key(KEY_T, true)

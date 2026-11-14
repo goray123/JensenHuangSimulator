@@ -4,6 +4,7 @@ signal reset_requested
 
 const PLAYER_SCENE := preload("res://player.tscn")
 const TARGET_COLOR := Color(0.16, 0.65, 0.98)
+const PRACTICE_SPAWN := Vector3(6.6, 0.065, -0.9)
 
 var target: CharacterBody3D
 var hit_count := 0
@@ -14,15 +15,15 @@ var _status := Label.new()
 
 
 func _ready() -> void:
-	_player.global_position = Vector3(-2, 0.04, 3)
+	_player.position = PRACTICE_SPAWN
 	_player.rotation.y = 0
-	var positions := [Vector3(-2.7, 0.07666667, 3.05), Vector3(-1.3, 0.07666667, 3.1), Vector3(-2, 0.07666667, 2.1)]
+	var positions := [Vector3(5.9, 0.13666667, -0.85), Vector3(7.3, 0.13666667, -0.8), Vector3(6.6, 0.13666667, -1.8)]
 	for index in 3:
 		_apartment.get_node("Pickup%d" % (index + 1)).global_position = positions[index]
 	target = PLAYER_SCENE.instantiate() as CharacterBody3D
 	target.name = "TestTarget"
 	target.reads_local_input = false
-	target.position = Vector3(-2, 0.04, 0.8)
+	target.position = Vector3(6.6, 0.065, -4.0)
 	var jacket := StandardMaterial3D.new()
 	jacket.albedo_color = TARGET_COLOR
 	jacket.roughness = 0.88

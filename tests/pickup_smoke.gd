@@ -21,27 +21,29 @@ func _run() -> void:
 	var ground_y := player.global_position.y
 	var total_pickups := get_nodes_in_group(&"pickups").size()
 	var pickups: Array[Node] = [courtyard.get_node("Pickup1"), courtyard.get_node("Pickup2"), courtyard.get_node("Pickup3")]
-	_check(pickups.size() == 3, "Three pickups spawn in the apartment")
+	# The prop smoke test covers furniture selection separately.
+	for prop in get_nodes_in_group(&"apartment_props"):
+		prop.remove_from_group(&"pickups")
 	var head := player.get_node("Head") as MeshInstance3D
 	var head_mesh := head.mesh as SphereMesh
 	for pickup: RigidBody3D in pickups:
 		var sphere := (pickup.get_node("Sphere") as MeshInstance3D).mesh as SphereMesh
 		_check(is_equal_approx(sphere.radius, head_mesh.radius / 3.0), "Pickup diameter is one third of the head diameter")
 		_check(is_equal_approx(sphere.height, sphere.radius * 2.0), "Pickup is a sphere")
-		_check(absf(pickup.global_position.y - sphere.radius) < 0.001, "Pickup rests above the floor")
+		_check(absf(pickup.global_position.y - ground_y - sphere.radius) < 0.002, "Pickup rests above the floor")
 	_check(status.text == "손: 비어 있음", "HUD starts with empty hands")
 
 	await _tap(KEY_T)
 	_check(not trajectory.visible, "Empty hands do not show a throw preview")
 	await _tap(KEY_E)
-	_check(get_nodes_in_group(&"pickups").size() == total_pickups and player.held_pickup == null, "Empty throws and distant pickup attempts leave all objects in place")
+	_check(get_nodes_in_group(&"pickups").size() == 3 and player.held_pickup == null, "Empty throws and distant pickup attempts leave all spheres in place")
 	var first := pickups[0] as RigidBody3D
 	player.global_position = Vector3(first.global_position.x, ground_y, first.global_position.z + 0.8)
 	_set_key(KEY_W, true)
 	await _wait_for_physics(3)
 	_set_key(KEY_W, false)
 	await _wait_for_physics(2)
-	_check(get_nodes_in_group(&"pickups").size() == total_pickups, "Walking near a pickup does not collect it automatically")
+	_check(get_nodes_in_group(&"pickups").size() == 3, "Walking near a pickup does not collect it automatically")
 	await _tap(KEY_E)
 	_check(player.held_pickup == first and first.get_parent() == hand, "E attaches the nearby sphere to the hand instead of deleting it")
 	_check(first.freeze and first.global_position.distance_to(hand.global_position) < 0.001, "The held sphere stays fixed at the hand")
@@ -60,13 +62,14 @@ func _run() -> void:
 	_set_key(KEY_E, true, true)
 	await _wait_for_physics(3)
 	_set_key(KEY_E, false)
-	_check(player.held_pickup == first and get_nodes_in_group(&"pickups").size() == total_pickups - 1, "E and key repeat cannot collect a second sphere while holding one")
+	_check(player.held_pickup == first and get_nodes_in_group(&"pickups").size() == 2, "E and key repeat cannot collect a second sphere while holding one")
 	_check(holding_changes == [true], "Failed pickup attempts do not emit extra holding changes")
-	second.global_position = Vector3(-4, 0.07666667, -3)
-	third.global_position = Vector3(4, 0.07666667, 3)
+	var pickup_y := ground_y + 0.07666667
+	second.global_position = Vector3(5.2, pickup_y, -3.5)
+	third.global_position = Vector3(7.3, pickup_y, -1.5)
 
 	# Leave room for the flight check before the first collision.
-	player.global_position = Vector3(-0.8, ground_y, 2.0)
+	player.global_position = Vector3(6.4, ground_y, -0.55)
 	_set_key(KEY_T, true)
 	await _wait_for_physics(3)
 	_check(player.held_pickup == first and first.freeze, "Pressing T keeps the sphere in hand")
@@ -107,20 +110,20 @@ func _run() -> void:
 	_check(path_error < 0.2, "Actual flight follows the preview before impact")
 	await _wait_for_physics(120)
 	_check(not impacts.is_empty() and impacts[0].distance_to(expected_impact) < 0.35, "The preview ends at the first actual collision")
-	_check(first.global_position.y > 0.04 and first.global_position.y < 0.15, "The thrown sphere lands on the floor")
+	_check(absf(first.global_position.y - pickup_y) < 0.07, "The thrown sphere lands on the floor")
 	_check(courtyard.find_children("*", "RigidBody3D", true, false).size() == total_pickups, "Throwing and key repeat preserve all objects")
-	player.global_position = Vector3(first.global_position.x - 0.7, ground_y, first.global_position.z)
+	player.global_position = Vector3(first.global_position.x, ground_y, first.global_position.z + 0.7)
 	await _tap(KEY_E)
 	_check(player.held_pickup == first and first.freeze, "A thrown sphere can be picked up again")
 
 	# Test different headings next to each wall, including a diagonal throw.
-	var room_bounds := Rect2(Vector2(-10.35, -5.9), Vector2(20.7, 10.55))
+	var room_bounds := Rect2(0, -7.5, 14, 7.5)
 	var throws := [
-		{"position": Vector3(-0.8, ground_y, -5.4), "yaw": 0.0},
-		{"position": Vector3(9.85, ground_y, 0.9), "yaw": -PI / 2.0},
-		{"position": Vector3(-2, ground_y, 4.15), "yaw": PI},
-		{"position": Vector3(-9.85, ground_y, -0.95), "yaw": PI / 2.0},
-		{"position": Vector3(-2, ground_y, 1.2), "yaw": PI / 4.0},
+		{"position": Vector3(7.9, ground_y, -5.9), "yaw": 0.0, "recover": Vector3.BACK},
+		{"position": Vector3(12.9, ground_y, -1.25), "yaw": -PI / 2.0, "recover": Vector3.LEFT},
+		{"position": Vector3(8.6, ground_y, -1), "yaw": PI, "recover": Vector3.FORWARD},
+		{"position": Vector3(1.0, ground_y, -5.9), "yaw": PI / 2.0, "recover": Vector3.RIGHT},
+		{"position": Vector3(7.1, ground_y, -2), "yaw": PI / 4.0, "recover": Vector3.BACK},
 	]
 	for throw_case in throws:
 		player.global_position = throw_case.position
@@ -136,16 +139,17 @@ func _run() -> void:
 		_check(absf(first.linear_velocity.length() - aimed_speed) < 0.002 and horizontal_velocity.normalized().dot(heading) > 0.99, "Throw at %s uses the current heading and speed" % throw_case.position)
 		await _wait_for_physics(120)
 		_check(room_bounds.has_point(Vector2(first.global_position.x, first.global_position.z)), "Walls keep thrown spheres inside the apartment")
-		_check(first.global_position.y > 0.04 and first.global_position.y < 0.15, "Sphere thrown at %s settles above the floor" % throw_case.position)
-		player.global_position = Vector3(first.global_position.x, ground_y, first.global_position.z)
+		_check(first.global_position.y >= ground_y and first.global_position.y < 2.0, "Sphere thrown at %s lands on the floor or furniture" % throw_case.position)
+		player.global_position = Vector3(first.global_position.x, ground_y, first.global_position.z) + throw_case.recover * 0.6
 		await _tap(KEY_E)
 		_check(player.held_pickup == first, "Spheres remain reusable after wall collisions")
 
 	# With empty hands, choose only the nearest of two eligible spheres.
-	await _tap(KEY_T)
-	player.global_position = Vector3(0, ground_y, 0)
-	second.global_position = Vector3(0.5, 0.07666667, 0)
-	third.global_position = Vector3(1.0, 0.07666667, 0)
+	player.release_pickup(false)
+	first.remove_from_group(&"pickups")
+	player.global_position = Vector3(6.4, ground_y, -2.2)
+	second.global_position = Vector3(6.9, pickup_y, -2.2)
+	third.global_position = Vector3(7.4, pickup_y, -2.2)
 	await _tap(KEY_E)
 	_check(player.held_pickup == second and third.is_in_group(&"pickups"), "Empty hands pick only the nearest eligible sphere")
 	_check(courtyard.find_children("*", "RigidBody3D", true, false).size() == total_pickups, "Repeated pickup and throw cycles never duplicate or delete objects")

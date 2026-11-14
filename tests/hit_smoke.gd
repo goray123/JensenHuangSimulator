@@ -72,9 +72,9 @@ func _run() -> void:
 
 
 func _launch(thrower: CharacterBody3D, victim: CharacterBody3D, item: RigidBody3D, ground_y: float) -> void:
-	thrower.global_position = Vector3(-2, ground_y, 3)
+	thrower.global_position = Vector3(6.5, ground_y, -1.25)
 	thrower.rotation.y = 0
-	victim.global_position = Vector3(-2, ground_y, 1.2)
+	victim.global_position = Vector3(6.5, ground_y, -3.05)
 	thrower.hold_pickup(item)
 	thrower.release_pickup(true, thrower.throw_velocity_at_speed(8.0))
 	_check(thrower.held_pickup == null, "The projectile launches before testing impact")

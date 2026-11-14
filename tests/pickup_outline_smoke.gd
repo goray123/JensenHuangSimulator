@@ -19,7 +19,7 @@ func _run() -> void:
 	var second := apartment.get_node("Pickup2") as RigidBody3D
 	first.add_to_group(&"pickups")
 	second.add_to_group(&"pickups")
-	player.global_position = Vector3(-2, 0.04, 3)
+	player.global_position = Vector3(6.5, 0.065, -2)
 	first.global_position = player.global_position + Vector3(-0.5, 0.04, 0)
 	second.global_position = player.global_position + Vector3(1, 0.04, 0)
 	await _wait_frames()

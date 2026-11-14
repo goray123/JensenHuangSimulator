@@ -9,7 +9,7 @@ func _initialize() -> void:
 
 func _run() -> void:
 	# Compare against the authored models before the furnishing script wraps them.
-	var source := (load("res://apartment_furnishings.tscn") as PackedScene).instantiate()
+	var source := preload("res://map_props.tscn").instantiate()
 	source.set_script(null)
 	root.add_child(source)
 	var original_bounds: Dictionary = {}
@@ -36,6 +36,7 @@ func _run() -> void:
 		_check(collider_bounds.encloses(_mesh_bounds(model, body.global_transform.affine_inverse())), "%s has a collider enclosing its scaled meshes" % body.name)
 	await _wait_for_physics(15)
 	var ground_y := player.global_position.y
+	var launch_position := Vector3(7.5, ground_y, -1.6)
 	# Isolate selectable targets without changing any furniture or collision geometry.
 	for pickup in get_nodes_in_group(&"pickups"):
 		pickup.remove_from_group(&"pickups")
@@ -43,8 +44,13 @@ func _run() -> void:
 		body.add_to_group(&"pickups")
 		var model := body.get_node("Model") as Node3D
 		var model_scale := model.scale
-		# Stand at the edge of a counter/stand, rather than at its center.
-		player.global_position = Vector3(body.global_position.x, ground_y, body.global_position.z + 1.0)
+		var approach := Vector3.BACK
+		if body.name == &"Television" or body.name == &"Plunger":
+			approach = Vector3.LEFT
+		elif body.name == &"BedsideLamp":
+			approach = Vector3.FORWARD
+		var distance := 0.9 if body.get_parent().name in [&"Kitchen", &"SecondBedroom"] else 0.75
+		player.global_position = Vector3(body.global_position.x, ground_y, body.global_position.z) + approach * distance
 		await _tap(KEY_E)
 		_check(player.held_pickup == body, "%s can be picked up from standing height" % body.name)
 		if player.held_pickup != body:
@@ -52,8 +58,8 @@ func _run() -> void:
 			continue
 		_check(status.text.contains(str(body.get_meta(&"pickup_name"))), "%s is named in the HUD" % body.name)
 		_check(body.freeze and body.collision_layer == 0, "%s is safe to carry" % body.name)
-		player.global_position = Vector3(-2, ground_y, 1.2)
-		player.rotation.y = 0.6
+		player.global_position = launch_position
+		player.rotation.y = 0.0
 		_set_key(KEY_T, true)
 		await _wait_for_physics(30)
 		_check(trajectory.visible and trajectory.points.size() > 2, "%s shows an oriented throw trajectory" % body.name)
@@ -79,7 +85,7 @@ func _run() -> void:
 		await _tap(KEY_E)
 		_check(player.held_pickup == body, "%s can be picked up again" % body.name)
 		# Release in open space before testing the next item.
-		player.global_position = Vector3(-2, ground_y, 1.2)
+		player.global_position = launch_position
 		player.rotation.y = 0.0
 		await _tap(KEY_T)
 		body.freeze = true
@@ -94,15 +100,15 @@ func _run() -> void:
 		for body: RigidBody3D in props:
 			if body.get_meta(&"pickup_name") == "TV":
 				tv = body
-	tv.global_position = Vector3(-2, 0.8, 1.2)
+	tv.global_position = launch_position + Vector3(0, 0.8, -0.6)
 	tv.add_to_group(&"pickups")
-	player.global_position = Vector3(-1.3, ground_y, 1.2)
+	player.global_position = launch_position
 	await _tap(KEY_E)
 	_check(player.held_pickup == tv, "The TV is held before testing an obstructed release")
 	# Keep the player fixed to deliberately put the held box inside the wall.
 	player.set_physics_process(false)
-	player.global_position = Vector3(-0.8, ground_y, -5.65)
-	player.rotation.y = 0
+	player.global_position = Vector3(6.5, ground_y, -0.33)
+	player.rotation.y = PI
 	await _tap(KEY_T)
 	_check(player.held_pickup == tv and tv.freeze, "A blocked TV throw keeps the TV in hand")
 	_check(status.text.contains("공간이 부족"), "A blocked throw explains how to make room")

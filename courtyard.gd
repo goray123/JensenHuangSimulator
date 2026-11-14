@@ -5,32 +5,37 @@ const PLAYER_SCENE := preload("res://player.tscn")
 const GUEST_COLOR := Color(0.16, 0.65, 0.98)
 const INPUT_TIMEOUT_MS := 500
 
+var timed_round := true
 var guest_peer_id := 0
 var _last_guest_input := -1
 var _guest: Player
 var _local_player: Player
 var _players: Array[Player]
 var _pickups: Array[RigidBody3D]
+var _round_finished := false
 
 @onready var _host: Player = $Player
 @onready var _pickup_status: Label = $HUD/PickupStatus
 @onready var _throw_power: ProgressBar = $HUD/ThrowPower
+@onready var _round_timer: Timer = $RoundTimer
+@onready var _time_left: Label = $HUD/TimeLeft
 
 
 func _ready() -> void:
-	_use_solid_colliders()
 	_pickups.assign(get_tree().get_nodes_in_group(&"pickups"))
 	# Reparenting held props must never change their network indices.
 	_pickups.sort_custom(func(a: Node, b: Node) -> bool: return str(a.get_path()) < str(b.get_path()))
 	_local_player = _host
-	set_physics_process(guest_peer_id != 0)
+	_host.global_position = $Map/Markers/Player1Spawn.global_position
+	_time_left.visible = timed_round
+	set_physics_process(timed_round)
 	if guest_peer_id != 0:
 		var is_host := multiplayer.is_server()
 		_host.reads_local_input = is_host
 		_host.simulates_movement = is_host
 		_guest = PLAYER_SCENE.instantiate() as Player
 		_guest.name = "Guest"
-		_guest.transform = $GuestSpawn.transform
+		_guest.position = to_local($Map/Markers/Player2Spawn.global_position)
 		_guest.reads_local_input = not is_host
 		_guest.simulates_movement = is_host
 		var jacket := StandardMaterial3D.new()
@@ -51,27 +56,14 @@ func _ready() -> void:
 			_guest.pickup_action_requested.connect(_send_pickup_action)
 		$HUD/LanRole.text = "내 캐릭터: 주황색   ·   Esc 나가기" if is_host else "내 캐릭터: 파란색   ·   Esc 나가기"
 		$HUD/LanRole.show()
+		$HUD/RoundEnd/Message.text += "\nEsc  로비로 돌아가기"
 	_local_player.held_pickup_changed.connect(_update_pickup_status)
 	_local_player.throw_blocked.connect(_show_throw_blocked)
 	_local_player.aim_changed.connect(_update_aim_status)
 	_update_pickup_status(_local_player.held_pickup != null)
-
-
-func _use_solid_colliders() -> void:
-	for node in get_children():
-		if not node is CSGBox3D or not node.use_collision:
-			continue
-		var body := StaticBody3D.new()
-		body.name = "SolidCollision"
-		body.collision_layer = node.collision_layer
-		body.collision_mask = node.collision_mask
-		var shape := BoxShape3D.new()
-		shape.size = node.size
-		var collider := CollisionShape3D.new()
-		collider.shape = shape
-		body.add_child(collider)
-		node.use_collision = false
-		node.add_child(body)
+	if timed_round and (guest_peer_id == 0 or multiplayer.is_server()):
+		_round_timer.timeout.connect(_on_round_timeout)
+		_round_timer.start()
 
 
 func _update_pickup_status(is_holding: bool) -> void:
@@ -96,10 +88,13 @@ func _update_aim_status(is_aiming: bool, speed: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
-	if not multiplayer.is_server():
+	if guest_peer_id != 0 and not multiplayer.is_server():
 		_receive_movement.rpc_id(1, Player.read_movement())
 		return
-	if _last_guest_input < 0:
+	var seconds_left := ceili(_round_timer.time_left)
+	_update_time_left(seconds_left)
+	# The first input also signals that the guest has loaded this scene.
+	if guest_peer_id == 0 or _last_guest_input < 0:
 		return
 	if Time.get_ticks_msec() - _last_guest_input > INPUT_TIMEOUT_MS:
 		_guest.remote_input = Vector2.ZERO
@@ -107,7 +102,26 @@ func _physics_process(_delta: float) -> void:
 	for pickup in _pickups:
 		transforms.append(pickup.global_transform)
 	var holding := Vector2i(_pickups.find(_host.held_pickup), _pickups.find(_guest.held_pickup))
-	_apply_snapshot.rpc_id(guest_peer_id, transforms, holding)
+	_apply_snapshot.rpc_id(guest_peer_id, transforms, holding, seconds_left)
+
+
+func _update_time_left(seconds: int) -> void:
+	_time_left.text = "%02d:%02d" % [floori(seconds / 60.0), seconds % 60]
+
+
+func _on_round_timeout() -> void:
+	if guest_peer_id != 0:
+		_end_round.rpc()
+	else:
+		_end_round()
+
+
+@rpc("authority", "call_local", "reliable")
+func _end_round() -> void:
+	_round_finished = true
+	_update_time_left(0)
+	$HUD/RoundEnd.show()
+	process_mode = Node.PROCESS_MODE_DISABLED
 
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")
@@ -132,7 +146,7 @@ func _receive_pickup_action(pick_up: bool, speed: float) -> void:
 
 
 func _is_guest_request() -> bool:
-	return _guest != null and multiplayer.is_server() and multiplayer.get_remote_sender_id() == guest_peer_id
+	return not _round_finished and _guest != null and multiplayer.is_server() and multiplayer.get_remote_sender_id() == guest_peer_id
 
 
 func _broadcast_hit(player_index: int) -> void:
@@ -141,13 +155,13 @@ func _broadcast_hit(player_index: int) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _apply_hit(player_index: int) -> void:
-	if player_index >= 0 and player_index < _players.size():
+	if not _round_finished and player_index >= 0 and player_index < _players.size():
 		_players[player_index].receive_hit()
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")
-func _apply_snapshot(transforms: Array, holding: Vector2i) -> void:
-	if transforms.size() != _players.size() + _pickups.size():
+func _apply_snapshot(transforms: Array, holding: Vector2i, seconds_left: int) -> void:
+	if _round_finished or transforms.size() != _players.size() + _pickups.size():
 		return
 	if mini(holding.x, holding.y) < -1 or maxi(holding.x, holding.y) >= _pickups.size():
 		return
@@ -156,6 +170,8 @@ func _apply_snapshot(transforms: Array, holding: Vector2i) -> void:
 	for pose in transforms:
 		if not (pose is Transform3D and pose.is_finite()):
 			return
+	_update_time_left(seconds_left)
+	# Release old holders first, including when an intermediate throw was missed.
 	for index in _players.size():
 		var player := _players[index]
 		player.transform = transforms[index]

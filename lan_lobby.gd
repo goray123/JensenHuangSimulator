@@ -13,8 +13,8 @@ const READY_MESSAGE := "혼자 테스트하거나, 같은 네트워크에서 2�
 var _state := State.IDLE
 var _peer: ENetMultiplayerPeer
 var _discovery := PacketPeerUDP.new()
-var _query := "JensenHuangSimulator find 1".to_utf8_buffer()
-var _reply := "JensenHuangSimulator room 1".to_utf8_buffer()
+var _query := "JensenHuangSimulator find 2".to_utf8_buffer()
+var _reply := "JensenHuangSimulator room 2".to_utf8_buffer()
 var _deadline := 0
 var _next_search := 0
 var _apartment: Node3D
@@ -186,6 +186,7 @@ func _start_test_mode() -> void:
 
 func _open_test_apartment() -> void:
 	_apartment = APARTMENT.instantiate()
+	_apartment.timed_round = false
 	add_child(_apartment)
 	var test_mode := TEST_MODE.new()
 	test_mode.name = "TestMode"

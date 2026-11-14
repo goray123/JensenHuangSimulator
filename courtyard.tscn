@@ -1,10 +1,10 @@
 [gd_scene format=3 uid="uid://cux1y0017prq5"]
 
 [ext_resource type="PackedScene" path="res://player.tscn" id="1_player"]
-[ext_resource type="PackedScene" path="res://apartment_furnishings.tscn" id="2_furnishings"]
-[ext_resource type="Shader" uid="uid://pkh1um28fou8" path="res://assets/apartment/floor.gdshader" id="3_floor"]
+[ext_resource type="PackedScene" path="res://assets/ownership_dispute_map.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://pickup.tscn" id="2_pickup"]
 [ext_resource type="Script" path="res://courtyard.gd" id="3_courtyard"]
+[ext_resource type="PackedScene" path="res://map_props.tscn" id="4_props"]
 
 [sub_resource type="Environment" id="Environment_apartment"]
 background_mode = 1
@@ -16,21 +16,11 @@ ssao_enabled = true
 ssao_radius = 1.05
 ssao_intensity = 1.45
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_wood"]
-render_priority = 0
-shader = ExtResource("3_floor")
-shader_parameter/floor_color = Color(0.74, 0.625, 0.49, 1)
-shader_parameter/plank_size = Vector2(2.25, 0.48)
-shader_parameter/row_offset = 0.5
-shader_parameter/color_variation = 0.08
+[sub_resource type="BoxShape3D" id="BoxShape3D_boundary_x"]
+size = Vector3(0.2, 5, 8.5)
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
-albedo_color = Color(0.2, 0.245, 0.27, 1)
-roughness = 0.92
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_door"]
-albedo_color = Color(0.43, 0.25, 0.13, 1)
-roughness = 0.88
+[sub_resource type="BoxShape3D" id="BoxShape3D_boundary_z"]
+size = Vector3(14.4, 5, 0.2)
 
 [node name="Apartment" type="Node3D" unique_id=698934390]
 script = ExtResource("3_courtyard")
@@ -45,139 +35,70 @@ light_energy = 0.9
 shadow_enabled = true
 shadow_opacity = 0.7
 
-[node name="Ground" type="CSGBox3D" parent="." unique_id=1130788830]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.22, -0.625)
-use_collision = true
-size = Vector3(21.3, 0.44, 11.15)
-material = SubResource("ShaderMaterial_wood")
+[node name="Map" parent="." instance=ExtResource("2_map")]
 
-[node name="EntryFloor" type="CSGBox3D" parent="." unique_id=127124233]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, -0.22, 5.55)
-use_collision = true
-size = Vector3(2.4, 0.44, 1.2)
-material = SubResource("ShaderMaterial_wood")
+[node name="Furnishings" parent="." instance=ExtResource("4_props")]
 
-[node name="NorthWall" type="CSGBox3D" parent="." unique_id=1846287350]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.46, -6.05)
-use_collision = true
-size = Vector3(21.3, 0.92, 0.3)
-material = SubResource("StandardMaterial3D_wall")
+[node name="PlayAreaBoundary" type="StaticBody3D" parent="."]
+collision_mask = 0
 
-[node name="SouthWestWall" type="CSGBox3D" parent="." unique_id=108608336]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4.725, 0.46, 4.8)
-use_collision = true
-size = Vector3(11.85, 0.92, 0.3)
-material = SubResource("StandardMaterial3D_wall")
+[node name="West" type="CollisionShape3D" parent="PlayAreaBoundary"]
+position = Vector3(-0.1, 2.2, -3.75)
+shape = SubResource("BoxShape3D_boundary_x")
 
-[node name="SouthEastWall" type="CSGBox3D" parent="." unique_id=1470658930]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.975, 0.46, 4.8)
-use_collision = true
-size = Vector3(7.35, 0.92, 0.3)
-material = SubResource("StandardMaterial3D_wall")
+[node name="East" type="CollisionShape3D" parent="PlayAreaBoundary"]
+position = Vector3(14.1, 2.2, -3.75)
+shape = SubResource("BoxShape3D_boundary_x")
 
-[node name="WestWall" type="CSGBox3D" parent="." unique_id=1850344254]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.5, 0.46, -0.625)
-use_collision = true
-size = Vector3(0.3, 0.92, 10.55)
-material = SubResource("StandardMaterial3D_wall")
+[node name="North" type="CollisionShape3D" parent="PlayAreaBoundary"]
+position = Vector3(7, 2.2, -7.6)
+shape = SubResource("BoxShape3D_boundary_z")
 
-[node name="EastWall" type="CSGBox3D" parent="." unique_id=507572770]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10.5, 0.46, -0.625)
-use_collision = true
-size = Vector3(0.3, 0.92, 10.55)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="KitchenBedroomWall" type="CSGBox3D" parent="." unique_id=1778496365]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.7, 0.46, -4.175)
-use_collision = true
-size = Vector3(0.3, 0.92, 3.45)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="BedroomOneSouthWall" type="CSGBox3D" parent="." unique_id=867843743]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.425, 0.46, -2.6)
-use_collision = true
-size = Vector3(4.95, 0.92, 0.3)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="BathroomWestWall" type="CSGBox3D" parent="." unique_id=195762587]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 6.45, 0.46, -4.55)
-use_collision = true
-size = Vector3(0.3, 0.92, 2.7)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="BathroomSouthWestWall" type="CSGBox3D" parent="." unique_id=862448685]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 0.46, -3.05)
-use_collision = true
-size = Vector3(1.7, 0.92, 0.3)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="BathroomSouthEastWall" type="CSGBox3D" parent="." unique_id=1429382207]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.2, 0.46, -3.05)
-use_collision = true
-size = Vector3(2.3, 0.92, 0.3)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="DressingRoomWestWall" type="CSGBox3D" parent="." unique_id=1453709286]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.05, 0.46, -1.7)
-use_collision = true
-size = Vector3(0.3, 0.92, 2.4)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="DressingRoomSouthWestWall" type="CSGBox3D" parent="." unique_id=1207191104]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5.75, 0.46, -0.35)
-use_collision = true
-size = Vector3(1.7, 0.92, 0.3)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="DressingRoomSouthEastWall" type="CSGBox3D" parent="." unique_id=614417019]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 9.2, 0.46, -0.35)
-use_collision = true
-size = Vector3(2.3, 0.92, 0.3)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="BedroomTwoWestWall" type="CSGBox3D" parent="." unique_id=676582121]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.15, 0.46, 2.475)
-use_collision = true
-size = Vector3(0.3, 0.92, 7.35)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="EntryWestWall" type="CSGBox3D" parent="." unique_id=1128521673]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 1.05, 0.46, 5.55)
-use_collision = true
-size = Vector3(0.3, 0.92, 1.2)
-material = SubResource("StandardMaterial3D_wall")
-
-[node name="FrontDoor" type="CSGBox3D" parent="." unique_id=253242646]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 1, 6.05)
-use_collision = true
-size = Vector3(1.8, 2, 0.2)
-material = SubResource("StandardMaterial3D_door")
-
-[node name="Furnishings" parent="." unique_id=184697569 instance=ExtResource("2_furnishings")]
+[node name="South" type="CollisionShape3D" parent="PlayAreaBoundary"]
+position = Vector3(7, 2.2, 0.1)
+shape = SubResource("BoxShape3D_boundary_z")
 
 [node name="Player" parent="." unique_id=1551723369 instance=ExtResource("1_player")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.1, 0.04, 5.36)
-
-[node name="GuestSpawn" type="Marker3D" parent="."]
-position = Vector3(2.1, 0.04, 4.24)
+position = Vector3(4.7, 0.065, -2.1)
 
 [node name="Pickup1" parent="." instance=ExtResource("2_pickup")]
-position = Vector3(-2, 0.07666667, -1)
+position = Vector3(3.1, 0.13666667, -1.05)
 
 [node name="Pickup2" parent="." instance=ExtResource("2_pickup")]
-position = Vector3(2, 0.07666667, -2)
+position = Vector3(5.0, 0.13666667, -3.5)
 
 [node name="Pickup3" parent="." instance=ExtResource("2_pickup")]
-position = Vector3(0, 0.07666667, 2)
+position = Vector3(7.0, 0.13666667, -2.4)
 
 [node name="Overview" type="Camera3D" parent="." unique_id=2101783900]
-transform = Transform3D(0.70710677, -0.45451945, 0.5416752, 0, 0.76604444, 0.6427876, -0.70710677, -0.45451945, 0.5416752, 8.404, 12.5, 10.2)
+transform = Transform3D(0.91629654, 0.30255362, -0.2624156, -1.2129094e-08, 0.6552192, 0.75543886, 0.40050048, -0.692206, 0.60037506, 0.42701977, 19.411077, 11.734961)
 projection = 1
 current = true
-size = 15.0
-far = 45.0
+size = 13.6
+far = 150.0
+
+[node name="RoundTimer" type="Timer" parent="."]
+wait_time = 60.0
+one_shot = true
+ignore_time_scale = true
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1501621115]
+
+[node name="TimeLeft" type="Label" parent="HUD"]
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -66.0
+offset_top = 55.0
+offset_right = 66.0
+offset_bottom = 98.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.97, 0.89, 1)
+theme_override_colors/font_outline_color = Color(0.05, 0.07, 0.09, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 32
+text = "01:00"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="Controls" type="Label" parent="HUD" unique_id=1054411171]
 anchors_preset = 12
@@ -226,3 +147,26 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(0.83, 0.87, 0.92, 1)
 theme_override_font_sizes/font_size = 18
 horizontal_alignment = 2
+
+[node name="RoundEnd" type="ColorRect" parent="HUD"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.04, 0.06, 0.08, 0.86)
+
+[node name="Message" type="Label" parent="HUD/RoundEnd"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/line_spacing = 12
+theme_override_font_sizes/font_size = 30
+text = "시간 종료   ·   00:00"
+horizontal_alignment = 1
+vertical_alignment = 1
