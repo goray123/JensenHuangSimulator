@@ -63,8 +63,8 @@ func _test_offline_events() -> void:
 	await _wait_for_physics(15)
 	var apartment := lobby.get_node("Apartment")
 	var hud := apartment.get_node("HUD")
-	var wife: TextureRect = hud.portraits[0]
-	var husband: TextureRect = hud.portraits[1]
+	var wife: TextureRect = hud.portraits[1]
+	var husband: TextureRect = hud.portraits[0]
 	var player := apartment.get_node("Player") as CharacterBody3D
 	var target: CharacterBody3D = apartment.get_node("TestMode").target
 	var egg: RigidBody3D = apartment.get_node("Items/Item_06_egg")
@@ -79,27 +79,27 @@ func _test_offline_events() -> void:
 	hud.bind_player(1, target)
 	_check(target.hit_received.get_connections().size() == connections, "Binding a player twice adds no duplicate reactions")
 	player.hold_pickup(egg)
-	_check(wife.current_state == &"idle", "Picking up a 10-gold egg keeps the wife idle")
+	_check(husband.current_state == &"idle", "Picking up a 10-gold egg keeps the husband idle")
 	player.release_pickup(false)
 	hud.proud_gold_threshold = 900
 	player.hold_pickup(ring)
-	_check(wife.current_state == &"idle", "The HUD threshold decides what counts as expensive")
+	_check(husband.current_state == &"idle", "The HUD threshold decides what counts as expensive")
 	player.release_pickup(false)
 	hud.proud_gold_threshold = 500
 	player.hold_pickup(ring)
-	_check(wife.current_state == &"proud" and husband.current_state == &"idle", "Acquiring the 800-gold ring makes only the wife proud")
+	_check(husband.current_state == &"proud" and wife.current_state == &"idle", "Acquiring the 800-gold ring makes only the husband proud")
 	pan.arm(player)
 	pan._on_body_entered(target)
-	_check(husband.current_state == &"fallen" and wife.current_state == &"proud", "A thrown hit on the test target shows the husband's fallen portrait")
+	_check(wife.current_state == &"fallen" and husband.current_state == &"proud", "A thrown hit on the test target shows the wife's fallen portrait")
 	target.apply_status_effect(&"poison", 1.0)
-	_check(husband.current_state == &"fallen", "A status effect cannot cover the fallen reaction")
+	_check(wife.current_state == &"fallen", "A status effect cannot cover the fallen reaction")
 	await _tap(KEY_F)
-	_check(wife.current_state == &"fallen", "The F self-hit shows the wife's fallen portrait over proud")
+	_check(husband.current_state == &"fallen", "The F self-hit shows the husband's fallen portrait over proud")
 	player.apply_status_effect(&"slip", 3.0)
 	await create_timer(2.2).timeout
-	_check(wife.current_state == &"sad" and husband.current_state == &"idle", "Sad follows fallen, and the husband's shorter status already returned to idle")
+	_check(husband.current_state == &"sad" and wife.current_state == &"idle", "Sad follows fallen, and the wife's shorter status already returned to idle")
 	await create_timer(1.0).timeout
-	_check(wife.current_state == &"idle", "The wife returns to idle once every reaction expires")
+	_check(husband.current_state == &"idle", "The husband returns to idle once every reaction expires")
 	player.release_pickup(false)
 	await _tap(KEY_G)
 	_check(apartment._contest.active, "G starts the offline contest")
@@ -111,7 +111,7 @@ func _test_offline_events() -> void:
 		_mouse(MOUSE_BUTTON_LEFT, false)
 		await _wait_for_physics(2)
 	_check(not apartment._contest.active and target.is_stunned(), "The player wins the contest")
-	_check(husband.current_state == &"angry" and wife.current_state == &"idle", "Losing the tug-of-war makes the test target angry, not fallen; a 20-gold banana keeps the winner idle")
+	_check(wife.current_state == &"angry" and husband.current_state == &"idle", "Losing the tug-of-war makes the test target angry, not fallen; a 20-gold banana keeps the winner idle")
 	await _tap(KEY_ESCAPE)
 
 

@@ -5,6 +5,7 @@ const Player := preload("res://player.gd")
 const PLAYER_SCENE := preload("res://player.tscn")
 const PICKUP_CONTEST := preload("res://pickup_contest.gd")
 const GUEST_MODEL := preload("res://assets/characters/thump/02_Woman.glb")
+const ENDING_SCENE := "res://courtroom_ending.tscn"
 const INPUT_TIMEOUT_MS := 500
 const HIT_DROP_COUNTS := [0, 1, 2, 2, 3, 3]
 const HIT_EXTRA_DROP_CHANCES := [0.0, 0.0, 0.0, 0.3, 0.0, 0.5]
@@ -151,14 +152,26 @@ func _update_time_left(seconds: int) -> void:
 
 
 func _on_round_timeout() -> void:
+	var gold := bag_gold()
 	if guest_peer_id != 0:
-		_end_round.rpc()
+		_end_round.rpc(gold)
 	else:
-		_end_round()
+		_end_round(gold)
 
 
+## Final bag value per player index, summed from the host's bag ownership, not the HUD tween.
+func bag_gold() -> Vector2i:
+	var gold := Vector2i.ZERO
+	for pickup_index in _bagged_items:
+		gold[_bagged_items[pickup_index]] += _pickups[pickup_index].gold_value
+	return gold
+
+
+## gold.x = player0 (host, husband), gold.y = player1 (guest or test dummy, wife); decided by the host.
 @rpc("authority", "call_local", "reliable")
-func _end_round() -> void:
+func _end_round(gold: Vector2i) -> void:
+	if _round_finished:
+		return
 	_round_finished = true
 	_contest.cancel_round()
 	_grab_progress.hide()
@@ -168,6 +181,12 @@ func _end_round() -> void:
 	_update_time_left(0)
 	$HUD/RoundEnd.show()
 	process_mode = Node.PROCESS_MODE_DISABLED
+	# shortcut: loads the ~30 MB ending synchronously (brief hitch at timeout); preload threaded if it shows.
+	var ending: CanvasLayer = load(ENDING_SCENE).instantiate()
+	ending.name = "Ending"
+	ending.process_mode = Node.PROCESS_MODE_ALWAYS
+	add_child(ending)
+	ending.show_scores(gold.x, gold.y)
 
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")

@@ -12,17 +12,17 @@ var _target_gold := Vector2i.ZERO
 var _gold_step_left := 0.0
 var _bound_players: Array[CharacterBody3D] = []
 
-@onready var _bags: Array[GridContainer] = [$WifeBag/Items, $HusbandBag/Items]
-@onready var _gold: Array[Label] = [$WifeProfile/WifeWallet/Gold, $HusbandProfile/HusbandWallet/Gold]
+@onready var _bags: Array[GridContainer] = [$HusbandBag/Items, $WifeBag/Items]
+@onready var _gold: Array[Label] = [$HusbandProfile/HusbandWallet/Gold, $WifeProfile/WifeWallet/Gold]
 @onready var _logs: VBoxContainer = $AcquisitionLogs
-@onready var portraits: Array[TextureRect] = [$WifeProfile/Portrait, $HusbandProfile/Portrait]
+@onready var portraits: Array[TextureRect] = [$HusbandProfile/Portrait, $WifeProfile/Portrait]
 
 
 func _ready() -> void:
 	set_process(false)
 
 
-## Index 0 is the wife card and 1 the husband card, matching the bag and gold order.
+## Index 0 is the husband (host) card and 1 the wife (guest) card, matching the bag and gold order.
 ## Every peer runs these player events locally: hits, status effects and contest results
 ## arrive by reliable RPC, held items by snapshots and bagging by a reliable event.
 ## Binding the same player twice is ignored so reactions are never doubled.
@@ -68,7 +68,7 @@ func add_drop_log(pickup: RigidBody3D) -> void:
 
 
 static func player_name(player_index: int) -> String:
-	return "아내" if player_index == 0 else "남편"
+	return "남편" if player_index == 0 else "아내"
 
 
 static func item_name(pickup: RigidBody3D) -> String:

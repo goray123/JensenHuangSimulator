@@ -21,11 +21,11 @@ func _run() -> void:
 	_check(timer.wait_time == 60.0 and not timer.is_stopped() and clock.visible and clock.text == "01:00", "Test Mode starts with a visible one-minute countdown")
 	await _wait_for_physics(15)
 	var hud := apartment.get_node("HUD")
-	var wife_bag := hud.get_node("WifeBag/Items") as GridContainer
 	var husband_bag := hud.get_node("HusbandBag/Items") as GridContainer
-	var gold := hud.get_node("WifeProfile/WifeWallet/Gold") as Label
+	var wife_bag := hud.get_node("WifeBag/Items") as GridContainer
+	var gold := hud.get_node("HusbandProfile/HusbandWallet/Gold") as Label
 	var logs := hud.get_node("AcquisitionLogs") as VBoxContainer
-	_check(wife_bag.columns == 2 and wife_bag.get_child_count() == 0 and gold.text == "000000" and logs.get_child_count() == 0,
+	_check(husband_bag.columns == 2 and husband_bag.get_child_count() == 0 and gold.text == "000000" and logs.get_child_count() == 0,
 		"Test Mode starts with an empty two-column bag, zero gold, and no acquisition log")
 	var mode := apartment.get_node("TestMode")
 	var player := apartment.get_node("Player") as CharacterBody3D
@@ -72,7 +72,7 @@ func _run() -> void:
 	banana.disarm()
 	await _expect(func() -> bool: return target.held_pickup == null and egg.is_in_group(&"pickups"),
 		"The real projectile also drops the test target's held item")
-	_check(logs.get_child_count() == 2 and logs.get_child(0).text.ends_with("남편을 공격 하였다!")
+	_check(logs.get_child_count() == 2 and logs.get_child(0).text.ends_with("아내를 공격 하였다!")
 		and logs.get_child(1).text.ends_with("떨어졌다!"), "The hit logs the attack and the dropped item")
 	await _wait_for_physics(35)
 	_check(not target.is_stunned() and target._body_meshes[0].material_overlay == null, "The target recovers and the hit flash clears")
@@ -96,21 +96,21 @@ func _run() -> void:
 	_check(player.held_pickup == null and not ring.visible and not ring.is_in_group(&"pickups")
 		and ring.freeze and ring.collision_layer == 0 and not player.get_node("ThrowTrajectory").visible,
 		"A right click during aim bags the item and removes it from physics and selection")
-	_check(wife_bag.get_child_count() == 1 and wife_bag.get_child(0).texture.resource_path.ends_with("Item_Ring.png")
-		and husband_bag.get_child_count() == 0 and logs.get_child(logs.get_child_count() - 1).text.ends_with("획득했습니다!")
+	_check(husband_bag.get_child_count() == 1 and husband_bag.get_child(0).texture.resource_path.ends_with("Item_Ring.png")
+		and wife_bag.get_child_count() == 0 and logs.get_child(logs.get_child_count() - 1).text.ends_with("획득했습니다!")
 		and logs.get_children().filter(func(log: Label) -> bool: return log.text.ends_with("획득했습니다!")).size() == 1,
 		"Bagging adds the ring icon and acquisition log only once")
 	apartment._apply_bag_item(0, item_index, apartment._ownership_revision)
-	_check(wife_bag.get_child_count() == 1, "Duplicate deposit events cannot award the item twice")
+	_check(husband_bag.get_child_count() == 1, "Duplicate deposit events cannot award the item twice")
 	for item: RigidBody3D in [egg, banana]:
 		player.hold_pickup(item)
 		_mouse(MOUSE_BUTTON_RIGHT, true)
 		_mouse(MOUSE_BUTTON_RIGHT, false)
 	await process_frame
 	await process_frame
-	var first_icon := wife_bag.get_child(0) as TextureRect
-	var second_icon := wife_bag.get_child(1) as TextureRect
-	var third_icon := wife_bag.get_child(2) as TextureRect
+	var first_icon := husband_bag.get_child(0) as TextureRect
+	var second_icon := husband_bag.get_child(1) as TextureRect
+	var third_icon := husband_bag.get_child(2) as TextureRect
 	_check(second_icon.position.y == first_icon.position.y and third_icon.position.y > first_icon.position.y
 		and third_icon.position.x == first_icon.position.x, "The third icon wraps into a second row")
 	_check(second_icon.texture == egg.bag_icon and third_icon.texture == banana.bag_icon, "The bag uses each item's own icon")
@@ -123,7 +123,7 @@ func _run() -> void:
 	_check(is_equal_approx(player.velocity.x, player.MOVE_SPEED / pow(1.0 + 0.03 * 5.0, 1.5)), "Movement uses the total weight of the hand and bag")
 	letter.arm(target)
 	letter._on_body_entered(player)
-	_check(player.is_stunned() and player.held_pickup == shampoo and wife_bag.get_child_count() == 3, "A letter hit stuns without rolling drops")
+	_check(player.is_stunned() and player.held_pickup == shampoo and husband_bag.get_child_count() == 3, "A letter hit stuns without rolling drops")
 	await _wait_for_physics(35)
 	pan.arm(target)
 	pan._on_body_entered(player)
@@ -156,12 +156,12 @@ func _run() -> void:
 	player = apartment.get_node("Player") as CharacterBody3D
 	_check(apartment != old_apartment and not is_instance_valid(old_apartment), "R replaces the test stage safely")
 	_check(apartment.get_node("HUD/TimeLeft").text == "01:00", "R resets the countdown to one minute")
-	_check(apartment.get_node("HUD/WifeBag/Items").get_child_count() == 0
-		and apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000000", "A new test round resets bags and gold")
+	_check(apartment.get_node("HUD/HusbandBag/Items").get_child_count() == 0
+		and apartment.get_node("HUD/HusbandProfile/HusbandWallet/Gold").text == "000000", "A new test round resets bags and gold")
 	_check(player.held_pickup == null and not player.is_stunned(), "Reset clears held objects and player state")
 	_check(get_nodes_in_group(&"pickups").size() == 21 and get_nodes_in_group(&"household_items").size() == 21, "Reset restores every prop without duplicates")
 	var dummy: CharacterBody3D = mode.target
-	var dummy_bag := apartment.get_node("HUD/HusbandBag/Items") as GridContainer
+	var dummy_bag := apartment.get_node("HUD/WifeBag/Items") as GridContainer
 	await _tap(KEY_F3)
 	_check(dummy.held_pickup != null and dummy_bag.get_child_count() == 2 and dummy.bag_weight > 0, "F3 gives the dummy one held and two bagged items")
 	await _tap(KEY_F3)

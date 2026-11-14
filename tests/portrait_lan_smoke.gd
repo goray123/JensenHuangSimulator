@@ -56,8 +56,8 @@ func _run() -> void:
 	_apartment = _lobby.get_node("Apartment")
 	_host = _apartment.get_node("Player")
 	_guest = _apartment.get_node("Guest")
-	_wife = _apartment.get_node("HUD").portraits[0]
-	_husband = _apartment.get_node("HUD").portraits[1]
+	_wife = _apartment.get_node("HUD").portraits[1]
+	_husband = _apartment.get_node("HUD").portraits[0]
 	_check(_wife.current_state == &"idle" and _husband.current_state == &"idle", "Both cards start idle")
 	if is_host:
 		await _test_host()
@@ -79,31 +79,31 @@ func _test_host() -> void:
 	var pan: RigidBody3D = _apartment.get_node("Items/Item_07_frying_pan")
 	# 1. The guest player holds the 800-gold ring; the guest only learns this from snapshots.
 	_guest.hold_pickup(ring)
-	_check(_husband.current_state == &"proud" and _wife.current_state == &"idle", "The host shows the proud husband card")
+	_check(_wife.current_state == &"proud" and _husband.current_state == &"idle", "The host shows the proud wife card")
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 1)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 2, "The guest checks the snapshot-driven proud reaction"):
 		return
 	# 2. Pick up and bag the TV within one frame, so no snapshot ever shows it held.
 	_host.hold_pickup(tv)
 	_apartment._bag_held_item(0, _apartment._pickups.find(tv))
-	_check(_wife.current_state == &"proud" and not tv.visible, "The quick TV deposit makes the wife proud on the host")
+	_check(_husband.current_state == &"proud" and not tv.visible, "The quick TV deposit makes the husband proud on the host")
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 2)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 3, "The guest checks the bag-driven proud reaction"):
 		return
 	# 3. A real projectile hit on the guest player, simulated by the host.
 	pan.arm(_host)
 	pan._on_body_entered(_guest)
-	_check(_husband.current_state == &"fallen", "The host shows the fallen husband card")
+	_check(_wife.current_state == &"fallen", "The host shows the fallen wife card")
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 3)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 4, "The guest sees the hit reaction"):
 		return
 	# 4. A host-side status effect on the host player is relayed to the guest.
 	_host.apply_status_effect(&"poison", 2.0)
-	_check(_wife.current_state == &"sad", "A status effect makes the wife sad over proud on the host")
+	_check(_husband.current_state == &"sad", "A status effect makes the husband sad over proud on the host")
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 4)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 5, "The guest sees the relayed status effect"):
 		return
-	await _expect(func() -> bool: return _wife.current_state == &"idle" and _husband.current_state == &"idle", "Both host cards return to idle", 5.0)
+	await _expect(func() -> bool: return _husband.current_state == &"idle" and _wife.current_state == &"idle", "Both host cards return to idle", 5.0)
 	await _expect(func() -> bool: return _barrier.guest_stage >= 6, "The guest sees both cards return to idle", 8.0)
 
 
@@ -111,31 +111,31 @@ func _test_guest() -> void:
 	_barrier.acknowledge.rpc_id(1, 1)
 	if not await _expect(func() -> bool: return _barrier.stage >= 1, "The host holds the ring for the guest"):
 		return
-	if not await _expect(func() -> bool: return _guest.held_pickup != null and _husband.current_state == &"proud", "A held-item snapshot makes the husband card proud on the guest"):
+	if not await _expect(func() -> bool: return _guest.held_pickup != null and _wife.current_state == &"proud", "A held-item snapshot makes the wife card proud on the guest"):
 		return
-	var remaining: float = _husband._remaining[&"proud"]
+	var remaining: float = _wife._remaining[&"proud"]
 	await _wait_frames(30)
-	_check(_husband.current_state == &"proud" and _husband._remaining[&"proud"] < remaining - 0.3 and _husband.current_frame > 0,
+	_check(_wife.current_state == &"proud" and _wife._remaining[&"proud"] < remaining - 0.3 and _wife.current_frame > 0,
 		"Repeated snapshots neither restart the proud timer nor the clip")
-	_check(_wife.current_state == &"idle", "The reaction stays on the husband card")
+	_check(_husband.current_state == &"idle", "The reaction stays on the wife card")
 	_barrier.acknowledge.rpc_id(1, 2)
 	if not await _expect(func() -> bool: return _barrier.stage >= 2, "The host deposits the TV"):
 		return
-	if not await _expect(func() -> bool: return _apartment.get_node("HUD/WifeBag/Items").get_child_count() == 1, "The reliable deposit reaches the guest"):
+	if not await _expect(func() -> bool: return _apartment.get_node("HUD/HusbandBag/Items").get_child_count() == 1, "The reliable deposit reaches the guest"):
 		return
-	_check(_wife.current_state == &"proud", "A deposit without a held snapshot still makes the wife proud on the guest")
+	_check(_husband.current_state == &"proud", "A deposit without a held snapshot still makes the husband proud on the guest")
 	_barrier.acknowledge.rpc_id(1, 3)
 	if not await _expect(func() -> bool: return _barrier.stage >= 3, "The host throws a hit"):
 		return
-	if not await _expect(func() -> bool: return _husband.current_state == &"fallen", "The reliable hit makes the husband card fall on the guest"):
+	if not await _expect(func() -> bool: return _wife.current_state == &"fallen", "The reliable hit makes the wife card fall on the guest"):
 		return
 	_barrier.acknowledge.rpc_id(1, 4)
 	if not await _expect(func() -> bool: return _barrier.stage >= 4, "The host applies a status effect"):
 		return
-	if not await _expect(func() -> bool: return _wife.current_state == &"sad", "The relayed status effect makes the wife sad on the guest"):
+	if not await _expect(func() -> bool: return _husband.current_state == &"sad", "The relayed status effect makes the husband sad on the guest"):
 		return
 	_barrier.acknowledge.rpc_id(1, 5)
-	if not await _expect(func() -> bool: return _wife.current_state == &"idle" and _husband.current_state == &"idle", "Both guest cards return to idle", 5.0):
+	if not await _expect(func() -> bool: return _husband.current_state == &"idle" and _wife.current_state == &"idle", "Both guest cards return to idle", 5.0):
 		return
 	_barrier.acknowledge.rpc_id(1, 6)
 	await _wait_frames(10)

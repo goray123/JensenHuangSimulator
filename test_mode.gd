@@ -30,7 +30,7 @@ func _ready() -> void:
 	_apartment._contest.register_opponent(target)
 	_apartment.get_node("HUD").bind_player(1, target)
 	target.hit_received.connect(_on_target_hit)
-	# Index 1 gives the dummy the husband's bag, so hit drops can be tested offline.
+	# Index 1 gives the dummy the guest (wife) bag, so hit drops can be tested offline.
 	_apartment._players.append(target)
 
 
