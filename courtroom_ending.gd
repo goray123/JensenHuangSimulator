@@ -27,6 +27,8 @@ static func outcome_for(husband_gold: int, wife_gold: int) -> Outcome:
 func _ready() -> void:
 	# Manifest camera: horizontal FOV, kept when the window aspect changes.
 	$View/World/Camera3D.look_at_from_position(Vector3(0, 6, 24), Vector3(0, 1.77, -1.8))
+	for actor: Node in [$View/World/Wife, $View/World/Husband]:
+		_use_vertex_colors(actor)
 	if get_tree().current_scene == self:
 		play(preview_outcome)
 	else:
@@ -63,6 +65,22 @@ func _hold_start(player: AnimationPlayer) -> void:
 	player.play(WIN_CLIP)
 	player.seek(0.0, true)
 	player.pause()
+
+
+## The glTF importer leaves vertex_color_use_as_albedo off, so faces with painted vertex colors render white.
+## Fixed per instance; the imported materials and shared meshes stay untouched.
+func _use_vertex_colors(actor: Node) -> void:
+	for mesh_instance: MeshInstance3D in actor.find_children("*", "MeshInstance3D", true, false):
+		var mesh := mesh_instance.mesh as ArrayMesh
+		if mesh == null:
+			continue
+		for surface in mesh.get_surface_count():
+			var material := mesh_instance.get_active_material(surface) as BaseMaterial3D
+			if material == null or not mesh.surface_get_format(surface) & Mesh.ARRAY_FORMAT_COLOR:
+				continue
+			material = material.duplicate()
+			material.vertex_color_use_as_albedo = true
+			mesh_instance.set_surface_override_material(surface, material)
 
 
 func _find_player(actor: Node) -> AnimationPlayer:

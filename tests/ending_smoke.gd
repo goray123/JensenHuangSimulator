@@ -26,6 +26,10 @@ func _test_scene_motions() -> void:
 	root.add_child(ending)
 	var viewport := ending.get_node("View/World") as SubViewport
 	_check(viewport.own_world_3d and ending.get_node("View/World/Camera3D").current, "The ending renders its own world with its own camera")
+	var sun_direction := -(ending.get_node("View/World/Sun") as DirectionalLight3D).global_basis.z
+	_check(sun_direction.y < -0.5 and sun_direction.z < 0.0, "The sun shines down onto the stage, away from the camera")
+	for actor in ["Wife", "Husband"]:
+		_check_vertex_colors(ending.get_node("View/World/" + actor), actor)
 	for winner in [Ending.Outcome.WIFE_WINS, Ending.Outcome.HUSBAND_WINS]:
 		ending.play(winner)
 		var wife: AnimationPlayer = ending.wife_animation
@@ -103,6 +107,23 @@ func _test_offline_rounds() -> void:
 func _restart(_lobby: Node, key: Key) -> void:
 	await _tap(key)
 	await _wait_frames(3)
+
+
+## Vertex-colored surfaces use their colors through per-instance copies; imported materials stay as they were.
+func _check_vertex_colors(actor: Node, label: String) -> void:
+	var colored := 0
+	for mesh_instance: MeshInstance3D in actor.find_children("*", "MeshInstance3D", true, false):
+		var mesh := mesh_instance.mesh as ArrayMesh
+		for surface in mesh.get_surface_count():
+			var override := mesh_instance.get_surface_override_material(surface) as BaseMaterial3D
+			var imported := mesh.surface_get_material(surface) as BaseMaterial3D
+			if mesh.surface_get_arrays(surface)[Mesh.ARRAY_COLOR] == null:
+				_check(override == null, "%s surfaces without vertex colors keep their imported material" % label)
+				continue
+			colored += 1
+			_check(override != null and override != imported and override.vertex_color_use_as_albedo
+				and not imported.vertex_color_use_as_albedo, "%s %s uses vertex colors through its own material copy" % [label, mesh_instance.name])
+	_check(colored > 0, "%s has vertex-colored surfaces to check" % label)
 
 
 func _skeleton(actor: Node) -> Skeleton3D:

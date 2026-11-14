@@ -11,6 +11,7 @@
 - `outcome_for(husband_gold, wife_gold)`: 정적 판정 함수. 같으면 `DRAW`.
 - 승자는 `celebrate_jump`, 패자는 `defeat_kneel`(각 6초, 1회 재생 후 마지막 자세 유지). 무승부는 두 사람 모두 시작 자세로 서 있습니다.
 - 3D 무대는 `own_world_3d` SubViewport 안에 있어 집과 아이템이 겹쳐 보이지 않습니다.
+- 정점색 보정: Godot 4.7.2 glTF 임포트는 얼굴처럼 정점색(COLOR_0)으로 칠한 표면의 재질에 `vertex_color_use_as_albedo`를 켜지 않아 흰색으로 보입니다. 결말 장면이 준비될 때 색 배열이 있는 표면만 재질을 인스턴스별로 복제해 이 값을 켭니다. 임포트된 원본 재질과 공유 메시는 바꾸지 않습니다.
 
 단독 확인: 에디터에서 장면을 열고 F6. 인스펙터의 `preview_outcome`으로 결과를 고릅니다.
 
