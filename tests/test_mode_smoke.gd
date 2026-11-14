@@ -32,7 +32,14 @@ func _run() -> void:
 	_check(lobby._peer == null and not lobby._discovery.is_bound() and lobby.multiplayer.get_peers().is_empty(), "Test Mode opens without hosting, discovery, or another peer")
 	_check(not lobby.get_node("Menu").visible and apartment.guest_peer_id == 0, "Test Mode opens the offline apartment directly")
 	_check(target.is_on_floor() and not target.reads_local_input and player.is_on_floor(), "The player and test target stand on the floor")
-	_check(get_nodes_in_group(&"pickups").size() == 24, "All spheres and apartment props remain available")
+	_check(get_nodes_in_group(&"pickups").size() == 21, "Only the 21 household items are collectible")
+	var banana: RigidBody3D = apartment.get_node("Items/Item_01_banana")
+	var egg: RigidBody3D = apartment.get_node("Items/Item_06_egg")
+	var ring: RigidBody3D = apartment.get_node("Items/Item_12_ring")
+	var letter: RigidBody3D = apartment.get_node("Items/Item_14_letter")
+	var shampoo: RigidBody3D = apartment.get_node("Items/Item_23_shampoo")
+	var pan: RigidBody3D = apartment.get_node("Items/Item_07_frying_pan")
+	target.hold_pickup(egg)
 	var start := player.global_position
 	var target_start := target.global_position
 	var pointer := player.get_node("Head/PlayerPosPointer") as Sprite3D
@@ -45,20 +52,21 @@ func _run() -> void:
 		and (pointer.global_position - pointer_start).is_equal_approx(player.global_position - start),
 		"Only the controllable player has a pointer, and it follows their movement above their head")
 	_mouse(MOUSE_BUTTON_LEFT, true)
-	await _wait_for_physics(30)
+	await _wait_for_physics(15)
 	var grab := hud.get_node("GrabProgress") as ProgressBar
-	_check(player.held_pickup == null and grab.visible and absf(grab.value - 0.5) < 0.08, "The one-second grab shows progress and waits for the full hold")
-	await _wait_for_physics(34)
+	_check(player.held_pickup == null and grab.visible and absf(grab.value - 0.5) < 0.08, "A weight-one banana reaches half progress in a quarter second")
+	await _wait_for_physics(19)
 	_mouse(MOUSE_BUTTON_LEFT, false)
-	_check(player.held_pickup != null and not grab.visible, "Holding left click acquires the nearby sphere")
+	_check(player.held_pickup == banana and not grab.visible, "Holding left click for half a second acquires the banana")
 	_mouse(MOUSE_BUTTON_LEFT, true)
 	await _wait_for_physics(30)
 	_check(player.get_node("ThrowTrajectory").visible and apartment.get_node("HUD/ThrowPower").visible, "A second left hold shows the trajectory and speed gauge")
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	await _expect(func() -> bool: return target.is_stunned(), "A real throw can hit and stun the test target")
+	await _expect(func() -> bool: return target.held_pickup == null and egg.is_in_group(&"pickups"),
+		"The real projectile also drops the test target's held item")
 	await _wait_for_physics(35)
 	_check(not target.is_stunned() and target._body_meshes[0].material_overlay == null, "The target recovers and the hit flash clears")
-	var thrown_item: RigidBody3D = apartment.get_node("Pickup3")
 
 	var before_hit := player.global_position
 	_set_key(KEY_D, true)
@@ -69,26 +77,22 @@ func _run() -> void:
 	_set_key(KEY_D, false)
 	_check(not player.is_stunned() and player.global_position.x > before_hit.x + 0.1, "Movement resumes after the self-hit test")
 	await _expect(func() -> bool: return clock.text.begins_with("00:"), "The display counts down during practice")
-	var bagged := apartment.get_node("Pickup1") as RigidBody3D
-	var item_index: int = apartment._pickups.find(bagged)
-	player.hold_pickup(bagged)
+	var item_index: int = apartment._pickups.find(ring)
+	player.hold_pickup(ring)
 	_mouse(MOUSE_BUTTON_LEFT, true)
 	await _wait_for_physics(3)
 	_mouse(MOUSE_BUTTON_RIGHT, true)
 	_mouse(MOUSE_BUTTON_RIGHT, false)
 	_mouse(MOUSE_BUTTON_LEFT, false)
-	_check(player.held_pickup == null and not bagged.visible and not bagged.is_in_group(&"pickups")
-		and bagged.freeze and bagged.collision_layer == 0 and not player.get_node("ThrowTrajectory").visible,
+	_check(player.held_pickup == null and not ring.visible and not ring.is_in_group(&"pickups")
+		and ring.freeze and ring.collision_layer == 0 and not player.get_node("ThrowTrajectory").visible,
 		"A right click during aim bags the item and removes it from physics and selection")
 	_check(wife_bag.get_child_count() == 1 and wife_bag.get_child(0).texture.resource_path.ends_with("Item_Ring.png")
 		and husband_bag.get_child_count() == 0 and logs.get_child_count() == 1,
 		"Bagging adds the ring icon and acquisition log only once")
-	apartment._apply_bag_item(0, item_index)
+	apartment._apply_bag_item(0, item_index, apartment._ownership_revision)
 	_check(wife_bag.get_child_count() == 1, "Duplicate deposit events cannot award the item twice")
-	for value in range(1, 11):
-		await _expect(func() -> bool: return int(gold.text) >= value, "Gold reaches the next integer")
-		_check(int(gold.text) == value, "Gold rises by one at a time")
-	for item: RigidBody3D in [apartment.get_node("Pickup2"), thrown_item]:
+	for item: RigidBody3D in [egg, banana]:
 		player.hold_pickup(item)
 		_mouse(MOUSE_BUTTON_RIGHT, true)
 		_mouse(MOUSE_BUTTON_RIGHT, false)
@@ -99,8 +103,42 @@ func _run() -> void:
 	var third_icon := wife_bag.get_child(2) as TextureRect
 	_check(second_icon.position.y == first_icon.position.y and third_icon.position.y > first_icon.position.y
 		and third_icon.position.x == first_icon.position.x, "The third icon wraps into a second row")
+	_check(second_icon.texture == egg.bag_icon and third_icon.texture == banana.bag_icon, "The bag uses each item's own icon")
 	_check(logs.get_child_count() == 2, "The acquisition log shows the two latest deposits")
-	await _expect(func() -> bool: return int(gold.text) == 30, "Rapid deposits add ten gold per item")
+	await _expect(func() -> bool: return int(gold.text) == 830, "The ring, egg and banana award their listed values")
+	player.hold_pickup(shampoo)
+	_set_key(KEY_D, true)
+	await _wait_for_physics(3)
+	_set_key(KEY_D, false)
+	_check(is_equal_approx(player.velocity.x, player.MOVE_SPEED / pow(5.0, 1.5)), "Movement uses the total weight of the hand and bag")
+	letter.arm(target)
+	letter._on_body_entered(player)
+	_check(player.is_stunned() and player.held_pickup == shampoo and wife_bag.get_child_count() == 3, "A letter hit stuns without rolling drops")
+	await _wait_for_physics(35)
+	pan.arm(target)
+	pan._on_body_entered(player)
+	await _wait_for_physics(2)
+	var retained_weight := 0
+	var retained_gold := 0
+	var retained_count := 0
+	var recovered: RigidBody3D
+	for item: RigidBody3D in [ring, egg, banana, shampoo]:
+		if item == player.held_pickup or not item.visible:
+			retained_count += 1
+			if item != player.held_pickup:
+				retained_weight += item.weight
+				retained_gold += item.gold_value
+		else:
+			_check(item.is_in_group(&"pickups") and item.collision_layer == 2, "Each dropped item returns to the world as a pickup")
+			recovered = item
+	_check(retained_count == 1 and player.bag_weight == retained_weight, "Attack power four drops three distinct owned items and updates bag weight")
+	await _expect(func() -> bool: return int(gold.text) == retained_gold, "Dropped bag items deduct their full value")
+	if recovered != null:
+		player.hold_pickup(recovered)
+		_mouse(MOUSE_BUTTON_RIGHT, true)
+		_mouse(MOUSE_BUTTON_RIGHT, false)
+		_check(not recovered.visible and player.bag_weight == retained_weight + recovered.weight, "A dropped item can be bagged again")
+		await _expect(func() -> bool: return int(gold.text) == retained_gold + recovered.gold_value, "A recovered item awards its value once")
 	var old_apartment := apartment
 	await _tap(KEY_R)
 	apartment = lobby.get_node("Apartment") as Node3D
@@ -111,7 +149,7 @@ func _run() -> void:
 	_check(apartment.get_node("HUD/WifeBag/Items").get_child_count() == 0
 		and apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000000", "A new test round resets bags and gold")
 	_check(player.held_pickup == null and not player.is_stunned(), "Reset clears held objects and player state")
-	_check(get_nodes_in_group(&"pickups").size() == 24 and get_nodes_in_group(&"household_items").size() == 21, "Reset restores every prop without duplicates")
+	_check(get_nodes_in_group(&"pickups").size() == 21 and get_nodes_in_group(&"household_items").size() == 21, "Reset restores every prop without duplicates")
 	timer = apartment.get_node("RoundTimer") as Timer
 	clock = apartment.get_node("HUD/TimeLeft") as Label
 	await _tap(KEY_G)
@@ -120,7 +158,7 @@ func _run() -> void:
 	var paused_display := clock.text
 	await _wait_for_physics(15)
 	_check(timer.paused and is_equal_approx(timer.time_left, paused_time) and clock.text == paused_display, "The countdown and its display stay frozen during a contest")
-	var contested := apartment.get_node("Pickup3") as RigidBody3D
+	var contested := apartment.get_node("Items/Item_01_banana") as RigidBody3D
 	for _press in 45:
 		if not apartment._contest.active:
 			break

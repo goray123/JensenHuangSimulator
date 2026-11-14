@@ -53,20 +53,20 @@ func _run() -> void:
 	var guest: CharacterBody3D = world.get_node("Guest")
 	host.set_physics_process(false)
 	guest.set_physics_process(false)
-	var sphere: RigidBody3D = world.get_node("Pickup1")
+	var egg: RigidBody3D = world.get_node("Items/Item_06_egg")
 	if hosting:
 		if not await _expect(func() -> bool: return barrier.acknowledged == 1, "The guest loaded the test scene"): return
 		events.clear()
 		barrier.advance.rpc_id(guest_id, 1)
 		if not await _expect(func() -> bool: return barrier.acknowledged == 2, "Both audio counters are reset"): return
 		# A hold and throw in one tick can be absent from the lossy snapshot.
-		host.hold_pickup(sphere)
+		host.hold_pickup(egg)
 		host.release_pickup(true, host.throw_velocity_at_speed(8.0))
-		sphere.disarm()
-		sphere.freeze = true
-		sphere.collision_layer = 0
-		sphere.collision_mask = 0
-		world.broadcast_prop_impact(sphere, &"hit_metal")
+		egg.disarm()
+		egg.freeze = true
+		egg.collision_layer = 0
+		egg.collision_mask = 0
+		world.broadcast_prop_impact(egg, &"hit_metal")
 		guest.receive_hit(&"hit_bonk")
 		world.reward_thrower(guest)
 		if not await _expect(func() -> bool: return barrier.acknowledged == 3, "The guest verified first-event counts"): return
@@ -74,9 +74,9 @@ func _run() -> void:
 		events.clear()
 		barrier.advance.rpc_id(guest_id, 2)
 		if not await _expect(func() -> bool: return barrier.acknowledged == 4, "The guest is ready for ownership transfer"): return
-		host.hold_pickup(sphere)
+		host.hold_pickup(egg)
 		host.release_pickup(false)
-		guest.hold_pickup(sphere)
+		guest.hold_pickup(egg)
 		if not await _expect(func() -> bool: return barrier.acknowledged == 5, "The guest verified transfer counts"): return
 		_check(_count("pickup_grab") == 2 and _count("throw_") == 0, "Ownership transfers play grabs without a false throw")
 		world.set_physics_process(false)

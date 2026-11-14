@@ -69,7 +69,7 @@ func _run() -> void:
 	_apartment = _lobby.get_node("Apartment")
 	_host = _apartment.get_node("Player")
 	_guest = _apartment.get_node("Guest")
-	_pickup = _apartment.get_node("Pickup1")
+	_pickup = _apartment.get_node("Items/Item_04_kimchi")
 	_contest = _apartment._contest
 	_camera = _apartment.get_node("Overview")
 	_camera_transform = _camera.global_transform
@@ -173,7 +173,7 @@ func _test_guest() -> void:
 		await _tap_left()
 	if not await _expect(func() -> bool: return not _contest.active and _guest.held_pickup == _pickup, "The reliable result attaches the won object to the guest"):
 		return
-	var first_revision: int = _contest.revision
+	var first_revision: int = _apartment._ownership_revision
 	await _verify_result(1)
 	_verify_stale_snapshot(0, first_revision - 1)
 	_barrier.acknowledge.rpc_id(1, 3)

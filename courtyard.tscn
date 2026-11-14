@@ -2,7 +2,6 @@
 
 [ext_resource type="PackedScene" path="res://player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://assets/ownership_dispute_map.tscn" id="2_map"]
-[ext_resource type="PackedScene" path="res://pickup.tscn" id="2_pickup"]
 [ext_resource type="Script" uid="uid://o1t28ps6mq6g" path="res://courtyard.gd" id="3_courtyard"]
 [ext_resource type="PackedScene" path="res://map_props.tscn" id="4_props"]
 [ext_resource type="Texture2D" uid="uid://ccdp5gmk5qcdy" path="res://assets/Sprites/WifeProfile.png" id="5_wife"]
@@ -116,15 +115,6 @@ shape = SubResource("BoxShape3D_boundary_z")
 
 [node name="Player" parent="." unique_id=1551723369 instance=ExtResource("1_player")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7, 0.065, -2.1)
-
-[node name="Pickup1" parent="." unique_id=669713500 instance=ExtResource("2_pickup")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1, 0.13666667, -1.05)
-
-[node name="Pickup2" parent="." unique_id=1236803442 instance=ExtResource("2_pickup")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.13666667, -3.5)
-
-[node name="Pickup3" parent="." unique_id=1786193243 instance=ExtResource("2_pickup")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.13666667, -2.4)
 
 [node name="Overview" type="Camera3D" parent="." unique_id=2101783900]
 transform = Transform3D(0.91629654, 0.30255362, -0.2624156, -1.2129094e-08, 0.6552192, 0.75543886, 0.40050048, -0.692206, 0.60037506, 0.427, 21, 11.735)

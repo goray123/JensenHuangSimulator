@@ -29,7 +29,7 @@ func _run() -> void:
 	SFX.play_ui(detached, &"pickup_grab")
 	detached.free()
 	_check(events.is_empty(), "Detached anchors create no players")
-	var world := preload("res://courtyard.tscn").instantiate()
+	var world := preload("res://tests/courtyard_fixture.tscn").instantiate()
 	root.add_child(world)
 	var player: CharacterBody3D = world.get_node("Player")
 	await _frames(15)
@@ -148,6 +148,9 @@ func _run() -> void:
 	_check(_count("hit_b", target.get_instance_id()) == 1 and _count("pickup_coin", player.get_instance_id()) == 1, "One hit plays one impact and one reward only for the thrower")
 	var wall := StaticBody3D.new()
 	world.add_child(wall)
+	sphere.freeze = true
+	sphere.collision_layer = 0
+	sphere.collision_mask = 0
 	events.clear()
 	sphere.arm(player)
 	sphere._on_body_entered(wall)

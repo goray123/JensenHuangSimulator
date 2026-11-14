@@ -12,14 +12,15 @@ var _bot_tap_elapsed := 0.0
 
 @onready var _apartment: Node3D = get_parent()
 @onready var _player: CharacterBody3D = _apartment.get_node("Player")
+@onready var _practice_item: RigidBody3D = _apartment.get_node("Items/Item_01_banana")
 
 
 func _ready() -> void:
 	_player.position = PRACTICE_SPAWN
 	_player.rotation.y = 0
-	var positions := [Vector3(5.9, 0.13666667, -0.85), Vector3(7.3, 0.13666667, -0.8), Vector3(6.6, 0.13666667, -1.8)]
-	for index in 3:
-		_apartment.get_node("Pickup%d" % (index + 1)).global_position = positions[index]
+	_practice_item.global_position = Vector3(6.6, 0.065, -1.8)
+	(_apartment.get_node("Items/Item_06_egg") as RigidBody3D).global_position = Vector3(5.9, 0.065, -0.85)
+	(_apartment.get_node("Items/Item_12_ring") as RigidBody3D).global_position = Vector3(7.3, 0.065, -0.8)
 	target = PLAYER_SCENE.instantiate() as CharacterBody3D
 	target.name = "TestTarget"
 	target.reads_local_input = false
@@ -49,14 +50,13 @@ func _start_contest_test() -> void:
 	target.release_pickup(false)
 	_player.position = PRACTICE_SPAWN
 	target.position = PRACTICE_SPAWN + Vector3.FORWARD
-	for pickup: RigidBody3D in _apartment._pickups:
-		if pickup.name == &"Pickup3" and pickup.is_in_group(&"pickups"):
-			pickup.freeze = true
-			pickup.global_position = PRACTICE_SPAWN + Vector3(0, 0.07666667, -0.5)
-			_apartment._contest.request_interaction(_player, true, pickup)
-			_apartment._contest.request_interaction(target, true, pickup)
-			_contest_bot = _apartment._contest.active
-			break
+	if not _practice_item.is_in_group(&"pickups"):
+		return
+	_practice_item.freeze = true
+	_practice_item.global_position = PRACTICE_SPAWN + Vector3.FORWARD * 0.5
+	_apartment._contest.request_interaction(_player, true, _practice_item)
+	_apartment._contest.request_interaction(target, true, _practice_item)
+	_contest_bot = _apartment._contest.active
 	_bot_tap_elapsed = 0.0
 
 

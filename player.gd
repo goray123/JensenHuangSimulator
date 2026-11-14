@@ -14,7 +14,6 @@ const SFX := preload("res://sfx.gd")
 const MOVE_SPEED := 1.5
 const TURN_SPEED := 6.0
 const PICKUP_RANGE := 1.2
-const GRAB_SECONDS := 1.0
 const MAX_THROW_SPEED := 10.0
 const THROW_CYCLE_SECONDS := 2.0
 const THROW_ANGLE := deg_to_rad(25.0)
@@ -36,6 +35,7 @@ const ONE_SHOT_CLIPS := ["Pickup", "Throw"]
 @export var model_scene: PackedScene = DEFAULT_MODEL
 
 var held_pickup: RigidBody3D = null
+var bag_weight := 0
 var reads_local_input := true
 var simulates_movement := true
 var remote_input := Vector2.ZERO
@@ -115,7 +115,7 @@ func _update_animation(delta: float) -> void:
 	if _anim.is_playing() and _anim.current_animation.trim_prefix(_clip_prefix) in ONE_SHOT_CLIPS:
 		return
 	var ground_speed := Vector2(moved.x, moved.z).length() / delta
-	if ground_speed > 0.2:
+	if ground_speed > 0.001:
 		_play(&"Run", minf(ground_speed / RUN_CLIP_SPEED, MAX_RUN_PLAYBACK))
 	else:
 		_play(&"Carry" if held_pickup != null else &"Idle", 1.0)
@@ -396,8 +396,9 @@ func _physics_process(delta: float) -> void:
 		if not reads_local_input or not Input.is_action_pressed(&"interact") or not is_instance_valid(_grab_target) or not can_grab(_grab_target):
 			_cancel_grab()
 		else:
-			_grab_elapsed = minf(_grab_elapsed + delta, GRAB_SECONDS)
-			grab_changed.emit(true, _grab_elapsed / GRAB_SECONDS)
+			var seconds: float = _grab_target.packing_seconds()
+			_grab_elapsed = minf(_grab_elapsed + delta, seconds)
+			grab_changed.emit(true, _grab_elapsed / seconds)
 	_update_pickup_highlight()
 	_update_animation(delta)
 	_update_footsteps()
@@ -417,7 +418,8 @@ func _physics_process(delta: float) -> void:
 
 func _move(input: Vector2, delta: float) -> void:
 	var direction := Vector3(input.x, 0.0, input.y)
-	var motion := direction * MOVE_SPEED
+	var hand_weight: int = held_pickup.weight if held_pickup != null else 0
+	var motion := direction * (MOVE_SPEED / pow(maxi(bag_weight + hand_weight, 1), 1.5))
 	if not direction.is_zero_approx():
 		var target_yaw := atan2(-direction.x, -direction.z)
 		rotation.y = rotate_toward(rotation.y, target_yaw, TURN_SPEED * delta)

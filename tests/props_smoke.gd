@@ -16,7 +16,7 @@ func _run() -> void:
 	for model: Node3D in get_nodes_in_group(&"throwable_props"):
 		original_bounds[String(model.name)] = _mesh_bounds(model, Transform3D.IDENTITY)
 	source.free()
-	var apartment := preload("res://courtyard.tscn").instantiate()
+	var apartment := preload("res://tests/courtyard_fixture.tscn").instantiate()
 	root.add_child(apartment)
 	var player := apartment.get_node("Player") as CharacterBody3D
 	var trajectory := player.get_node("ThrowTrajectory") as MeshInstance3D

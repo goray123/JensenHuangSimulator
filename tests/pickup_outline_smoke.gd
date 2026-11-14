@@ -8,7 +8,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var apartment := preload("res://courtyard.tscn").instantiate()
+	var apartment := preload("res://tests/courtyard_fixture.tscn").instantiate()
 	root.add_child(apartment)
 	var player := apartment.get_node("Player") as CharacterBody3D
 	player.simulates_movement = false
@@ -102,7 +102,7 @@ func _run() -> void:
 		pickup.remove_from_group(&"pickups")
 
 	# Both freeing the selection and leaving/resetting the scene must be safe.
-	var disposable := preload("res://pickup.tscn").instantiate() as RigidBody3D
+	var disposable := preload("res://tests/pickup_fixture.tscn").instantiate() as RigidBody3D
 	apartment.add_child(disposable)
 	disposable.global_position = player.global_position + Vector3(0.5, 0, 0)
 	await _wait_frames()

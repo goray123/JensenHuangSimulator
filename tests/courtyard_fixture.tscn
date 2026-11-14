@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://courtyard.tscn" id="1_courtyard"]
+[ext_resource type="PackedScene" path="res://tests/pickup_fixture.tscn" id="2_pickup"]
+
+[node name="Apartment" instance=ExtResource("1_courtyard")]
+
+[node name="Pickup1" parent="." instance=ExtResource("2_pickup")]
+position = Vector3(3.1, 0.13666667, -1.05)
+
+[node name="Pickup2" parent="." instance=ExtResource("2_pickup")]
+position = Vector3(5, 0.13666667, -3.5)
+
+[node name="Pickup3" parent="." instance=ExtResource("2_pickup")]
+position = Vector3(7, 0.13666667, -2.4)

@@ -8,7 +8,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var courtyard := preload("res://courtyard.tscn").instantiate()
+	var courtyard := preload("res://tests/courtyard_fixture.tscn").instantiate()
 	root.add_child(courtyard)
 	var player := courtyard.get_node("Player") as CharacterBody3D
 	var hand := player.get_node("HandSocket") as Marker3D

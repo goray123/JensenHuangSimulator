@@ -14,7 +14,6 @@ var active := false:
 		active_changed.emit(active)
 var progress := 0.5
 var round_id := 0
-var revision := 0
 var item_index := -1
 var presentation: Node
 
@@ -110,11 +109,11 @@ func _handle_interaction(player_index: int, requested_round: int, requested_item
 
 func _start_contest(pickup_index: int) -> void:
 	round_id += 1
-	revision += 1
+	_apartment._ownership_revision += 1
 	_begin_round(round_id, pickup_index)
 	if _has_guest():
 		var poses := [_players[0].transform, _players[1].transform, _pickups[item_index].global_transform]
-		_sync_start.rpc_id(_apartment.guest_peer_id, round_id, item_index, revision, poses)
+		_sync_start.rpc_id(_apartment.guest_peer_id, round_id, item_index, _apartment._ownership_revision, poses)
 
 
 func _begin_round(id: int, pickup_index: int) -> void:
@@ -137,14 +136,14 @@ func _begin_round(id: int, pickup_index: int) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _sync_start(id: int, pickup_index: int, state_revision: int, poses: Array) -> void:
-	if not can_process() or state_revision < revision or id <= round_id or _players.size() != 2 or pickup_index < 0 or pickup_index >= _pickups.size() or poses.size() != 3:
+	if not can_process() or state_revision < _apartment._ownership_revision or id <= round_id or _players.size() != 2 or pickup_index < 0 or pickup_index >= _pickups.size() or poses.size() != 3:
 		return
 	for pose in poses:
 		if not (pose is Transform3D and pose.is_finite()):
 			return
 	if not is_instance_valid(_pickups[pickup_index]) or _apartment._bagged_items.has(pickup_index):
 		return
-	revision = state_revision
+	_apartment._ownership_revision = state_revision
 	for index in 2:
 		_players[index].release_pickup(false)
 		_players[index].transform = poses[index]
@@ -160,10 +159,10 @@ func _sync_progress(id: int, value: float) -> void:
 
 
 func _finish_contest(winner_index: int) -> void:
-	revision += 1
+	_apartment._ownership_revision += 1
 	_complete_round(winner_index)
 	if _has_guest():
-		_sync_result.rpc_id(_apartment.guest_peer_id, round_id, item_index, winner_index, revision)
+		_sync_result.rpc_id(_apartment.guest_peer_id, round_id, item_index, winner_index, _apartment._ownership_revision)
 
 
 func _complete_round(winner_index: int) -> void:
@@ -190,11 +189,11 @@ func _transfer_item(pickup_index: int, winner_index: int) -> void:
 
 @rpc("authority", "call_remote", "reliable")
 func _sync_result(id: int, pickup_index: int, winner_index: int, state_revision: int) -> void:
-	if not can_process() or state_revision < revision or id < round_id or pickup_index < 0 or pickup_index >= _pickups.size() or winner_index not in [0, 1] or _players.size() != 2:
+	if not can_process() or state_revision < _apartment._ownership_revision or id < round_id or pickup_index < 0 or pickup_index >= _pickups.size() or winner_index not in [0, 1] or _players.size() != 2:
 		return
 	if not is_instance_valid(_pickups[pickup_index]) or _apartment._bagged_items.has(pickup_index):
 		return
-	revision = state_revision
+	_apartment._ownership_revision = state_revision
 	round_id = id
 	item_index = pickup_index
 	_complete_round(winner_index)
@@ -213,10 +212,10 @@ func _physics_process(delta: float) -> void:
 		for player in _players:
 			valid = valid and is_instance_valid(player) and not player.is_queued_for_deletion()
 		if not valid:
-			revision += 1
+			_apartment._ownership_revision += 1
 			cancel_round()
 			if _has_guest():
-				_sync_cancel.rpc_id(_apartment.guest_peer_id, round_id, revision)
+				_sync_cancel.rpc_id(_apartment.guest_peer_id, round_id, _apartment._ownership_revision)
 		return
 	for index in _players.size():
 		if _grab_items[index] < 0:
@@ -227,15 +226,16 @@ func _physics_process(delta: float) -> void:
 			_grab_items[index] = -1
 			continue
 		_grab_times[index] += delta
-		if _grab_times[index] >= player.GRAB_SECONDS or is_equal_approx(_grab_times[index], player.GRAB_SECONDS):
+		var seconds: float = pickup.packing_seconds()
+		if _grab_times[index] >= seconds or is_equal_approx(_grab_times[index], seconds):
 			_grab_items[index] = -1
 			player.hold_pickup(pickup)
 
 
 @rpc("authority", "call_remote", "reliable")
 func _sync_cancel(id: int, state_revision: int) -> void:
-	if id == round_id and state_revision >= revision:
-		revision = state_revision
+	if id == round_id and state_revision >= _apartment._ownership_revision:
+		_apartment._ownership_revision = state_revision
 		cancel_round()
 
 

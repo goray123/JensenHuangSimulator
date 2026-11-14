@@ -6,6 +6,8 @@ const PLAYER_SCENE := preload("res://player.tscn")
 const PICKUP_CONTEST := preload("res://pickup_contest.gd")
 const GUEST_MODEL := preload("res://assets/characters/thump/02_Woman.glb")
 const INPUT_TIMEOUT_MS := 500
+const HIT_DROP_COUNTS := [0, 1, 2, 2, 3, 3]
+const HIT_EXTRA_DROP_CHANCES := [0.0, 0.0, 0.0, 0.3, 0.0, 0.5]
 
 var guest_peer_id := 0
 var _last_guest_input := -1
@@ -13,7 +15,8 @@ var _guest: Player
 var _local_player: Player
 var _players: Array[Player]
 var _pickups: Array[RigidBody3D]
-var _bagged_items: Array[int] = []
+var _bagged_items: Dictionary[int, int] = {}
+var _ownership_revision := 0
 var _round_finished := false
 var _contest: Node
 
@@ -108,7 +111,7 @@ func _physics_process(_delta: float) -> void:
 	var poses := PackedFloat32Array()
 	for pose in transforms:
 		poses.append_array(PackedFloat32Array([pose.basis.x.x, pose.basis.x.y, pose.basis.x.z, pose.basis.y.x, pose.basis.y.y, pose.basis.y.z, pose.basis.z.x, pose.basis.z.y, pose.basis.z.z, pose.origin.x, pose.origin.y, pose.origin.z]))
-	_receive_snapshot.rpc_id(guest_peer_id, poses, Vector4i(holding.x, holding.y, _contest.revision, seconds_left))
+	_receive_snapshot.rpc_id(guest_peer_id, poses, Vector4i(holding.x, holding.y, _ownership_revision, seconds_left))
 
 
 func _update_time_left(seconds: int) -> void:
@@ -168,19 +171,20 @@ func _bag_held_item(player_index: int, pickup_index: int) -> void:
 	var player := _players[player_index]
 	if _round_finished or player.contest_active or player.held_pickup == null or pickup_index < 0 or _bagged_items.has(pickup_index) or _pickups.find(player.held_pickup) != pickup_index:
 		return
-	_apply_bag_item(player_index, pickup_index)
+	var revision := _ownership_revision + 1
+	_apply_bag_item(player_index, pickup_index, revision)
 	if guest_peer_id != 0:
-		_apply_bag_item.rpc_id(guest_peer_id, player_index, pickup_index)
+		_apply_bag_item.rpc_id(guest_peer_id, player_index, pickup_index, revision)
 
 
 @rpc("authority", "call_remote", "reliable")
-func _apply_bag_item(player_index: int, pickup_index: int) -> void:
-	if _round_finished or player_index < 0 or player_index >= _players.size() or pickup_index < 0 or pickup_index >= _pickups.size() or _bagged_items.has(pickup_index):
+func _apply_bag_item(player_index: int, pickup_index: int, revision: int) -> void:
+	if _round_finished or revision <= _ownership_revision or player_index < 0 or player_index >= _players.size() or pickup_index < 0 or pickup_index >= _pickups.size() or _bagged_items.has(pickup_index):
 		return
 	var pickup := _pickups[pickup_index]
 	if not is_instance_valid(pickup):
 		return
-	_bagged_items.append(pickup_index)
+	_ownership_revision = revision
 	for player in _players:
 		if player.held_pickup == pickup:
 			player.release_pickup(false)
@@ -193,7 +197,87 @@ func _apply_bag_item(player_index: int, pickup_index: int) -> void:
 	pickup.freeze = true
 	pickup.collision_layer = 0
 	pickup.collision_mask = 0
-	$HUD.add_bag_item(player_index, str(pickup.get_meta(&"pickup_name", "구")))
+	_bagged_items[pickup_index] = player_index
+	_players[player_index].bag_weight += pickup.weight
+	$HUD.add_bag_item(player_index, pickup_index, pickup)
+
+
+func drop_hit_items(victim: Player, attack_power: int) -> void:
+	if _round_finished or not multiplayer.is_server() or not is_instance_valid(victim) or attack_power <= 0:
+		return
+	var candidates: Array[int] = []
+	var player_index := _players.find(victim)
+	if player_index >= 0:
+		for pickup_index in _bagged_items:
+			if _bagged_items[pickup_index] == player_index:
+				candidates.append(pickup_index)
+	var held_index := _pickups.find(victim.held_pickup)
+	if held_index >= 0:
+		candidates.append(held_index)
+	var count: int = HIT_DROP_COUNTS[attack_power]
+	if HIT_EXTRA_DROP_CHANCES[attack_power] > 0.0 and randf() < HIT_EXTRA_DROP_CHANCES[attack_power]:
+		count += 1
+	candidates.shuffle()
+	candidates.resize(mini(count, candidates.size()))
+	if candidates.is_empty():
+		return
+	var poses: Array[Transform3D] = []
+	for slot in candidates.size():
+		poses.append(_drop_pose(_pickups[candidates[slot]], victim, slot))
+	var revision := _ownership_revision + 1
+	_apply_hit_drops(candidates, poses, revision)
+	if guest_peer_id != 0:
+		_apply_hit_drops.rpc_id(guest_peer_id, candidates, poses, revision)
+
+
+func _drop_pose(pickup: RigidBody3D, victim: Player, slot: int) -> Transform3D:
+	var collider := pickup.get_node("CollisionShape3D") as CollisionShape3D
+	var bounds := collider.transform * collider.shape.get_debug_mesh().get_aabb()
+	var center := victim.global_position + Vector3.UP * (0.25 + bounds.size.y * 0.5)
+	var query := PhysicsShapeQueryParameters3D.new()
+	query.shape = collider.shape
+	query.collision_mask = 3
+	query.exclude = [victim.get_rid(), pickup.get_rid()]
+	var space := victim.get_world_3d().direct_space_state
+	for attempt in 8:
+		var angle := victim.rotation.y + (slot * 2 + attempt) * TAU / 8.0
+		var offset := Vector3.FORWARD.rotated(Vector3.UP, angle) * 0.82
+		var ray := PhysicsRayQueryParameters3D.create(center, center + offset, 1, query.exclude)
+		if not space.intersect_ray(ray).is_empty():
+			continue
+		var pose := Transform3D(Basis.IDENTITY, center + offset - bounds.get_center())
+		query.transform = pose * collider.transform
+		if space.intersect_shape(query, 1).is_empty():
+			return pose
+	return Transform3D(Basis.IDENTITY, center - bounds.get_center() + Vector3.UP * (0.4 + slot * 0.2))
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_hit_drops(pickup_indices: Array[int], poses: Array[Transform3D], revision: int) -> void:
+	if _round_finished or revision <= _ownership_revision:
+		return
+	_ownership_revision = revision
+	for slot in pickup_indices.size():
+		var pickup_index := pickup_indices[slot]
+		var pickup := _pickups[pickup_index]
+		var holder := pickup.get_parent().get_parent() as Player
+		if holder != null and holder.held_pickup == pickup:
+			holder.release_pickup(false)
+		if _bagged_items.has(pickup_index):
+			var owner := _bagged_items[pickup_index]
+			_bagged_items.erase(pickup_index)
+			_players[owner].bag_weight -= pickup.weight
+			$HUD.remove_bag_item(owner, pickup_index, pickup.gold_value)
+		pickup.disarm()
+		pickup.global_transform = poses[slot]
+		pickup.add_to_group(&"pickups")
+		pickup.show()
+		pickup.collision_layer = 2
+		pickup.collision_mask = 3
+		pickup.freeze = not multiplayer.is_server()
+		pickup.linear_velocity = Vector3.ZERO
+		pickup.angular_velocity = Vector3.ZERO
+		pickup.sleeping = false
 
 
 func _is_guest_request() -> bool:
@@ -221,17 +305,15 @@ func _receive_snapshot(poses: PackedFloat32Array, state: Vector4i) -> void:
 	_apply_snapshot(transforms, Vector2i(state.x, state.y), state.z, state.w)
 
 
-@rpc("authority", "call_remote", "unreliable_ordered")
 func _apply_snapshot(transforms: Array, holding: Vector2i, ownership_revision: int, seconds_left: int) -> void:
-	if _round_finished or ownership_revision < _contest.revision:
+	# Wait for reliable ownership events before applying snapshots from the new state.
+	if _round_finished or ownership_revision != _ownership_revision:
 		return
 	if transforms.size() != _players.size() + _pickups.size():
 		return
 	if mini(holding.x, holding.y) < -1 or maxi(holding.x, holding.y) >= _pickups.size():
 		return
 	if holding.x >= 0 and holding.x == holding.y:
-		return
-	if _contest.active and ownership_revision > _contest.revision:
 		return
 	for pose in transforms:
 		if not (pose is Transform3D and pose.is_finite()):

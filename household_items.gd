@@ -2,6 +2,30 @@ extends Node3D
 
 const THROWABLE := preload("res://throwable.gd")
 const ITEM_DIR := "res://assets/items/"
+# Item list: weight, attack power, gold value, bag icon.
+const GAMEPLAY := {
+	"01-banana": [1, 1, 20, preload("res://assets/Sprites/Items/Item_Banana.png")],
+	"04-kimchi": [3, 2, 120, preload("res://assets/Sprites/Items/Item_Kimchi.png")],
+	"05-cake": [2, 1, 150, preload("res://assets/Sprites/Items/Item_Cake.png")],
+	"06-egg": [1, 1, 10, preload("res://assets/Sprites/Items/Item_Egg.png")],
+	"07-frying-pan": [3, 4, 200, preload("res://assets/Sprites/Items/Item_FryingPan.png")],
+	"08-computer": [4, 4, 1000, preload("res://assets/Sprites/Items/Item_Computer.png")],
+	"09-dumbbell": [4, 5, 200, preload("res://assets/Sprites/Items/Item_Dumbbell.png")],
+	"10-tissue-box": [1, 1, 20, preload("res://assets/Sprites/Items/Item_TissueBox.png")],
+	"11-bed": [5, 5, 800, preload("res://assets/Sprites/Items/Item_Bed.png")],
+	"12-ring": [1, 1, 800, preload("res://assets/Sprites/Items/Item_Ring.png")],
+	"13-photo-album": [2, 1, 300, preload("res://assets/Sprites/Items/Item_PhotoAlbum.png")],
+	"14-letter": [1, 0, 150, preload("res://assets/Sprites/Items/Item_Letter.png")],
+	"15-desk": [5, 5, 500, preload("res://assets/Sprites/Items/Item_Desk.png")],
+	"16-piggy-bank": [3, 3, 0, preload("res://assets/Sprites/Items/Item_PiggyBank.png")],
+	"17-tv": [4, 4, 900, preload("res://assets/Sprites/Items/Item_TV.png")],
+	"18-folded-clothes": [2, 1, 120, preload("res://assets/Sprites/Items/Item_FoldedClothes.png")],
+	"19-shoes": [2, 2, 180, preload("res://assets/Sprites/Items/Item_Shoes.png")],
+	"20-coat": [2, 1, 250, preload("res://assets/Sprites/Items/Item_Coat.png")],
+	"21-plunger": [2, 1, 40, preload("res://assets/Sprites/Items/Item_Plunger.png")],
+	"22-bucket": [2, 2, 60, preload("res://assets/Sprites/Items/Item_Bucket.png")],
+	"23-shampoo": [2, 1, 80, preload("res://assets/Sprites/Items/Item_Shampoo.png")],
+}
 const WARDROBE := "../Map/MasterBedroom/Wardrobe"
 # The map's wardrobe body is one solid box; swap it for thin panels so it is open.
 const WARDROBE_SOLID_PARTS := [
@@ -107,6 +131,11 @@ func _spawn(item_id: String, at: Vector3, yaw_degrees: float, item_scale: float)
 
 func _make_pickup(item: RigidBody3D, collision: CollisionShape3D) -> void:
 	item.set_script(THROWABLE)
+	var stats: Array = GAMEPLAY[item.get_meta(&"item_id")]
+	item.weight = stats[0]
+	item.attack_power = stats[1]
+	item.gold_value = stats[2]
+	item.bag_icon = stats[3]
 	# player.gd and throw_trajectory.gd look the collider up by this name.
 	collision.name = "CollisionShape3D"
 	item.collision_layer = 2
