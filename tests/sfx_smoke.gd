@@ -159,7 +159,9 @@ func _run() -> void:
 	sphere.arm(player)
 	sphere._on_body_entered(wall)
 	_check(_count("hit_thud") == 1, "The 150 ms impact cooldown survives rearming")
-	await create_timer(0.17).timeout
+	# The cooldown uses wall-clock ticks; a game-time timer can finish early when frame deltas are smoothed.
+	while Time.get_ticks_msec() - sphere._last_impact_ms < 170:
+		await process_frame
 	sphere.set_meta(&"item_id", "07-frying-pan")
 	sphere.arm(player)
 	sphere._on_body_entered(wall)

@@ -17,6 +17,7 @@ const IMPACT_SOUNDS := {
 const PACKING_SECONDS := [1.0, 0.5, 0.7, 1.1, 1.4, 1.9]
 
 const OUTLINE_MATERIAL := preload("res://pickup_outline.tres")
+const THROW_TRAIL := preload("res://throw_trail.gd")
 const BANANA_PEEL := preload("res://assets/household_items/scenes/03-banana-peel.tscn")
 const BANANA_ID := "01-banana"
 const FLOOR_SUPPORT_DOT := 0.7
@@ -45,6 +46,10 @@ func _ready() -> void:
 	max_contacts_reported = 8
 	body_entered.connect(_on_body_entered)
 	sleeping_state_changed.connect(_on_sleeping_state_changed)
+	var trail := THROW_TRAIL.new()
+	trail.name = "%sTrail" % name
+	trail.body = self
+	add_sibling.call_deferred(trail)
 
 
 func packing_seconds() -> float:
