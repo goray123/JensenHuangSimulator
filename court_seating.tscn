@@ -1,0 +1,1431 @@
+[gd_scene load_steps=57 format=3]
+
+[sub_resource type="StandardMaterial3D" id="Material_Wood"]
+albedo_color = Color(0.34, 0.15, 0.055, 1)
+roughness = 0.7
+
+[sub_resource type="StandardMaterial3D" id="Material_WoodLight"]
+albedo_color = Color(0.49, 0.25, 0.095, 1)
+roughness = 0.63
+
+[sub_resource type="StandardMaterial3D" id="Material_WoodEdge"]
+albedo_color = Color(0.6, 0.33, 0.14, 1)
+roughness = 0.62
+
+[sub_resource type="StandardMaterial3D" id="Material_SeatWood"]
+albedo_color = Color(0.29, 0.12, 0.042, 1)
+roughness = 0.77
+
+[sub_resource type="StandardMaterial3D" id="Material_PanelInset"]
+albedo_color = Color(0.3, 0.125, 0.04, 1)
+roughness = 0.76
+
+[sub_resource type="StandardMaterial3D" id="Material_Burgundy"]
+albedo_color = Color(0.36, 0.065, 0.105, 1)
+roughness = 0.82
+
+[sub_resource type="StandardMaterial3D" id="Material_BurgundyEdge"]
+albedo_color = Color(0.23, 0.035, 0.055, 1)
+roughness = 0.74
+
+[sub_resource type="StandardMaterial3D" id="Material_ChairWood"]
+albedo_color = Color(0.2, 0.075, 0.03, 1)
+roughness = 0.67
+
+[sub_resource type="StandardMaterial3D" id="Material_Brass"]
+albedo_color = Color(0.72, 0.45, 0.12, 1)
+roughness = 0.45
+
+[sub_resource type="BoxMesh" id="Box_0"]
+material = SubResource("Material_SeatWood")
+size = Vector3(5.5, 0.17, 0.86)
+
+[sub_resource type="BoxMesh" id="Box_1"]
+material = SubResource("Material_WoodEdge")
+size = Vector3(5.64, 0.16, 0.09)
+
+[sub_resource type="BoxMesh" id="Box_2"]
+material = SubResource("Material_WoodLight")
+size = Vector3(5.64, 0.16, 0.07)
+
+[sub_resource type="BoxMesh" id="Box_3"]
+material = SubResource("Material_Wood")
+size = Vector3(5.4, 0.62, 0.15)
+
+[sub_resource type="BoxMesh" id="Box_4"]
+material = SubResource("Material_PanelInset")
+size = Vector3(4.98, 0.39, 0.025)
+
+[sub_resource type="BoxMesh" id="Box_5"]
+material = SubResource("Material_WoodLight")
+size = Vector3(5.6, 0.12, 0.24)
+
+[sub_resource type="BoxMesh" id="Box_6"]
+material = SubResource("Material_WoodLight")
+size = Vector3(5.4, 0.07, 0.07)
+
+[sub_resource type="BoxMesh" id="Box_7"]
+material = SubResource("Material_Wood")
+size = Vector3(5.45, 0.13, 0.13)
+
+[sub_resource type="BoxMesh" id="Box_8"]
+material = SubResource("Material_WoodLight")
+size = Vector3(0.26, 1.22, 1.14)
+
+[sub_resource type="BoxMesh" id="Box_9"]
+material = SubResource("Material_WoodEdge")
+size = Vector3(0.33, 0.13, 1.25)
+
+[sub_resource type="BoxMesh" id="Box_10"]
+material = SubResource("Material_WoodEdge")
+size = Vector3(0.37, 0.16, 0.39)
+
+[sub_resource type="BoxMesh" id="Box_11"]
+material = SubResource("Material_Wood")
+size = Vector3(0.37, 0.19, 1.23)
+
+[sub_resource type="BoxShape3D" id="Shape_0"]
+size = Vector3(5.5, 0.17, 0.86)
+
+[sub_resource type="BoxShape3D" id="Shape_1"]
+size = Vector3(5.4, 0.62, 0.15)
+
+[sub_resource type="BoxShape3D" id="Shape_2"]
+size = Vector3(0.31, 1.27, 1.2)
+
+[sub_resource type="BoxMesh" id="Box_12"]
+material = SubResource("Material_Wood")
+size = Vector3(0.26, 0.23, 9.25)
+
+[sub_resource type="BoxMesh" id="Box_13"]
+material = SubResource("Material_WoodLight")
+size = Vector3(0.32, 0.2, 9.25)
+
+[sub_resource type="BoxMesh" id="Box_14"]
+material = SubResource("Material_WoodEdge")
+size = Vector3(0.48, 0.11, 9.56)
+
+[sub_resource type="BoxMesh" id="Box_15"]
+material = SubResource("Material_Wood")
+size = Vector3(0.16, 1.02, 0.16)
+
+[sub_resource type="BoxMesh" id="Box_16"]
+material = SubResource("Material_WoodLight")
+size = Vector3(0.34, 1.6, 0.34)
+
+[sub_resource type="BoxMesh" id="Box_17"]
+material = SubResource("Material_WoodEdge")
+size = Vector3(0.49, 0.13, 0.49)
+
+[sub_resource type="BoxShape3D" id="Shape_3"]
+size = Vector3(0.4, 1.64, 9.48)
+
+[sub_resource type="BoxMesh" id="Box_18"]
+material = SubResource("Material_Wood")
+size = Vector3(2.7, 0.6, 8.8)
+
+[sub_resource type="BoxMesh" id="Box_19"]
+material = SubResource("Material_WoodLight")
+size = Vector3(0.22, 0.9, 8.8)
+
+[sub_resource type="BoxMesh" id="Box_20"]
+material = SubResource("Material_Wood")
+size = Vector3(0.18, 0.16, 8.92)
+
+[sub_resource type="BoxMesh" id="Box_21"]
+material = SubResource("Material_WoodEdge")
+size = Vector3(0.45, 0.14, 9.02)
+
+[sub_resource type="BoxMesh" id="Box_22"]
+material = SubResource("Material_PanelInset")
+size = Vector3(0.06, 0.59, 1.43)
+
+[sub_resource type="BoxMesh" id="Box_23"]
+material = SubResource("Material_WoodLight")
+size = Vector3(2.75, 0.9, 0.2)
+
+[sub_resource type="BoxMesh" id="Box_24"]
+material = SubResource("Material_WoodEdge")
+size = Vector3(2.91, 0.14, 0.43)
+
+[sub_resource type="BoxMesh" id="Box_25"]
+material = SubResource("Material_PanelInset")
+size = Vector3(2.12, 0.59, 0.05)
+
+[sub_resource type="BoxMesh" id="Box_26"]
+material = SubResource("Material_WoodLight")
+size = Vector3(2.75, 0.4, 0.2)
+
+[sub_resource type="BoxMesh" id="Box_27"]
+material = SubResource("Material_WoodLight")
+size = Vector3(0.98, 0.3, 0.68)
+
+[sub_resource type="BoxMesh" id="Box_28"]
+material = SubResource("Material_WoodEdge")
+size = Vector3(1.03, 0.07, 0.73)
+
+[sub_resource type="BoxShape3D" id="Shape_4"]
+size = Vector3(2.7, 0.6, 8.8)
+
+[sub_resource type="BoxShape3D" id="Shape_5"]
+size = Vector3(0.3, 0.95, 8.8)
+
+[sub_resource type="BoxShape3D" id="Shape_6"]
+size = Vector3(2.75, 0.9, 0.2)
+
+[sub_resource type="BoxShape3D" id="Shape_7"]
+size = Vector3(0.98, 0.3, 0.68)
+
+[sub_resource type="BoxMesh" id="Box_29"]
+material = SubResource("Material_ChairWood")
+size = Vector3(0.93, 0.16, 0.92)
+
+[sub_resource type="BoxMesh" id="Box_30"]
+material = SubResource("Material_Burgundy")
+size = Vector3(0.91, 0.15, 0.82)
+
+[sub_resource type="BoxMesh" id="Box_31"]
+material = SubResource("Material_BurgundyEdge")
+size = Vector3(0.95, 1.21, 0.18)
+
+[sub_resource type="BoxMesh" id="Box_32"]
+material = SubResource("Material_Burgundy")
+size = Vector3(0.81, 1.07, 0.09)
+
+[sub_resource type="BoxMesh" id="Box_33"]
+material = SubResource("Material_Burgundy")
+size = Vector3(0.99, 0.07, 0.21)
+
+[sub_resource type="BoxMesh" id="Box_34"]
+material = SubResource("Material_ChairWood")
+size = Vector3(0.14, 0.47, 0.14)
+
+[sub_resource type="BoxMesh" id="Box_35"]
+material = SubResource("Material_ChairWood")
+size = Vector3(0.1, 0.38, 0.1)
+
+[sub_resource type="BoxMesh" id="Box_36"]
+material = SubResource("Material_BurgundyEdge")
+size = Vector3(0.16, 0.1, 0.76)
+
+[sub_resource type="BoxShape3D" id="Shape_8"]
+size = Vector3(0.95, 0.27, 0.94)
+
+[sub_resource type="BoxShape3D" id="Shape_9"]
+size = Vector3(0.95, 1.21, 0.2)
+
+[node name="CourtSeating" type="Node3D"]
+metadata/description = "Audience pews, gallery railing and raised jury seating for court.tscn"
+
+[node name="Audience" type="Node3D" parent="."]
+
+[node name="LeftPew1" type="Node3D" parent="Audience" groups=["court_furniture"]]
+position = Vector3(-4.5, 0, 5.5)
+metadata/furniture_type = "audience_pew"
+
+[node name="Seat" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(0, 0.52, -0.03)
+mesh = SubResource("Box_0")
+
+[node name="SeatFrontLip" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(0, 0.53, -0.49)
+mesh = SubResource("Box_1")
+
+[node name="SeatRearTrim" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(0, 0.53, 0.4)
+mesh = SubResource("Box_2")
+
+[node name="Back" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(0, 0.99, 0.38)
+mesh = SubResource("Box_3")
+
+[node name="BackInset" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(0, 1.005, 0.292)
+mesh = SubResource("Box_4")
+
+[node name="BackTop" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(0, 1.335, 0.38)
+mesh = SubResource("Box_5")
+
+[node name="BackLowerTrim" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(0, 0.695, 0.285)
+mesh = SubResource("Box_6")
+
+[node name="FootRail" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(0, 0.19, 0.22)
+mesh = SubResource("Box_7")
+
+[node name="LeftEnd" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(-2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(-2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="LeftCap" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(-2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(-2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="RightEnd" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="RightArm" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="RightCap" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="RightFoot" type="MeshInstance3D" parent="Audience/LeftPew1"]
+position = Vector3(2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="Collision" type="StaticBody3D" parent="Audience/LeftPew1" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="Audience/LeftPew1/Collision"]
+position = Vector3(0, 0.52, -0.03)
+shape = SubResource("Shape_0")
+
+[node name="Collision2" type="CollisionShape3D" parent="Audience/LeftPew1/Collision"]
+position = Vector3(0, 0.99, 0.38)
+shape = SubResource("Shape_1")
+
+[node name="Collision3" type="CollisionShape3D" parent="Audience/LeftPew1/Collision"]
+position = Vector3(-2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="Collision4" type="CollisionShape3D" parent="Audience/LeftPew1/Collision"]
+position = Vector3(2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="RightPew1" type="Node3D" parent="Audience" groups=["court_furniture"]]
+position = Vector3(4.5, 0, 5.5)
+metadata/furniture_type = "audience_pew"
+
+[node name="Seat" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(0, 0.52, -0.03)
+mesh = SubResource("Box_0")
+
+[node name="SeatFrontLip" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(0, 0.53, -0.49)
+mesh = SubResource("Box_1")
+
+[node name="SeatRearTrim" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(0, 0.53, 0.4)
+mesh = SubResource("Box_2")
+
+[node name="Back" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(0, 0.99, 0.38)
+mesh = SubResource("Box_3")
+
+[node name="BackInset" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(0, 1.005, 0.292)
+mesh = SubResource("Box_4")
+
+[node name="BackTop" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(0, 1.335, 0.38)
+mesh = SubResource("Box_5")
+
+[node name="BackLowerTrim" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(0, 0.695, 0.285)
+mesh = SubResource("Box_6")
+
+[node name="FootRail" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(0, 0.19, 0.22)
+mesh = SubResource("Box_7")
+
+[node name="LeftEnd" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(-2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(-2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="LeftCap" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(-2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(-2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="RightEnd" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="RightArm" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="RightCap" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="RightFoot" type="MeshInstance3D" parent="Audience/RightPew1"]
+position = Vector3(2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="Collision" type="StaticBody3D" parent="Audience/RightPew1" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="Audience/RightPew1/Collision"]
+position = Vector3(0, 0.52, -0.03)
+shape = SubResource("Shape_0")
+
+[node name="Collision2" type="CollisionShape3D" parent="Audience/RightPew1/Collision"]
+position = Vector3(0, 0.99, 0.38)
+shape = SubResource("Shape_1")
+
+[node name="Collision3" type="CollisionShape3D" parent="Audience/RightPew1/Collision"]
+position = Vector3(-2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="Collision4" type="CollisionShape3D" parent="Audience/RightPew1/Collision"]
+position = Vector3(2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="LeftPew2" type="Node3D" parent="Audience" groups=["court_furniture"]]
+position = Vector3(-4.5, 0, 7.3)
+metadata/furniture_type = "audience_pew"
+
+[node name="Seat" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(0, 0.52, -0.03)
+mesh = SubResource("Box_0")
+
+[node name="SeatFrontLip" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(0, 0.53, -0.49)
+mesh = SubResource("Box_1")
+
+[node name="SeatRearTrim" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(0, 0.53, 0.4)
+mesh = SubResource("Box_2")
+
+[node name="Back" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(0, 0.99, 0.38)
+mesh = SubResource("Box_3")
+
+[node name="BackInset" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(0, 1.005, 0.292)
+mesh = SubResource("Box_4")
+
+[node name="BackTop" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(0, 1.335, 0.38)
+mesh = SubResource("Box_5")
+
+[node name="BackLowerTrim" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(0, 0.695, 0.285)
+mesh = SubResource("Box_6")
+
+[node name="FootRail" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(0, 0.19, 0.22)
+mesh = SubResource("Box_7")
+
+[node name="LeftEnd" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(-2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(-2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="LeftCap" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(-2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(-2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="RightEnd" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="RightArm" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="RightCap" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="RightFoot" type="MeshInstance3D" parent="Audience/LeftPew2"]
+position = Vector3(2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="Collision" type="StaticBody3D" parent="Audience/LeftPew2" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="Audience/LeftPew2/Collision"]
+position = Vector3(0, 0.52, -0.03)
+shape = SubResource("Shape_0")
+
+[node name="Collision2" type="CollisionShape3D" parent="Audience/LeftPew2/Collision"]
+position = Vector3(0, 0.99, 0.38)
+shape = SubResource("Shape_1")
+
+[node name="Collision3" type="CollisionShape3D" parent="Audience/LeftPew2/Collision"]
+position = Vector3(-2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="Collision4" type="CollisionShape3D" parent="Audience/LeftPew2/Collision"]
+position = Vector3(2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="RightPew2" type="Node3D" parent="Audience" groups=["court_furniture"]]
+position = Vector3(4.5, 0, 7.3)
+metadata/furniture_type = "audience_pew"
+
+[node name="Seat" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(0, 0.52, -0.03)
+mesh = SubResource("Box_0")
+
+[node name="SeatFrontLip" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(0, 0.53, -0.49)
+mesh = SubResource("Box_1")
+
+[node name="SeatRearTrim" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(0, 0.53, 0.4)
+mesh = SubResource("Box_2")
+
+[node name="Back" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(0, 0.99, 0.38)
+mesh = SubResource("Box_3")
+
+[node name="BackInset" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(0, 1.005, 0.292)
+mesh = SubResource("Box_4")
+
+[node name="BackTop" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(0, 1.335, 0.38)
+mesh = SubResource("Box_5")
+
+[node name="BackLowerTrim" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(0, 0.695, 0.285)
+mesh = SubResource("Box_6")
+
+[node name="FootRail" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(0, 0.19, 0.22)
+mesh = SubResource("Box_7")
+
+[node name="LeftEnd" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(-2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(-2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="LeftCap" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(-2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(-2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="RightEnd" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="RightArm" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="RightCap" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="RightFoot" type="MeshInstance3D" parent="Audience/RightPew2"]
+position = Vector3(2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="Collision" type="StaticBody3D" parent="Audience/RightPew2" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="Audience/RightPew2/Collision"]
+position = Vector3(0, 0.52, -0.03)
+shape = SubResource("Shape_0")
+
+[node name="Collision2" type="CollisionShape3D" parent="Audience/RightPew2/Collision"]
+position = Vector3(0, 0.99, 0.38)
+shape = SubResource("Shape_1")
+
+[node name="Collision3" type="CollisionShape3D" parent="Audience/RightPew2/Collision"]
+position = Vector3(-2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="Collision4" type="CollisionShape3D" parent="Audience/RightPew2/Collision"]
+position = Vector3(2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="LeftPew3" type="Node3D" parent="Audience" groups=["court_furniture"]]
+position = Vector3(-4.5, 0, 9.1)
+metadata/furniture_type = "audience_pew"
+
+[node name="Seat" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(0, 0.52, -0.03)
+mesh = SubResource("Box_0")
+
+[node name="SeatFrontLip" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(0, 0.53, -0.49)
+mesh = SubResource("Box_1")
+
+[node name="SeatRearTrim" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(0, 0.53, 0.4)
+mesh = SubResource("Box_2")
+
+[node name="Back" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(0, 0.99, 0.38)
+mesh = SubResource("Box_3")
+
+[node name="BackInset" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(0, 1.005, 0.292)
+mesh = SubResource("Box_4")
+
+[node name="BackTop" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(0, 1.335, 0.38)
+mesh = SubResource("Box_5")
+
+[node name="BackLowerTrim" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(0, 0.695, 0.285)
+mesh = SubResource("Box_6")
+
+[node name="FootRail" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(0, 0.19, 0.22)
+mesh = SubResource("Box_7")
+
+[node name="LeftEnd" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(-2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(-2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="LeftCap" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(-2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(-2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="RightEnd" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="RightArm" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="RightCap" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="RightFoot" type="MeshInstance3D" parent="Audience/LeftPew3"]
+position = Vector3(2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="Collision" type="StaticBody3D" parent="Audience/LeftPew3" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="Audience/LeftPew3/Collision"]
+position = Vector3(0, 0.52, -0.03)
+shape = SubResource("Shape_0")
+
+[node name="Collision2" type="CollisionShape3D" parent="Audience/LeftPew3/Collision"]
+position = Vector3(0, 0.99, 0.38)
+shape = SubResource("Shape_1")
+
+[node name="Collision3" type="CollisionShape3D" parent="Audience/LeftPew3/Collision"]
+position = Vector3(-2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="Collision4" type="CollisionShape3D" parent="Audience/LeftPew3/Collision"]
+position = Vector3(2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="RightPew3" type="Node3D" parent="Audience" groups=["court_furniture"]]
+position = Vector3(4.5, 0, 9.1)
+metadata/furniture_type = "audience_pew"
+
+[node name="Seat" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(0, 0.52, -0.03)
+mesh = SubResource("Box_0")
+
+[node name="SeatFrontLip" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(0, 0.53, -0.49)
+mesh = SubResource("Box_1")
+
+[node name="SeatRearTrim" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(0, 0.53, 0.4)
+mesh = SubResource("Box_2")
+
+[node name="Back" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(0, 0.99, 0.38)
+mesh = SubResource("Box_3")
+
+[node name="BackInset" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(0, 1.005, 0.292)
+mesh = SubResource("Box_4")
+
+[node name="BackTop" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(0, 1.335, 0.38)
+mesh = SubResource("Box_5")
+
+[node name="BackLowerTrim" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(0, 0.695, 0.285)
+mesh = SubResource("Box_6")
+
+[node name="FootRail" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(0, 0.19, 0.22)
+mesh = SubResource("Box_7")
+
+[node name="LeftEnd" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(-2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(-2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="LeftCap" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(-2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(-2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="RightEnd" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="RightArm" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="RightCap" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="RightFoot" type="MeshInstance3D" parent="Audience/RightPew3"]
+position = Vector3(2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="Collision" type="StaticBody3D" parent="Audience/RightPew3" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="Audience/RightPew3/Collision"]
+position = Vector3(0, 0.52, -0.03)
+shape = SubResource("Shape_0")
+
+[node name="Collision2" type="CollisionShape3D" parent="Audience/RightPew3/Collision"]
+position = Vector3(0, 0.99, 0.38)
+shape = SubResource("Shape_1")
+
+[node name="Collision3" type="CollisionShape3D" parent="Audience/RightPew3/Collision"]
+position = Vector3(-2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="Collision4" type="CollisionShape3D" parent="Audience/RightPew3/Collision"]
+position = Vector3(2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="LeftPew4" type="Node3D" parent="Audience" groups=["court_furniture"]]
+position = Vector3(-4.5, 0, 10.9)
+metadata/furniture_type = "audience_pew"
+
+[node name="Seat" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(0, 0.52, -0.03)
+mesh = SubResource("Box_0")
+
+[node name="SeatFrontLip" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(0, 0.53, -0.49)
+mesh = SubResource("Box_1")
+
+[node name="SeatRearTrim" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(0, 0.53, 0.4)
+mesh = SubResource("Box_2")
+
+[node name="Back" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(0, 0.99, 0.38)
+mesh = SubResource("Box_3")
+
+[node name="BackInset" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(0, 1.005, 0.292)
+mesh = SubResource("Box_4")
+
+[node name="BackTop" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(0, 1.335, 0.38)
+mesh = SubResource("Box_5")
+
+[node name="BackLowerTrim" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(0, 0.695, 0.285)
+mesh = SubResource("Box_6")
+
+[node name="FootRail" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(0, 0.19, 0.22)
+mesh = SubResource("Box_7")
+
+[node name="LeftEnd" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(-2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(-2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="LeftCap" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(-2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(-2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="RightEnd" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="RightArm" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="RightCap" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="RightFoot" type="MeshInstance3D" parent="Audience/LeftPew4"]
+position = Vector3(2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="Collision" type="StaticBody3D" parent="Audience/LeftPew4" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="Audience/LeftPew4/Collision"]
+position = Vector3(0, 0.52, -0.03)
+shape = SubResource("Shape_0")
+
+[node name="Collision2" type="CollisionShape3D" parent="Audience/LeftPew4/Collision"]
+position = Vector3(0, 0.99, 0.38)
+shape = SubResource("Shape_1")
+
+[node name="Collision3" type="CollisionShape3D" parent="Audience/LeftPew4/Collision"]
+position = Vector3(-2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="Collision4" type="CollisionShape3D" parent="Audience/LeftPew4/Collision"]
+position = Vector3(2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="RightPew4" type="Node3D" parent="Audience" groups=["court_furniture"]]
+position = Vector3(4.5, 0, 10.9)
+metadata/furniture_type = "audience_pew"
+
+[node name="Seat" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(0, 0.52, -0.03)
+mesh = SubResource("Box_0")
+
+[node name="SeatFrontLip" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(0, 0.53, -0.49)
+mesh = SubResource("Box_1")
+
+[node name="SeatRearTrim" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(0, 0.53, 0.4)
+mesh = SubResource("Box_2")
+
+[node name="Back" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(0, 0.99, 0.38)
+mesh = SubResource("Box_3")
+
+[node name="BackInset" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(0, 1.005, 0.292)
+mesh = SubResource("Box_4")
+
+[node name="BackTop" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(0, 1.335, 0.38)
+mesh = SubResource("Box_5")
+
+[node name="BackLowerTrim" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(0, 0.695, 0.285)
+mesh = SubResource("Box_6")
+
+[node name="FootRail" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(0, 0.19, 0.22)
+mesh = SubResource("Box_7")
+
+[node name="LeftEnd" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(-2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="LeftArm" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(-2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="LeftCap" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(-2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="LeftFoot" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(-2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="RightEnd" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(2.8, 0.64, 0.12)
+mesh = SubResource("Box_8")
+
+[node name="RightArm" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(2.8, 1.09, -0.02)
+mesh = SubResource("Box_9")
+
+[node name="RightCap" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(2.8, 1.3, 0.38)
+mesh = SubResource("Box_10")
+
+[node name="RightFoot" type="MeshInstance3D" parent="Audience/RightPew4"]
+position = Vector3(2.8, 0.095, 0.04)
+mesh = SubResource("Box_11")
+
+[node name="Collision" type="StaticBody3D" parent="Audience/RightPew4" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="Audience/RightPew4/Collision"]
+position = Vector3(0, 0.52, -0.03)
+shape = SubResource("Shape_0")
+
+[node name="Collision2" type="CollisionShape3D" parent="Audience/RightPew4/Collision"]
+position = Vector3(0, 0.99, 0.38)
+shape = SubResource("Shape_1")
+
+[node name="Collision3" type="CollisionShape3D" parent="Audience/RightPew4/Collision"]
+position = Vector3(-2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="Collision4" type="CollisionShape3D" parent="Audience/RightPew4/Collision"]
+position = Vector3(2.8, 0.64, 0.12)
+shape = SubResource("Shape_2")
+
+[node name="GalleryRailing" type="Node3D" parent="." groups=["court_furniture"]]
+position = Vector3(-7, 0, -0.55)
+metadata/furniture_type = "gallery_railing"
+
+[node name="LowerBeam" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.18, 0)
+mesh = SubResource("Box_12")
+
+[node name="UpperBeam" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 1.42, 0)
+mesh = SubResource("Box_13")
+
+[node name="HandRail" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 1.56, 0)
+mesh = SubResource("Box_14")
+
+[node name="Baluster01" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, -4.5)
+mesh = SubResource("Box_15")
+
+[node name="Baluster02" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, -3.75)
+mesh = SubResource("Box_15")
+
+[node name="Baluster03" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, -3)
+mesh = SubResource("Box_15")
+
+[node name="Baluster04" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, -2.25)
+mesh = SubResource("Box_15")
+
+[node name="Baluster05" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, -1.5)
+mesh = SubResource("Box_15")
+
+[node name="Baluster06" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, -0.75)
+mesh = SubResource("Box_15")
+
+[node name="Baluster07" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, 0)
+mesh = SubResource("Box_15")
+
+[node name="Baluster08" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, 0.75)
+mesh = SubResource("Box_15")
+
+[node name="Baluster09" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, 1.5)
+mesh = SubResource("Box_15")
+
+[node name="Baluster10" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, 2.25)
+mesh = SubResource("Box_15")
+
+[node name="Baluster11" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, 3)
+mesh = SubResource("Box_15")
+
+[node name="Baluster12" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, 3.75)
+mesh = SubResource("Box_15")
+
+[node name="Baluster13" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.79, 4.5)
+mesh = SubResource("Box_15")
+
+[node name="RearPost" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.8, -4.58)
+mesh = SubResource("Box_16")
+
+[node name="RearPostCap" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 1.65, -4.58)
+mesh = SubResource("Box_17")
+
+[node name="FrontPost" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 0.8, 4.58)
+mesh = SubResource("Box_16")
+
+[node name="FrontPostCap" type="MeshInstance3D" parent="GalleryRailing"]
+position = Vector3(0, 1.65, 4.58)
+mesh = SubResource("Box_17")
+
+[node name="Collision" type="StaticBody3D" parent="GalleryRailing" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="GalleryRailing/Collision"]
+position = Vector3(0, 0.82, 0)
+shape = SubResource("Shape_3")
+
+[node name="JuryBox" type="Node3D" parent="." groups=["court_furniture"]]
+position = Vector3(0, 0, 0)
+metadata/furniture_type = "raised_jury_box"
+
+[node name="Riser" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(7.65, 0.3, -1.1)
+mesh = SubResource("Box_18")
+
+[node name="FrontPanel" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(6.32, 1, -1.1)
+mesh = SubResource("Box_19")
+
+[node name="PanelBaseMolding" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(6.18, 0.63, -1.1)
+mesh = SubResource("Box_20")
+
+[node name="PanelTopMolding" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(6.24, 1.48, -1.1)
+mesh = SubResource("Box_21")
+
+[node name="RaisedPanel1" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(6.195, 1.035, -4.64)
+mesh = SubResource("Box_22")
+
+[node name="RaisedPanel2" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(6.195, 1.035, -2.88)
+mesh = SubResource("Box_22")
+
+[node name="RaisedPanel3" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(6.195, 1.035, -1.12)
+mesh = SubResource("Box_22")
+
+[node name="RaisedPanel4" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(6.195, 1.035, 0.64)
+mesh = SubResource("Box_22")
+
+[node name="RaisedPanel5" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(6.195, 1.035, 2.4)
+mesh = SubResource("Box_22")
+
+[node name="FrontEnd" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(7.63, 1, 3.22)
+mesh = SubResource("Box_23")
+
+[node name="FrontEndCap" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(7.6, 1.48, 3.22)
+mesh = SubResource("Box_24")
+
+[node name="EndInset" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(7.67, 1.035, 3.335)
+mesh = SubResource("Box_25")
+
+[node name="BackEnd" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(7.63, 0.8, -5.43)
+mesh = SubResource("Box_26")
+
+[node name="AccessStep" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(8.5, 0.15, 3.65)
+mesh = SubResource("Box_27")
+
+[node name="AccessStepTop" type="MeshInstance3D" parent="JuryBox"]
+position = Vector3(8.5, 0.3, 3.62)
+mesh = SubResource("Box_28")
+
+[node name="Collision" type="StaticBody3D" parent="JuryBox" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="JuryBox/Collision"]
+position = Vector3(7.65, 0.3, -1.1)
+shape = SubResource("Shape_4")
+
+[node name="Collision2" type="CollisionShape3D" parent="JuryBox/Collision"]
+position = Vector3(6.32, 1.02, -1.1)
+shape = SubResource("Shape_5")
+
+[node name="Collision3" type="CollisionShape3D" parent="JuryBox/Collision"]
+position = Vector3(7.63, 1, 3.22)
+shape = SubResource("Shape_6")
+
+[node name="Collision4" type="CollisionShape3D" parent="JuryBox/Collision"]
+position = Vector3(8.5, 0.15, 3.65)
+shape = SubResource("Shape_7")
+
+[node name="JurorChair1" type="Node3D" parent="JuryBox" groups=["court_furniture"]]
+position = Vector3(7.73, 0.6, -4.45)
+rotation = Vector3(0, 1.5708, 0)
+metadata/furniture_type = "juror_chair"
+
+[node name="SeatFrame" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0, 0.49, 0)
+mesh = SubResource("Box_29")
+
+[node name="SeatCushion" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0, 0.605, -0.035)
+mesh = SubResource("Box_30")
+
+[node name="BackFrame" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0, 1.08, 0.365)
+mesh = SubResource("Box_31")
+
+[node name="BackCushion" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0, 1.105, 0.249)
+mesh = SubResource("Box_32")
+
+[node name="BackTop" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0, 1.713, 0.365)
+mesh = SubResource("Box_33")
+
+[node name="LFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(-0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="LBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(-0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="LArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(-0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="LArm" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(-0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="RFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="RBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="RArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="RArm" type="MeshInstance3D" parent="JuryBox/JurorChair1"]
+position = Vector3(0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="Collision" type="StaticBody3D" parent="JuryBox/JurorChair1" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="JuryBox/JurorChair1/Collision"]
+position = Vector3(0, 0.55, -0.02)
+shape = SubResource("Shape_8")
+
+[node name="Collision2" type="CollisionShape3D" parent="JuryBox/JurorChair1/Collision"]
+position = Vector3(0, 1.08, 0.365)
+shape = SubResource("Shape_9")
+
+[node name="JurorChair2" type="Node3D" parent="JuryBox" groups=["court_furniture"]]
+position = Vector3(7.73, 0.6, -2.83)
+rotation = Vector3(0, 1.5708, 0)
+metadata/furniture_type = "juror_chair"
+
+[node name="SeatFrame" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0, 0.49, 0)
+mesh = SubResource("Box_29")
+
+[node name="SeatCushion" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0, 0.605, -0.035)
+mesh = SubResource("Box_30")
+
+[node name="BackFrame" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0, 1.08, 0.365)
+mesh = SubResource("Box_31")
+
+[node name="BackCushion" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0, 1.105, 0.249)
+mesh = SubResource("Box_32")
+
+[node name="BackTop" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0, 1.713, 0.365)
+mesh = SubResource("Box_33")
+
+[node name="LFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(-0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="LBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(-0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="LArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(-0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="LArm" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(-0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="RFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="RBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="RArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="RArm" type="MeshInstance3D" parent="JuryBox/JurorChair2"]
+position = Vector3(0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="Collision" type="StaticBody3D" parent="JuryBox/JurorChair2" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="JuryBox/JurorChair2/Collision"]
+position = Vector3(0, 0.55, -0.02)
+shape = SubResource("Shape_8")
+
+[node name="Collision2" type="CollisionShape3D" parent="JuryBox/JurorChair2/Collision"]
+position = Vector3(0, 1.08, 0.365)
+shape = SubResource("Shape_9")
+
+[node name="JurorChair3" type="Node3D" parent="JuryBox" groups=["court_furniture"]]
+position = Vector3(7.73, 0.6, -1.21)
+rotation = Vector3(0, 1.5708, 0)
+metadata/furniture_type = "juror_chair"
+
+[node name="SeatFrame" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0, 0.49, 0)
+mesh = SubResource("Box_29")
+
+[node name="SeatCushion" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0, 0.605, -0.035)
+mesh = SubResource("Box_30")
+
+[node name="BackFrame" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0, 1.08, 0.365)
+mesh = SubResource("Box_31")
+
+[node name="BackCushion" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0, 1.105, 0.249)
+mesh = SubResource("Box_32")
+
+[node name="BackTop" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0, 1.713, 0.365)
+mesh = SubResource("Box_33")
+
+[node name="LFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(-0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="LBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(-0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="LArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(-0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="LArm" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(-0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="RFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="RBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="RArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="RArm" type="MeshInstance3D" parent="JuryBox/JurorChair3"]
+position = Vector3(0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="Collision" type="StaticBody3D" parent="JuryBox/JurorChair3" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="JuryBox/JurorChair3/Collision"]
+position = Vector3(0, 0.55, -0.02)
+shape = SubResource("Shape_8")
+
+[node name="Collision2" type="CollisionShape3D" parent="JuryBox/JurorChair3/Collision"]
+position = Vector3(0, 1.08, 0.365)
+shape = SubResource("Shape_9")
+
+[node name="JurorChair4" type="Node3D" parent="JuryBox" groups=["court_furniture"]]
+position = Vector3(7.73, 0.6, 0.41)
+rotation = Vector3(0, 1.5708, 0)
+metadata/furniture_type = "juror_chair"
+
+[node name="SeatFrame" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0, 0.49, 0)
+mesh = SubResource("Box_29")
+
+[node name="SeatCushion" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0, 0.605, -0.035)
+mesh = SubResource("Box_30")
+
+[node name="BackFrame" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0, 1.08, 0.365)
+mesh = SubResource("Box_31")
+
+[node name="BackCushion" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0, 1.105, 0.249)
+mesh = SubResource("Box_32")
+
+[node name="BackTop" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0, 1.713, 0.365)
+mesh = SubResource("Box_33")
+
+[node name="LFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(-0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="LBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(-0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="LArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(-0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="LArm" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(-0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="RFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="RBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="RArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="RArm" type="MeshInstance3D" parent="JuryBox/JurorChair4"]
+position = Vector3(0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="Collision" type="StaticBody3D" parent="JuryBox/JurorChair4" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="JuryBox/JurorChair4/Collision"]
+position = Vector3(0, 0.55, -0.02)
+shape = SubResource("Shape_8")
+
+[node name="Collision2" type="CollisionShape3D" parent="JuryBox/JurorChair4/Collision"]
+position = Vector3(0, 1.08, 0.365)
+shape = SubResource("Shape_9")
+
+[node name="JurorChair5" type="Node3D" parent="JuryBox" groups=["court_furniture"]]
+position = Vector3(7.73, 0.6, 2.03)
+rotation = Vector3(0, 1.5708, 0)
+metadata/furniture_type = "juror_chair"
+
+[node name="SeatFrame" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0, 0.49, 0)
+mesh = SubResource("Box_29")
+
+[node name="SeatCushion" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0, 0.605, -0.035)
+mesh = SubResource("Box_30")
+
+[node name="BackFrame" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0, 1.08, 0.365)
+mesh = SubResource("Box_31")
+
+[node name="BackCushion" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0, 1.105, 0.249)
+mesh = SubResource("Box_32")
+
+[node name="BackTop" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0, 1.713, 0.365)
+mesh = SubResource("Box_33")
+
+[node name="LFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(-0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="LBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(-0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="LArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(-0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="LArm" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(-0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="RFLeg" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0.35, 0.235, -0.3)
+mesh = SubResource("Box_34")
+
+[node name="RBLeg" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0.35, 0.235, 0.3)
+mesh = SubResource("Box_34")
+
+[node name="RArmPost" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0.35, 0.755, -0.24)
+mesh = SubResource("Box_35")
+
+[node name="RArm" type="MeshInstance3D" parent="JuryBox/JurorChair5"]
+position = Vector3(0.35, 0.963, -0.015)
+mesh = SubResource("Box_36")
+
+[node name="Collision" type="StaticBody3D" parent="JuryBox/JurorChair5" groups=["court_static"]]
+collision_mask = 0
+
+[node name="Collision1" type="CollisionShape3D" parent="JuryBox/JurorChair5/Collision"]
+position = Vector3(0, 0.55, -0.02)
+shape = SubResource("Shape_8")
+
+[node name="Collision2" type="CollisionShape3D" parent="JuryBox/JurorChair5/Collision"]
+position = Vector3(0, 1.08, 0.365)
+shape = SubResource("Shape_9")
+
