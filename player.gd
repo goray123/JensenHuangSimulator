@@ -3,6 +3,7 @@ extends CharacterBody3D
 signal held_pickup_changed(is_holding: bool)
 signal throw_blocked
 signal aim_changed(is_aiming: bool, speed: float)
+signal pickup_action_requested(pick_up: bool, speed: float)
 
 const MOVE_SPEED := 4.0
 const TURN_SPEED := 6.0
@@ -13,6 +14,9 @@ const THROW_ANGLE := deg_to_rad(25.0)
 const THROW_HEIGHT_DROP := 0.15
 
 var held_pickup: RigidBody3D = null
+var reads_local_input := true
+var simulates_movement := true
+var remote_input := Vector2.ZERO
 var _is_aiming := false
 var _aim_elapsed := 0.0
 
@@ -21,8 +25,13 @@ var _aim_elapsed := 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if not reads_local_input:
+		return
 	if event.is_action_pressed(&"pickup"):
-		_pickup_nearest()
+		if simulates_movement:
+			pickup_nearest()
+		else:
+			pickup_action_requested.emit(true, 0.0)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"throw"):
 		if not _is_aiming and held_pickup != null:
@@ -35,7 +44,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		var launch_velocity := _throw_velocity()
 		_cancel_aim()
 		if should_throw:
-			_throw_held_pickup(launch_velocity)
+			if simulates_movement:
+				release_pickup(true, launch_velocity)
+			else:
+				pickup_action_requested.emit(false, launch_velocity.length())
 		get_viewport().set_input_as_handled()
 
 
@@ -60,23 +72,26 @@ func _throw_speed() -> float:
 
 
 func _throw_velocity() -> Vector3:
+	return throw_velocity_at_speed(_throw_speed())
+
+
+func throw_velocity_at_speed(speed: float) -> Vector3:
 	var forward := -global_transform.basis.z
 	forward.y = 0.0
 	var direction := forward.normalized() * cos(THROW_ANGLE) + Vector3.UP * sin(THROW_ANGLE)
-	return direction * _throw_speed()
+	return direction * clampf(speed, 0.0, MAX_THROW_SPEED)
 
 
 func _throw_transform() -> Transform3D:
 	var launch_transform := held_pickup.global_transform
 	var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
 	var bounds := collider.global_transform * collider.shape.get_debug_mesh().get_aabb()
-	# Tall props must keep their entire collider above the floor at release.
 	var available_drop := maxf(bounds.position.y - global_position.y - 0.02, 0.0)
 	launch_transform.origin.y -= minf(THROW_HEIGHT_DROP, available_drop)
 	return launch_transform
 
 
-func _pickup_nearest() -> void:
+func pickup_nearest() -> void:
 	if held_pickup != null:
 		return
 	var nearest: RigidBody3D = null
@@ -85,59 +100,80 @@ func _pickup_nearest() -> void:
 		var pickup := node as RigidBody3D
 		if pickup == null or pickup.is_queued_for_deletion():
 			continue
-		# Objects on counters are reachable along the player's standing height.
 		var reach_position := global_position
 		reach_position.y = clampf(pickup.global_position.y, global_position.y, global_position.y + 1.8)
 		var distance_squared := reach_position.distance_squared_to(pickup.global_position)
 		if distance_squared <= nearest_distance_squared:
 			nearest = pickup
 			nearest_distance_squared = distance_squared
-	if nearest == null:
-		return
-	nearest.freeze = true
-	nearest.linear_velocity = Vector3.ZERO
-	nearest.angular_velocity = Vector3.ZERO
-	nearest.collision_layer = 0
-	nearest.collision_mask = 0
-	nearest.add_collision_exception_with(self)
-	nearest.remove_from_group(&"pickups")
-	nearest.reparent(_hand_socket)
-	nearest.transform = Transform3D.IDENTITY
-	nearest.position = nearest.get_meta(&"hold_offset", Vector3.ZERO)
-	held_pickup = nearest
+	if nearest != null:
+		hold_pickup(nearest)
+
+
+func hold_pickup(pickup: RigidBody3D) -> void:
+	pickup.freeze = true
+	pickup.linear_velocity = Vector3.ZERO
+	pickup.angular_velocity = Vector3.ZERO
+	pickup.collision_layer = 0
+	pickup.collision_mask = 0
+	for body in pickup.get_collision_exceptions():
+		pickup.remove_collision_exception_with(body)
+	pickup.add_collision_exception_with(self)
+	pickup.remove_from_group(&"pickups")
+	pickup.reparent(_hand_socket)
+	pickup.transform = Transform3D.IDENTITY
+	pickup.position = pickup.get_meta(&"hold_offset", Vector3.ZERO)
+	held_pickup = pickup
 	held_pickup_changed.emit(true)
 
 
-func _throw_held_pickup(launch_velocity: Vector3) -> void:
+func release_pickup(launch: bool, launch_velocity := Vector3.ZERO) -> void:
 	if held_pickup == null:
 		return
-	var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
-	var launch_transform := _throw_transform()
-	var query := PhysicsShapeQueryParameters3D.new()
-	query.shape = collider.shape
-	query.transform = launch_transform * collider.transform
-	query.collision_mask = 3
-	query.exclude = [get_rid(), held_pickup.get_rid()]
-	if not get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty():
-		throw_blocked.emit()
-		return
+	var launch_transform := held_pickup.global_transform
+	if launch:
+		launch_transform = _throw_transform()
+		var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
+		var query := PhysicsShapeQueryParameters3D.new()
+		query.shape = collider.shape
+		query.transform = launch_transform * collider.transform
+		query.collision_mask = 3
+		query.exclude = [get_rid(), held_pickup.get_rid()]
+		if not get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty():
+			throw_blocked.emit()
+			return
 	var pickup := held_pickup
 	held_pickup = null
+	_cancel_aim()
 	pickup.reparent(get_parent())
 	pickup.global_transform = launch_transform
 	pickup.collision_layer = 2
 	pickup.collision_mask = 3
-	pickup.freeze = false
-	pickup.sleeping = false
-	pickup.linear_velocity = launch_velocity
+	pickup.freeze = not launch
+	pickup.linear_velocity = launch_velocity if launch else Vector3.ZERO
 	pickup.angular_velocity = Vector3.ZERO
+	if launch:
+		pickup.sleeping = false
 	pickup.add_to_group(&"pickups")
 	held_pickup_changed.emit(false)
 
 
+static func read_movement() -> Vector2:
+	return Input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_backward")
+
+
 func _physics_process(delta: float) -> void:
-	var input := Input.get_vector(&"move_left", &"move_right", &"move_forward", &"move_backward")
-	# Keep movement independent of the character's changing heading.
+	if simulates_movement:
+		_move(read_movement() if reads_local_input else remote_input, delta)
+	if reads_local_input and _is_aiming and held_pickup != null and Input.is_action_pressed(&"throw"):
+		_aim_elapsed = fmod(_aim_elapsed + delta, THROW_CYCLE_SECONDS)
+		_trajectory.update_trajectory(self, held_pickup, _throw_velocity(), _throw_transform())
+		aim_changed.emit(true, _throw_speed())
+	elif _is_aiming:
+		_cancel_aim()
+
+
+func _move(input: Vector2, delta: float) -> void:
 	var direction := Vector3(input.x, 0.0, input.y)
 	var motion := direction * MOVE_SPEED
 	if not direction.is_zero_approx():
@@ -148,9 +184,3 @@ func _physics_process(delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	move_and_slide()
-	if _is_aiming and held_pickup != null and Input.is_action_pressed(&"throw"):
-		_aim_elapsed = fmod(_aim_elapsed + delta, THROW_CYCLE_SECONDS)
-		_trajectory.update_trajectory(self, held_pickup, _throw_velocity(), _throw_transform())
-		aim_changed.emit(true, _throw_speed())
-	else:
-		_cancel_aim()

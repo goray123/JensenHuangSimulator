@@ -8,7 +8,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var apartment := (load(ProjectSettings.get_setting("application/run/main_scene")) as PackedScene).instantiate()
+	var apartment := preload("res://courtyard.tscn").instantiate()
 	root.add_child(apartment)
 	var player := apartment.get_node("Player") as CharacterBody3D
 	var sphere := apartment.get_node("Pickup1") as RigidBody3D
