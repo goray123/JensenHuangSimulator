@@ -72,6 +72,9 @@ func _run() -> void:
 	_check(_guest.position.distance_to(GUEST_SPAWN) < 0.08, "Guest uses the second map spawn")
 	_check(_host.is_on_floor() and _guest.is_on_floor() if is_host else _guest.reads_local_input,
 		"Both players stand on the floor and the guest can control their character")
+	_check(_host.get_node("Head/PlayerPosPointer").visible == is_host
+		and _guest.get_node("Head/PlayerPosPointer").visible == not is_host,
+		"Each peer sees the pointer above their own player")
 	var timer := apartment.get_node("RoundTimer") as Timer
 	var clock := apartment.get_node("HUD/TimeLeft") as Label
 	var finish := apartment.get_node("HUD/RoundEnd") as ColorRect

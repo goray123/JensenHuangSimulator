@@ -38,22 +38,24 @@ func _ready() -> void:
 	role.text = "테스트 모드  ·  Esc 메뉴"
 	role.show()
 	_status.name = "TestStatus"
-	_add_label(_status, 64.0)
+	_add_label(_status, 14.0)
 	var help := Label.new()
 	help.text = "파란 대상에 물건을 던져 피격 확인\nF  내 캐릭터 피격 테스트\nG  쟁탈전 테스트 (E 연타)\nR  물건·피격 상태 초기화"
-	_add_label(help, 104.0)
+	_add_label(help, 40.0)
 	_update_status()
 
 
 func _add_label(label: Label, top: float) -> void:
-	label.anchor_left = 1.0
-	label.anchor_right = 1.0
-	label.offset_left = -440.0
-	label.offset_right = -24.0
+	label.anchor_left = 0.5
+	label.anchor_right = 0.5
+	label.offset_left = -160.0
+	label.offset_right = 160.0
 	label.offset_top = top
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override(&"font_size", 16)
+	label.add_theme_color_override(&"font_outline_color", Color(0.16, 0.052, 0.19, 0.9))
+	label.add_theme_constant_override(&"outline_size", 4)
 	_apartment.get_node("HUD").add_child(label)
 
 

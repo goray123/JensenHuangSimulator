@@ -26,10 +26,15 @@ func _run() -> void:
 	_check(get_nodes_in_group(&"pickups").size() == 21, "All spheres and apartment props remain available")
 	var start := player.global_position
 	var target_start := target.global_position
+	var pointer := player.get_node("Head/PlayerPosPointer") as Sprite3D
+	var pointer_start := pointer.global_position
 	_set_key(KEY_W, true)
 	await _wait_for_physics(18)
 	_set_key(KEY_W, false)
 	_check(player.global_position.z < start.z - 1.0 and target.global_position.distance_to(target_start) < 0.02, "WASD moves only the controllable player")
+	_check(pointer.visible and not target.get_node("Head/PlayerPosPointer").visible and pointer_start.y > start.y + 1.85
+		and (pointer.global_position - pointer_start).is_equal_approx(player.global_position - start),
+		"Only the controllable player has a pointer, and it follows their movement above their head")
 	await _tap(KEY_E)
 	_check(player.held_pickup != null, "Nearby test spheres can be picked up with E")
 	_set_key(KEY_T, true)

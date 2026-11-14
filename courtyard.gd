@@ -59,6 +59,7 @@ func _ready() -> void:
 		$HUD/LanRole.text = "내 캐릭터: 주황색   ·   Esc 나가기" if is_host else "내 캐릭터: 파란색   ·   Esc 나가기"
 		$HUD/LanRole.show()
 		$HUD/RoundEnd/Message.text += "\nEsc  로비로 돌아가기"
+	_local_player.get_node("Head/PlayerPosPointer").show()
 	_local_player.held_pickup_changed.connect(_update_pickup_status)
 	_local_player.throw_blocked.connect(_show_throw_blocked)
 	_local_player.aim_changed.connect(_update_aim_status)
