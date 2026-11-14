@@ -110,7 +110,7 @@ func _run() -> void:
 	_set_key(KEY_D, true)
 	await _wait_for_physics(3)
 	_set_key(KEY_D, false)
-	_check(is_equal_approx(player.velocity.x, player.MOVE_SPEED / pow(5.0, 1.5)), "Movement uses the total weight of the hand and bag")
+	_check(is_equal_approx(player.velocity.x, player.MOVE_SPEED / pow(1.0 + 0.03 * 5.0, 1.5)), "Movement uses the total weight of the hand and bag")
 	letter.arm(target)
 	letter._on_body_entered(player)
 	_check(player.is_stunned() and player.held_pickup == shampoo and wife_bag.get_child_count() == 3, "A letter hit stuns without rolling drops")
@@ -150,6 +150,18 @@ func _run() -> void:
 		and apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000000", "A new test round resets bags and gold")
 	_check(player.held_pickup == null and not player.is_stunned(), "Reset clears held objects and player state")
 	_check(get_nodes_in_group(&"pickups").size() == 21 and get_nodes_in_group(&"household_items").size() == 21, "Reset restores every prop without duplicates")
+	var dummy: CharacterBody3D = mode.target
+	var dummy_bag := apartment.get_node("HUD/HusbandBag/Items") as GridContainer
+	await _tap(KEY_F3)
+	_check(dummy.held_pickup != null and dummy_bag.get_child_count() == 2 and dummy.bag_weight > 0, "F3 gives the dummy one held and two bagged items")
+	await _tap(KEY_F3)
+	_check(dummy_bag.get_child_count() == 2, "F3 only tops the dummy up to three items")
+	var dumbbell: RigidBody3D = apartment.get_node("Items/Item_09_dumbbell")
+	dumbbell.arm(player)
+	dumbbell._on_body_entered(dummy)
+	await _wait_for_physics(2)
+	_check(dummy.held_pickup == null and dummy_bag.get_child_count() == 0 and dummy.bag_weight == 0, "A power-five hit drops all three of the dummy's items")
+	await _wait_for_physics(35)
 	timer = apartment.get_node("RoundTimer") as Timer
 	clock = apartment.get_node("HUD/TimeLeft") as Label
 	await _tap(KEY_G)

@@ -29,6 +29,8 @@ func _ready() -> void:
 	add_child(target)
 	_apartment._contest.register_opponent(target)
 	target.hit_received.connect(_on_target_hit)
+	# Index 1 gives the dummy the husband's bag, so hit drops can be tested offline.
+	_apartment._players.append(target)
 
 
 func _physics_process(delta: float) -> void:
@@ -60,12 +62,34 @@ func _start_contest_test() -> void:
 	_bot_tap_elapsed = 0.0
 
 
+## Tops the dummy up to one item in hand and two in its bag.
+func _load_target() -> void:
+	if _apartment._contest.active:
+		return
+	var practice_items := [_practice_item, _apartment.get_node("Items/Item_06_egg"), _apartment.get_node("Items/Item_12_ring")]
+	var owned := 1 if target.held_pickup != null else 0
+	owned += _apartment._bagged_items.values().count(1)
+	for pickup: RigidBody3D in _apartment._pickups:
+		if owned >= 3:
+			return
+		if not pickup.is_in_group(&"pickups") or pickup in practice_items:
+			continue
+		if target.held_pickup == null:
+			target.hold_pickup(pickup)
+		else:
+			_apartment._apply_bag_item(1, _apartment._pickups.find(pickup), _apartment._ownership_revision + 1)
+		owned += 1
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"test_hit"):
 		_player.receive_hit()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_G:
 		_start_contest_test()
+		get_viewport().set_input_as_handled()
+	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_F3:
+		_load_target()
 		get_viewport().set_input_as_handled()
 
 

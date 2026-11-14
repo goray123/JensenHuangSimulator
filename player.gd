@@ -419,7 +419,7 @@ func _physics_process(delta: float) -> void:
 func _move(input: Vector2, delta: float) -> void:
 	var direction := Vector3(input.x, 0.0, input.y)
 	var hand_weight: int = held_pickup.weight if held_pickup != null else 0
-	var motion := direction * (MOVE_SPEED / pow(maxi(bag_weight + hand_weight, 1), 1.5))
+	var motion := direction * (MOVE_SPEED / pow(1.0 + 0.03 * (bag_weight + hand_weight), 1.5))
 	if not direction.is_zero_approx():
 		var target_yaw := atan2(-direction.x, -direction.z)
 		rotation.y = rotate_toward(rotation.y, target_yaw, TURN_SPEED * delta)
