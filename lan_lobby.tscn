@@ -1,0 +1,108 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://lan_lobby.gd" id="1_lobby"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+content_margin_left = 30.0
+content_margin_top = 28.0
+content_margin_right = 30.0
+content_margin_bottom = 28.0
+bg_color = Color(0.13, 0.17, 0.2, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.26, 0.32, 0.36, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_left = 16
+corner_radius_bottom_right = 16
+
+[node name="LanLobby" type="Node"]
+script = ExtResource("1_lobby")
+
+[node name="Menu" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Backdrop" type="ColorRect" parent="Menu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.075, 0.105, 0.135, 1)
+
+[node name="Center" type="CenterContainer" parent="Menu"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="Menu/Center"]
+custom_minimum_size = Vector2(480, 0)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Content" type="VBoxContainer" parent="Menu/Center/Panel"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Title" type="Label" parent="Menu/Center/Panel/Content"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.84, 0.53, 1)
+theme_override_font_sizes/font_size = 32
+text = "젠슨 황 시뮬레이터"
+
+[node name="Status" type="Label" parent="Menu/Center/Panel/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.84, 0.88, 0.93, 1)
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 3
+
+[node name="Actions" type="HBoxContainer" parent="Menu/Center/Panel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Host" type="Button" parent="Menu/Center/Panel/Content/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "호스트"
+
+[node name="Join" type="Button" parent="Menu/Center/Panel/Content/Actions"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "참여"
+
+[node name="Start" type="Button" parent="Menu/Center/Panel/Content/Actions"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+disabled = true
+text = "게임 시작"
+
+[node name="BackHint" type="Label" parent="Menu/Center/Panel/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.72, 0.78, 0.83, 1)
+theme_override_font_sizes/font_size = 16
+text = "Esc  처음으로"

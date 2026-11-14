@@ -8,7 +8,7 @@ func _initialize() -> void:
 
 
 func _run() -> void:
-	var courtyard := (load(ProjectSettings.get_setting("application/run/main_scene")) as PackedScene).instantiate()
+	var courtyard := preload("res://courtyard.tscn").instantiate()
 	root.add_child(courtyard)
 	var player := courtyard.get_node("Player") as CharacterBody3D
 	var status := courtyard.get_node("HUD/PickupStatus") as Label
