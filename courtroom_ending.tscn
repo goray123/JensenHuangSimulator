@@ -48,10 +48,10 @@ omni_range = 15.0
 [node name="Stage" parent="View/World" instance=ExtResource("2_stage")]
 
 [node name="Wife" parent="View/World" instance=ExtResource("3_wife")]
-transform = Transform3D(1.23, 0, 0, 0, 1.23, 0, 0, 0, 1.23, -1.85, 1.105, 2)
+transform = Transform3D(1.23, 0, 0, 0, 1.23, 0, 0, 0, 1.23, -1.85, 1.105, 0)
 
 [node name="Husband" parent="View/World" instance=ExtResource("4_husband")]
-transform = Transform3D(1.28, 0, 0, 0, 1.28, 0, 0, 0, 1.28, 2, 1.105, 2)
+transform = Transform3D(1.28, 0, 0, 0, 1.28, 0, 0, 0, 1.28, 2, 1.105, 0)
 
 [node name="Camera3D" type="Camera3D" parent="View/World"]
 keep_aspect = 0
