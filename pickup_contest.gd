@@ -172,6 +172,7 @@ func _complete_round(winner_index: int) -> void:
 		player.set_contest_active(false)
 	_transfer_item(item_index, winner_index)
 	_players[1 - winner_index].apply_stun(LOSS_STUN_SECONDS)
+	_players[1 - winner_index].contest_lost.emit()
 	presentation.set_progress(progress)
 	presentation.finish_contest(winner_index)
 
