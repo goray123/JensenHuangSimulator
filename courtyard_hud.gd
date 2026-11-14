@@ -8,8 +8,8 @@ var _shown_gold := Vector2i.ZERO
 var _target_gold := Vector2i.ZERO
 var _gold_step_left := 0.0
 
-@onready var _bags: Array[GridContainer] = [$WifeBag/Items, $HusbandBag/Items]
-@onready var _gold: Array[Label] = [$WifeProfile/WifeWallet/Gold, $HusbandProfile/HusbandWallet/Gold]
+@onready var _bags: Array[GridContainer] = [$HusbandBag/Items, $WifeBag/Items]
+@onready var _gold: Array[Label] = [$HusbandProfile/HusbandWallet/Gold, $WifeProfile/WifeWallet/Gold]
 @onready var _logs: VBoxContainer = $AcquisitionLogs
 
 
@@ -34,7 +34,7 @@ func add_bag_item(player_index: int, pickup_index: int, pickup: RigidBody3D) -> 
 		_logs.remove_child(oldest)
 		oldest.queue_free()
 	var log := Label.new()
-	var player_name := "아내" if player_index == 0 else "남편"
+	var player_name := "남편" if player_index == 0 else "아내"
 	log.text = "%s님이 %s을(를) 획득했습니다!" % [player_name, pickup.get_meta(&"pickup_name", "구")]
 	log.custom_minimum_size.y = 46.0
 	log.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

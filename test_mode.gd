@@ -29,7 +29,7 @@ func _ready() -> void:
 	add_child(target)
 	_apartment._contest.register_opponent(target)
 	target.hit_received.connect(_on_target_hit)
-	# Index 1 gives the dummy the husband's bag, so hit drops can be tested offline.
+	# Index 1 gives the dummy the guest (wife) bag, so hit drops can be tested offline.
 	_apartment._players.append(target)
 
 

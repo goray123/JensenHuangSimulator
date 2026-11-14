@@ -108,6 +108,11 @@ func _run() -> void:
 	await _expect(func() -> bool: return finish.visible, "Timeout ends the round on both peers")
 	_check(clock.text == "00:00" and finish.get_node("Message").text.contains(TIME_LIMIT_MESSAGE)
 		and apartment.process_mode == Node.PROCESS_MODE_DISABLED, "The finished round displays zero and freezes play")
+	# The host's 20-gold banana stays bagged and the guest's TV was dropped, so both peers must agree.
+	var ending := apartment.get_node_or_null("Ending")
+	_check(ending != null and ending.outcome == preload("res://courtroom_ending.gd").Outcome.HUSBAND_WINS
+		and ending.get_node("Result").text.ends_with("아내 0 G   ·   남편 20 G") and ending.husband_animation.current_animation == &"celebrate_jump",
+		"Both peers show the host-decided husband win with the same bag totals")
 	if is_host:
 		await _expect(func() -> bool: return _lobby.get_node_or_null("Apartment") == null, "The host returns to the lobby when the guest leaves")
 		_check(start.disabled, "Leaving frees the guest slot and disables Start")
@@ -155,18 +160,18 @@ func _test_host(second: RigidBody3D) -> void:
 	await _test_hits_host(apartment)
 	await _expect(func() -> bool: return root.get_node("SmokeBarrier").tv_requested, "The guest is ready to test bagging")
 	_guest.hold_pickup(tv)
-	await _expect(func() -> bool: return apartment.get_node("HUD/HusbandBag/Items").get_child_count() == 1, "The host receives the guest's deposit")
+	await _expect(func() -> bool: return apartment.get_node("HUD/WifeBag/Items").get_child_count() == 1, "The host receives the guest's deposit")
 	_check(not tv.visible and not tv.is_in_group(&"pickups"), "A guest deposit removes the same object on the host")
 	_host.hold_pickup(second)
 	_mouse(MOUSE_BUTTON_RIGHT, true)
 	_mouse(MOUSE_BUTTON_RIGHT, false)
-	await _expect(func() -> bool: return apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000020", "The host's banana deposit awards 20 gold")
+	await _expect(func() -> bool: return apartment.get_node("HUD/HusbandProfile/HusbandWallet/Gold").text == "000020", "The host's banana deposit awards 20 gold")
 	await _expect(func() -> bool: return root.get_node("SmokeBarrier").deposit_verified, "The guest confirmed the deposit before the hit")
 	# Use a power-four projectile to prove the host rolls bag loss and relays it to the guest.
 	var pan: RigidBody3D = apartment.get_node("Items/Item_07_frying_pan")
 	pan.arm(_host)
 	pan._on_body_entered(_guest)
-	await _expect(func() -> bool: return tv.visible and apartment.get_node("HUD/HusbandProfile/HusbandWallet/Gold").text == "000000", "The host restores the dropped TV and deducts 900 gold")
+	await _expect(func() -> bool: return tv.visible and apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000000", "The host restores the dropped TV and deducts 900 gold")
 	await _expect(func() -> bool: return root.get_node("SmokeBarrier").drop_verified, "The guest confirmed the synchronized loss")
 
 
@@ -214,13 +219,13 @@ func _test_guest() -> void:
 	await _expect(func() -> bool: return _guest.held_pickup == tv, "Guest receives the TV again for the deposit check")
 	_mouse(MOUSE_BUTTON_RIGHT, true)
 	_mouse(MOUSE_BUTTON_RIGHT, false)
-	var guest_gold: Label = apartment.get_node("HUD/HusbandProfile/HusbandWallet/Gold")
+	var guest_gold: Label = apartment.get_node("HUD/WifeProfile/WifeWallet/Gold")
 	await _expect(func() -> bool: return guest_gold.text == "000900", "The guest's TV deposit awards 900 gold")
-	await _expect(func() -> bool: return apartment.get_node("HUD/WifeBag/Items").get_child_count() == 1, "The guest receives the host's deposit")
+	await _expect(func() -> bool: return apartment.get_node("HUD/HusbandBag/Items").get_child_count() == 1, "The guest receives the host's deposit")
 	_check(not tv.visible and not tv.is_in_group(&"pickups") and _guest.held_pickup == null, "Snapshots cannot bring a bagged object back to the guest's hand")
 	root.get_node("SmokeBarrier").confirm_deposit.rpc_id(1)
 	await _expect(func() -> bool: return tv.visible and guest_gold.text == "000000", "The guest sees the dropped TV and the gold deduction")
-	_check(_guest.bag_weight == 0 and apartment.get_node("HUD/HusbandBag/Items").get_child_count() == 0 and tv.is_in_group(&"pickups"),
+	_check(_guest.bag_weight == 0 and apartment.get_node("HUD/WifeBag/Items").get_child_count() == 0 and tv.is_in_group(&"pickups"),
 		"The drop restores selection and clears the guest's bag weight and icon")
 	root.get_node("SmokeBarrier").confirm_drop.rpc_id(1)
 

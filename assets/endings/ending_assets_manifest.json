@@ -1,0 +1,122 @@
+{
+  "source_blend": "Courtroom_Result_Motions.blend",
+  "source_sha256": "6ba95ec859f160cdf7271906a5631d52675c90e6b86518f7108005c6dda9403c",
+  "fps": 30,
+  "duration_seconds": 6,
+  "animations_loop": false,
+  "coordinate_conversion": "Blender (x,y,z) to Godot (x,z,-y)",
+  "stage_floor_y": 1.105,
+  "assets": {
+    "wife": {
+      "file": "wife_result_motions.glb",
+      "bytes": 20496204,
+      "sha256": "119061ee852c4f78b180aabc6f54f3ea374cbf70a24c8c2340ab1fc9a473512c",
+      "skins": 1,
+      "meshes": 35,
+      "animations": [
+        {
+          "name": "celebrate_jump",
+          "duration_seconds": 6,
+          "channels": 195
+        },
+        {
+          "name": "defeat_kneel",
+          "duration_seconds": 6,
+          "channels": 195
+        }
+      ],
+      "color_primitives": 1,
+      "position_primitives": 35
+    },
+    "husband": {
+      "file": "husband_result_motions.glb",
+      "bytes": 9946108,
+      "sha256": "5c0358bdfc1689ca3f99a187162efd9ca61d11b3ba2ceedce02c9fce3aa28c31",
+      "skins": 1,
+      "meshes": 57,
+      "animations": [
+        {
+          "name": "celebrate_jump",
+          "duration_seconds": 6,
+          "channels": 105
+        },
+        {
+          "name": "defeat_kneel",
+          "duration_seconds": 6,
+          "channels": 105
+        }
+      ],
+      "color_primitives": 1,
+      "position_primitives": 57
+    },
+    "stage": {
+      "file": "courtroom_stage.glb",
+      "bytes": 475452,
+      "sha256": "58f31b24c17743e4dfd9ff6b8d2f1da6e888cf1090970d59b2ebde36667fecc6",
+      "skins": 0,
+      "meshes": 369,
+      "animations": [],
+      "color_primitives": 0,
+      "position_primitives": 369
+    }
+  },
+  "placement": {
+    "wife": {
+      "position": [
+        -1.85,
+        1.105,
+        2.0
+      ],
+      "scale": [
+        1.23,
+        1.23,
+        1.23
+      ]
+    },
+    "husband": {
+      "position": [
+        2.0,
+        1.105,
+        2.0
+      ],
+      "scale": [
+        1.28,
+        1.28,
+        1.28
+      ]
+    }
+  },
+  "camera": {
+    "position": [
+      0,
+      6,
+      24
+    ],
+    "look_at": [
+      0,
+      1.77,
+      -1.8
+    ],
+    "horizontal_fov_degrees": 39.966213,
+    "reference_aspect": [
+      16,
+      9
+    ]
+  },
+  "outcomes": {
+    "wife_wins": {
+      "wife": "celebrate_jump",
+      "husband": "defeat_kneel"
+    },
+    "husband_wins": {
+      "wife": "defeat_kneel",
+      "husband": "celebrate_jump"
+    }
+  },
+  "notes": [
+    "Original skin weights and bone proportions retained. Root actor placement is static.",
+    "One-shot outcomes end in a held pose; do not loop the defeat motion.",
+    "Standalone skeleton actions, no video or image-card animation."
+  ],
+  "validation": "GLB v2 parsed, original source unchanged, 2 exact 6-second clips and skin/color attributes per actor."
+}
