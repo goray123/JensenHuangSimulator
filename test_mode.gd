@@ -3,7 +3,7 @@ extends Node3D
 const SFX := preload("res://sfx.gd")
 
 const PLAYER_SCENE := preload("res://player.tscn")
-const TARGET_MODEL := preload("res://assets/characters/motions/01_Elder.glb")
+const TARGET_MODEL := preload("res://assets/characters/motions/02_Woman.glb")
 const PRACTICE_SPAWN := Vector3(6.6, 0.065, -0.9)
 
 var target: CharacterBody3D

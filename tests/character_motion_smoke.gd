@@ -1,7 +1,7 @@
 extends SceneTree
 
 # Character motion state machine, socket and tug checks on the real GLB clips.
-const ELDER := preload("res://assets/characters/motions/01_Elder.glb")
+const YOUNG := preload("res://assets/characters/motions/03_Young.glb")
 const MOTIONS := ["Idle", "Run", "Grab", "Pickup", "Carry", "RunCarry", "Aim", "Throw", "Tug_Fast", "Tug_Slow"]
 
 var failed := false
@@ -20,7 +20,7 @@ func _run() -> void:
 	var opponent := preload("res://player.tscn").instantiate() as CharacterBody3D
 	opponent.name = "MotionOpponent"
 	opponent.reads_local_input = false
-	opponent.model_scene = ELDER
+	opponent.model_scene = YOUNG
 	apartment.add_child(opponent)
 	player.add_collision_exception_with(opponent)
 	opponent.add_collision_exception_with(player)
@@ -35,7 +35,7 @@ func _run() -> void:
 			pickup.remove_from_group(&"pickups")
 	var anim := player.get_node("Model").find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 	var opponent_anim := opponent.get_node("Model").find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
-	_check(player.motion_asset() == "03_Young" and opponent.motion_asset() == "01_Elder", "Players load the new motion GLBs")
+	_check(player.motion_asset() == "01_Elder" and opponent.motion_asset() == "03_Young", "Players load the new motion GLBs")
 	_check_vertex_colors(player)
 
 	# Idle is the default for a still player; Run scales from the 0.9 m/s source stride.
@@ -105,9 +105,9 @@ func _run() -> void:
 	# Aim winds up briskly with the item in the real throwing hand, then holds the ready pose,
 	# which is the authored release contact. The predicted origin never depends on windup time.
 	var trajectory := player.get_node("ThrowTrajectory") as MeshInstance3D
-	var aim_length := anim.get_animation("03_Young__Aim").length
+	var aim_length := anim.get_animation("01_Elder__Aim").length
 	var ready_frames := ceili(aim_length / player.AIM_PLAYBACK * Engine.physics_ticks_per_second) + 4
-	var anchor: Array = player.MOTION_MANIFEST.data.assets["03_Young"].release_anchor_model_local
+	var anchor: Array = player.MOTION_MANIFEST.data.assets["01_Elder"].release_anchor_model_local
 	_mouse(true)
 	await _wait_for_physics(8)
 	_check(player.motion == &"Aim" and is_equal_approx(anim.speed_scale, player.AIM_PLAYBACK), "Aiming plays the brisk Aim windup")
@@ -199,9 +199,9 @@ func _run() -> void:
 	await _wait_for_physics(30)
 	var phase: float = presentation.tug_phase
 	_check(absf(anim.current_animation_position - phase * 4.0) < 0.05, "Side 0 plays the shared phase")
-	# The Elder clip is authored for side 0, so on side 1 it runs half a cycle later.
+	# The Young clip is authored for side 0, so on side 1 it runs half a cycle later.
 	_check(absf(opponent_anim.current_animation_position - fposmod(phase + 0.5, 1.0) * 4.0) < 0.05, "Side 1 plays the same phase mirrored")
-	var path: Array = player.MOTION_MANIFEST.data.assets["03_Young"].tug_controller_paths.Slow
+	var path: Array = player.MOTION_MANIFEST.data.assets["01_Elder"].tug_controller_paths.Slow
 	_check(sphere.global_position.y > ground_y + 0.3 and absf(sphere.global_position.y - (ground_y + float(path[0].position_godot[1]) * player.MODEL_SCALE)) < 0.02, "The real object rides at the shared controller height")
 	var before_press: float = presentation.tug_phase
 	contest.request_interaction(opponent)
