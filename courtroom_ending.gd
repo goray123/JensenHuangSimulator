@@ -29,7 +29,7 @@ func _ready() -> void:
 	# Manifest camera: horizontal FOV, kept when the window aspect changes.
 	$View/World/Camera3D.look_at_from_position(Vector3(0, 6, 24), Vector3(0, 1.77, -1.8))
 	for actor: Node in [$View/World/Wife, $View/World/Husband]:
-		_use_vertex_colors(actor)
+		use_vertex_colors(actor)
 	if get_tree().current_scene == self:
 		play(preview_outcome)
 	else:
@@ -70,7 +70,7 @@ func _hold_start(player: AnimationPlayer) -> void:
 
 ## Preserve linear glTF face paint in both Compatibility and linear rendering backends.
 ## Only per-instance materials change; imported materials and shared meshes stay untouched.
-func _use_vertex_colors(actor: Node) -> void:
+static func use_vertex_colors(actor: Node) -> void:
 	for mesh_instance: MeshInstance3D in actor.find_children("*", "MeshInstance3D", true, false):
 		var mesh := mesh_instance.mesh as ArrayMesh
 		if mesh == null:

@@ -1,0 +1,77 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://ui/title_art.gd" id="1_script"]
+[ext_resource type="PackedScene" path="res://assets/characters/motions/dance/02_Woman_Dance.glb" id="2_wife"]
+[ext_resource type="PackedScene" path="res://assets/characters/motions/dance/01_Elder_Dance.glb" id="3_husband"]
+[ext_resource type="Texture2D" path="res://assets/Sprites/TitleScene/TitleLogo.png" id="4_logo"]
+
+[sub_resource type="Environment" id="Environment_title"]
+background_mode = 1
+ambient_light_source = 2
+ambient_light_color = Color(1, 0.95, 0.88, 1)
+ambient_light_energy = 0.6
+
+[node name="TitleArt" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_script")
+
+[node name="Dancers" type="SubViewportContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+stretch = true
+
+[node name="World" type="SubViewport" parent="Dancers"]
+own_world_3d = true
+transparent_bg = true
+handle_input_locally = false
+size = Vector2i(1280, 720)
+msaa_3d = 2
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="Dancers/World"]
+environment = SubResource("Environment_title")
+
+[node name="Sun" type="DirectionalLight3D" parent="Dancers/World"]
+transform = Transform3D(0.866025, 0.383022, -0.321394, 0, 0.642788, 0.766044, 0.5, -0.663414, 0.55667, 0, 8, 6)
+light_energy = 0.75
+
+[node name="Fill" type="OmniLight3D" parent="Dancers/World"]
+position = Vector3(0, 3, 6)
+light_energy = 2.0
+omni_range = 15.0
+
+[node name="Wife" parent="Dancers/World" instance=ExtResource("2_wife")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2, 0, 0)
+
+[node name="Husband" parent="Dancers/World" instance=ExtResource("3_husband")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 2.15, 0, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Dancers/World"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.54, 20)
+projection = 1
+current = true
+size = 3.75
+
+[node name="Logo" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.28
+anchor_top = 0.12
+anchor_right = 0.72
+anchor_bottom = 0.38
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+texture = ExtResource("4_logo")
+expand_mode = 1
+stretch_mode = 5
