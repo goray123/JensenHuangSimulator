@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="Script" path="res://apartment_furnishings.gd" id="pickup_setup"]
 [ext_resource type="PackedScene" path="res://assets/apartment/kaykit/couch_pillows.gltf" id="sofa"]
 [ext_resource type="PackedScene" path="res://assets/apartment/kaykit/table_low.gltf" id="coffee_table"]
 [ext_resource type="PackedScene" path="res://assets/apartment/kaykit/cabinet_medium.gltf" id="tv_stand"]
@@ -138,6 +139,7 @@ size = Vector3(0.8307, 0.9635, 0.8307)
 size = Vector3(1.808, 1.8723, 0.55)
 
 [node name="Furnishings" type="Node3D"]
+script = ExtResource("pickup_setup")
 
 [node name="Kitchen" type="Node3D" parent="."]
 
@@ -222,45 +224,45 @@ scale = Vector3(0.75, 0.76, 0.75)
 position = Vector3(0, 0.47804, 0)
 shape = SubResource("BoxShape3D_DiningChairRight")
 
-[node name="CuttingBoard" parent="Kitchen" instance=ExtResource("board")]
+[node name="CuttingBoard" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("board")]
 position = Vector3(-7.45, 0.91, -5.36)
 rotation = Vector3(0, 1.5708, 0)
 scale = Vector3(0.91, 1, 0.86)
 
-[node name="Cabbage" parent="Kitchen" instance=ExtResource("cabbage")]
+[node name="Cabbage" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("cabbage")]
 position = Vector3(-7.52, 0.968, -5.36)
 rotation = Vector3(0, -0.20944, 0)
 scale = Vector3(1.02, 1.02, 1.02)
 
-[node name="Carrot" parent="Kitchen" instance=ExtResource("carrot")]
+[node name="Carrot" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("carrot")]
 position = Vector3(-7.18, 1.016, -5.31)
 rotation = Vector3(0, -0.43633, 1.5708)
 scale = Vector3(0.54, 0.54, 0.54)
 
-[node name="StewPan" parent="Kitchen" instance=ExtResource("pan")]
+[node name="StewPan" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("pan")]
 position = Vector3(-6.37, 0.917, -5.45)
 rotation = Vector3(0, -0.43633, 0)
 scale = Vector3(0.8, 0.84, 0.75)
 
-[node name="FruitPlate" parent="Kitchen" instance=ExtResource("plate")]
+[node name="FruitPlate" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("plate")]
 position = Vector3(-3.54, 0.792, -4.61)
 scale = Vector3(0.81, 0.64, 0.81)
 
-[node name="Banana" parent="Kitchen" instance=ExtResource("banana")]
+[node name="Banana" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("banana")]
 position = Vector3(-3.55, 0.851, -4.62)
 rotation = Vector3(0, 1.0472, 0)
 scale = Vector3(0.83, 0.83, 0.83)
 
-[node name="SecondBanana" parent="Kitchen" instance=ExtResource("banana")]
+[node name="SecondBanana" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("banana")]
 position = Vector3(-3.44, 0.88, -4.6)
 rotation = Vector3(0, 1.29154, 0)
 scale = Vector3(0.72, 0.72, 0.72)
 
-[node name="PreserveJar" parent="Kitchen" instance=ExtResource("jar")]
+[node name="PreserveJar" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("jar")]
 position = Vector3(-3, 0.792, -4.89)
 scale = Vector3(3.05, 3.05, 3.05)
 
-[node name="DiningCoffee" parent="Kitchen" instance=ExtResource("coffee")]
+[node name="DiningCoffee" parent="Kitchen" groups=["throwable_props"] instance=ExtResource("coffee")]
 position = Vector3(-3, 0.792, -4.43)
 rotation = Vector3(0, 0.41888, 0)
 scale = Vector3(1.25, 1.25, 1.25)
@@ -311,17 +313,17 @@ scale = Vector3(1.31, 0.27, 2)
 position = Vector3(-9.55, 0, 3.38)
 scale = Vector3(0.81, 0.81, 0.81)
 
-[node name="Television" parent="LivingRoom" instance=ExtResource("tv")]
+[node name="Television" parent="LivingRoom" groups=["throwable_props"] instance=ExtResource("tv")]
 position = Vector3(-5.19, 0.572, 1.36)
 rotation = Vector3(0, -1.5708, 0)
 scale = Vector3(1.55, 1.45, 1.55)
 
-[node name="CoffeeMug" parent="LivingRoom" instance=ExtResource("mug")]
+[node name="CoffeeMug" parent="LivingRoom" groups=["throwable_props"] instance=ExtResource("mug")]
 position = Vector3(-6.65476, 0.542, 1.68993)
 rotation = Vector3(0, 0.41888, 0)
 scale = Vector3(0.7, 0.7, 0.7)
 
-[node name="CoffeeTableBooks" parent="LivingRoom" instance=ExtResource("books")]
+[node name="CoffeeTableBooks" parent="LivingRoom" groups=["throwable_props"] instance=ExtResource("books")]
 position = Vector3(-6.62474, 0.6055, 1.10933)
 rotation = Vector3(0, 1.43117, 0)
 scale = Vector3(0.73, 0.25, 0.87)
@@ -362,7 +364,7 @@ shape = SubResource("BoxShape3D_BedsideCabinet")
 position = Vector3(2.61, 0.006, -4.47)
 scale = Vector3(1.12, 0.22, 1.65)
 
-[node name="BedsideLamp" parent="MainBedroom" instance=ExtResource("table_lamp")]
+[node name="BedsideLamp" parent="MainBedroom" groups=["throwable_props"] instance=ExtResource("table_lamp")]
 position = Vector3(4.43, 0.6629, -5.36)
 scale = Vector3(0.49, 0.53, 0.49)
 
@@ -423,17 +425,17 @@ position = Vector3(8.41, 0.006, 3)
 rotation = Vector3(0, 1.5708, 0)
 scale = Vector3(0.97, 0.22, 1.25)
 
-[node name="Laptop" parent="SecondBedroom" instance=ExtResource("laptop")]
+[node name="Laptop" parent="SecondBedroom" groups=["throwable_props"] instance=ExtResource("laptop")]
 position = Vector3(4.4, 0.908, 4.15)
 rotation = Vector3(0, 3.14159, 0)
 scale = Vector3(2.4, 2.35, 2.35)
 
-[node name="DeskMug" parent="SecondBedroom" instance=ExtResource("mug")]
+[node name="DeskMug" parent="SecondBedroom" groups=["throwable_props"] instance=ExtResource("mug")]
 position = Vector3(4.95139, 0.908, 4.04745)
 rotation = Vector3(0, -0.31416, 0)
 scale = Vector3(0.58, 0.58, 0.58)
 
-[node name="NightstandLamp" parent="SecondBedroom" instance=ExtResource("table_lamp")]
+[node name="NightstandLamp" parent="SecondBedroom" groups=["throwable_props"] instance=ExtResource("table_lamp")]
 position = Vector3(8.02, 0.61287, 4.24)
 scale = Vector3(0.5, 0.51, 0.5)
 
@@ -482,7 +484,7 @@ shape = SubResource("BoxShape3D_Bathtub")
 position = Vector3(8.55, 0.012, -3.73)
 scale = Vector3(0.39, 0.23, 0.34)
 
-[node name="Plunger" parent="Bathroom" instance=ExtResource("plunger")]
+[node name="Plunger" parent="Bathroom" groups=["throwable_props"] instance=ExtResource("plunger")]
 position = Vector3(6.87, 0.30768, -4.35)
 rotation = Vector3(0, -0.31416, 0)
 scale = Vector3(0.48, 0.48, 0.48)
@@ -514,7 +516,7 @@ scale = Vector3(2.26, 2.37, 2.2)
 position = Vector3(0, 0.93615, 0)
 shape = SubResource("BoxShape3D_Wardrobe")
 
-[node name="MopAndBucket" parent="DressingRoom" instance=ExtResource("mop")]
+[node name="MopAndBucket" parent="DressingRoom" groups=["throwable_props"] instance=ExtResource("mop")]
 position = Vector3(9.75509, -0.01316, -0.82357)
 rotation = Vector3(0, 3.14159, 0)
 scale = Vector3(0.47, 0.47, 0.47)

@@ -185,7 +185,7 @@ offset_top = -60.0
 offset_bottom = -22.0
 theme_override_colors/font_color = Color(0.83, 0.87, 0.92, 1)
 theme_override_font_sizes/font_size = 18
-text = "W A S D  이동 + 방향 전환     E  구 줍기     T 누르기: 궤적 / 떼기: 던지기"
+text = "W A S D  이동 + 방향 전환     E  물건 들기     T 유지: 속도 0~10 반복 / 떼기: 던지기"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -198,3 +198,14 @@ mouse_filter = 2
 theme_override_colors/font_color = Color(1, 0.84, 0.3, 1)
 theme_override_font_sizes/font_size = 20
 text = "손: 비어 있음"
+
+[node name="ThrowPower" type="ProgressBar" parent="HUD"]
+visible = false
+offset_left = 24.0
+offset_top = 60.0
+offset_right = 264.0
+offset_bottom = 76.0
+mouse_filter = 2
+max_value = 10.0
+step = 0.001
+show_percentage = false
