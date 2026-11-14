@@ -16,9 +16,11 @@ func _run() -> void:
 	var power := courtyard.get_node("HUD/ThrowPower") as ProgressBar
 	var holding_changes: Array[bool] = []
 	player.held_pickup_changed.connect(func(is_holding: bool) -> void: holding_changes.append(is_holding))
+	var total_bodies := courtyard.find_children("*", "RigidBody3D", true, false).size()
 	await _wait_for_physics(15)
 	var ground_y := player.global_position.y
 	var total_pickups := get_nodes_in_group(&"pickups").size()
+	_check(total_pickups == 21, "The three spheres and 18 props remain pickup targets")
 	var pickups: Array[Node] = [courtyard.get_node("Pickup1"), courtyard.get_node("Pickup2"), courtyard.get_node("Pickup3")]
 	# The prop smoke test covers furniture selection separately.
 	for prop in get_nodes_in_group(&"apartment_props"):
@@ -122,7 +124,7 @@ func _run() -> void:
 	await _wait_for_physics(120)
 	_check(not impacts.is_empty() and impacts[0].distance_to(expected_impact) < 0.35, "The preview ends at the first actual collision")
 	_check(absf(first.global_position.y - pickup_y) < 0.07, "The thrown sphere lands on the floor")
-	_check(courtyard.find_children("*", "RigidBody3D", true, false).size() == total_pickups, "Throwing and key repeat preserve all objects")
+	_check(courtyard.find_children("*", "RigidBody3D", true, false).size() == total_bodies, "Throwing and key repeat preserve all objects")
 	player.global_position = Vector3(first.global_position.x, ground_y, first.global_position.z + 0.7)
 	await _hold_left(64)
 	_check(player.held_pickup == first and first.freeze, "A thrown sphere can be picked up again")
@@ -163,7 +165,7 @@ func _run() -> void:
 	third.global_position = Vector3(7.4, pickup_y, -2.2)
 	await _hold_left(64)
 	_check(player.held_pickup == second and third.is_in_group(&"pickups"), "Empty hands pick only the nearest eligible sphere")
-	_check(courtyard.find_children("*", "RigidBody3D", true, false).size() == total_pickups, "Repeated pickup and throw cycles never duplicate or delete objects")
+	_check(courtyard.find_children("*", "RigidBody3D", true, false).size() == total_bodies, "Repeated pickup and throw cycles never duplicate or delete objects")
 
 	_mouse(true)
 	await _wait_for_physics(2)

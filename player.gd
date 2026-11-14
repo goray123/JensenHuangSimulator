@@ -12,6 +12,7 @@ signal contest_lost
 ## Emitted by apply_status_effect(); no status-effect gameplay exists yet.
 signal status_effect_applied(effect: StringName, seconds: float)
 signal shared_sfx_requested(sound: StringName)
+signal banana_peel_stepped
 
 const SFX := preload("res://sfx.gd")
 
@@ -25,6 +26,9 @@ const THROW_HEIGHT_DROP := 0.15
 const HIT_FLASH_DURATION := 0.2
 const HIT_STUN_DURATION := 0.5
 const HIT_FLASH_INTERVAL := 0.05
+const PEEL_STUN_DURATION := 2.0
+const PUSH_MASS := 60.0
+const PUSH_RESPONSE := 5.0
 const DEFAULT_MODEL := preload("res://assets/characters/thump/03_Young.glb")
 const MODEL_SCALE := 0.45
 # The in-place Run clip covers ~0.46 m/s at the GLB's own scale (rig-report.json).
@@ -72,6 +76,7 @@ var _step_ray := PhysicsRayQueryParameters3D.new()
 
 
 func _ready() -> void:
+	collision_mask |= 2
 	_hit_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_hit_material.albedo_color = Color(1, 0.04, 0.04)
 	var model := _setup_model()
@@ -160,6 +165,11 @@ func apply_stun(duration: float) -> void:
 func apply_status_effect(effect: StringName, seconds: float) -> void:
 	if is_finite(seconds) and seconds > 0.0:
 		status_effect_applied.emit(effect, seconds)
+
+
+func receive_banana_peel() -> void:
+	apply_stun(PEEL_STUN_DURATION)
+	banana_peel_stepped.emit()
 
 
 func set_contest_active(value: bool) -> void:
@@ -334,6 +344,8 @@ func _exit_tree() -> void:
 
 
 func hold_pickup(pickup: RigidBody3D) -> void:
+	if pickup.is_banana_peel:
+		return
 	pickup.set_pickup_highlighted(false)
 	_set_highlighted_pickup(null)
 	if pickup.has_method(&"disarm"):
@@ -383,11 +395,11 @@ func release_pickup(launch: bool, launch_velocity := Vector3.ZERO) -> void:
 	pickup.global_transform = launch_transform
 	pickup.collision_layer = 2
 	pickup.collision_mask = 3
-	pickup.freeze = not launch
+	pickup.freeze = not multiplayer.is_server()
 	pickup.linear_velocity = launch_velocity if launch else Vector3.ZERO
 	pickup.angular_velocity = Vector3.ZERO
+	pickup.sleeping = false
 	if launch:
-		pickup.sleeping = false
 		if pickup.has_method(&"arm"):
 			pickup.arm(self)
 	pickup.add_to_group(&"pickups")
@@ -440,6 +452,29 @@ func _move(input: Vector2, delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	move_and_slide()
+	if not direction.is_zero_approx():
+		_push_colliding_bodies(motion, delta)
+
+
+func _push_colliding_bodies(motion: Vector3, delta: float) -> void:
+	for index in get_slide_collision_count():
+		var collision := get_slide_collision(index)
+		var body := collision.get_collider() as RigidBody3D
+		if body == null or body.freeze:
+			continue
+		var push := -collision.get_normal()
+		push.y = 0.0
+		if push.is_zero_approx():
+			continue
+		push = push.normalized()
+		var closing_speed := maxf((motion - body.linear_velocity).dot(push), 0.0)
+		if closing_speed <= 0.0:
+			continue
+		# Contact height provides torque, so narrow furniture can also tip over.
+		var effective_mass := PUSH_MASS * body.mass / (PUSH_MASS + body.mass)
+		var impulse := push * closing_speed * effective_mass * PUSH_RESPONSE * delta
+		body.sleeping = false
+		body.apply_impulse(impulse, collision.get_position() - body.global_position)
 
 
 func _shared_sound(sound: StringName) -> void:

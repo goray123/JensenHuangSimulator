@@ -10,6 +10,9 @@ func _initialize() -> void:
 func _run() -> void:
 	var apartment := preload("res://tests/courtyard_fixture.tscn").instantiate()
 	root.add_child(apartment)
+	# Test the projectile reaction in a clear lane, without unrelated moving props.
+	for index in apartment._physics_bodies.size():
+		_park_item(apartment._physics_bodies[index], index)
 	var thrower := apartment.get_node("Player") as CharacterBody3D
 	var victim := preload("res://player.tscn").instantiate() as CharacterBody3D
 	victim.name = "HitTarget"
@@ -30,6 +33,9 @@ func _run() -> void:
 	_check(victim.is_stunned(), "An impact immediately stuns the victim")
 	_check(torso.material_overlay != original_overlay and torso.material_overlay.albedo_color.r > 0.9, "An impact immediately turns the victim red")
 	_check(not thrower.is_stunned(), "The thrower is not hit by their own projectile")
+	# Remove the physical projectile after its real impact so depenetration does
+	# not interfere with the separate checks for input being locked during stun.
+	_park_item(sphere)
 	var hit_position := victim.global_position
 	victim.remote_input = Vector2.RIGHT
 	var saw_red := false
@@ -51,9 +57,11 @@ func _run() -> void:
 	victim.remote_input = Vector2.ZERO
 	_launch(thrower, victim, tv, ground_y)
 	await _expect(func() -> bool: return hit_positions.size() == 2, "A thrown TV also causes a hit")
+	_park_item(tv)
 	await _wait_for_physics(3)
 	_launch(thrower, victim, sphere, ground_y)
 	await _expect(func() -> bool: return hit_positions.size() == 3, "Picking up and throwing a sphere again can cause another hit")
+	_park_item(sphere)
 	await _wait_for_physics(20)
 	_check(victim.is_stunned(), "A new impact restarts the 0.5-second stun")
 	await _wait_for_physics(14)
@@ -62,6 +70,8 @@ func _run() -> void:
 	# A dropped, unarmed object must not act like a thrown projectile.
 	var harmless := apartment.get_node("Pickup2") as RigidBody3D
 	harmless.freeze = false
+	harmless.collision_layer = 2
+	harmless.collision_mask = 3
 	harmless.global_position = victim.global_position + Vector3(0, 1.0, 1.5)
 	harmless.linear_velocity = Vector3.FORWARD * 8.0
 	await _wait_for_physics(30)
@@ -74,10 +84,20 @@ func _run() -> void:
 func _launch(thrower: CharacterBody3D, victim: CharacterBody3D, item: RigidBody3D, ground_y: float) -> void:
 	thrower.global_position = Vector3(6.5, ground_y, -1.25)
 	thrower.rotation.y = 0
+	victim.remote_input = Vector2.ZERO
 	victim.global_position = Vector3(6.5, ground_y, -3.05)
 	thrower.hold_pickup(item)
 	thrower.release_pickup(true, thrower.throw_velocity_at_speed(8.0))
 	_check(thrower.held_pickup == null, "The projectile launches before testing impact")
+
+
+func _park_item(item: RigidBody3D, index := 0) -> void:
+	item.freeze = true
+	item.linear_velocity = Vector3.ZERO
+	item.angular_velocity = Vector3.ZERO
+	item.collision_layer = 0
+	item.collision_mask = 0
+	item.global_position = Vector3(40.0 + index * 2.0, 4.0, -20.0)
 
 
 func _expect(condition: Callable, message: String) -> void:

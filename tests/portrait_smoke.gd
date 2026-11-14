@@ -56,9 +56,10 @@ func _test_priorities() -> void:
 
 func _test_offline_events() -> void:
 	var lobby := preload("res://lan_lobby.tscn").instantiate()
+	lobby.play_intro = false
 	root.add_child(lobby)
 	await _wait_for_physics(2)
-	lobby.get_node("%TestMode").pressed.emit()
+	await _tap(KEY_F2)
 	await _wait_for_physics(15)
 	var apartment := lobby.get_node("Apartment")
 	var hud := apartment.get_node("HUD")

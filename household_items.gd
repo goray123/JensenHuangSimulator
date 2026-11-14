@@ -1,6 +1,7 @@
 extends Node3D
 
 const THROWABLE := preload("res://throwable.gd")
+const PHYSICS_MASS := preload("res://physics_mass.gd")
 const ITEM_DIR := "res://assets/items/"
 # Item list: weight, attack power, gold value, bag icon.
 const GAMEPLAY := {
@@ -87,7 +88,7 @@ func _ready() -> void:
 
 
 func _open_wardrobe() -> void:
-	# Shows the clothes stored inside; the wardrobe's collision box is unchanged.
+	# RoomPhysics uses the visible panels to keep the clothes inside accessible.
 	var wardrobe := get_node(WARDROBE) as Node3D
 	for part: String in WARDROBE_SOLID_PARTS:
 		(wardrobe.get_node(part) as Node3D).hide()
@@ -124,7 +125,7 @@ func _spawn(item_id: String, at: Vector3, yaw_degrees: float, item_scale: float)
 	if item is RigidBody3D:
 		_make_pickup(item as RigidBody3D, collision)
 	else:
-		# Floor hazards only detect players (layer 1); their effects are not implemented yet.
+		# Floor hazards only detect players (layer 1).
 		(item as Area3D).collision_mask = 1
 	add_child(item)
 
@@ -140,11 +141,13 @@ func _make_pickup(item: RigidBody3D, collision: CollisionShape3D) -> void:
 	collision.name = "CollisionShape3D"
 	item.collision_layer = 2
 	item.collision_mask = 3
-	item.freeze = true
+	item.freeze = not multiplayer.is_server()
 	item.linear_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
 	item.linear_damp = 0.0
 	item.angular_damp = 1.0
 	var bounds := collision.transform * collision.shape.get_debug_mesh().get_aabb()
+	item.mass = PHYSICS_MASS.from_bounds(bounds)
+	item.set_meta(&"physics_volume", bounds.get_volume())
 	var size := bounds.size
 	# Item origins are at the bottom, so centre the body in the hand like apartment props.
 	item.set_meta(&"hold_offset", Vector3(0, maxf(size.y * 0.5 - 0.65, 0), -size.z * 0.5 - 0.12) - bounds.get_center())
