@@ -120,10 +120,24 @@ func _test_host() -> void:
 	if not await _expect(func() -> bool: return _contest.active and _contest.round_id == first_round + 2, "The guest can start a third contest after recovering"):
 		return
 	await _wait_frames(28)
-	_check(_camera.size < _camera_size, "The third round is zoomed in before time runs out")
+	_check(_camera.size < _camera_size, "The third round closes in while the timer is paused")
+	var round_timer := _apartment.get_node("RoundTimer") as Timer
+	round_timer.start(1.0)
+	await _wait_frames(8)
+	var frozen_time := round_timer.time_left
+	var frozen_text: String = _apartment.get_node("HUD/TimeLeft").text
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 6)
-	_apartment.get_node("RoundTimer").start(1.0)
-	if not await _expect(func() -> bool: return _apartment.get_node("HUD/RoundEnd").visible, "The host's timer ends play during a contest"):
+	await create_timer(1.2).timeout
+	_check(_contest.active and not _apartment.get_node("HUD/RoundEnd").visible, "A contest stays playable beyond the remaining round time")
+	_check(round_timer.paused and is_equal_approx(round_timer.time_left, frozen_time), "The host preserves the exact remaining time throughout the contest")
+	_check(_apartment.get_node("HUD/TimeLeft").text == frozen_text, "The host's visible countdown stays frozen")
+	_barrier.advance.rpc_id(_apartment.guest_peer_id, 7)
+	if not await _expect(func() -> bool: return _barrier.guest_stage >= 7, "The guest checks the frozen countdown before resolving the contest"):
+		return
+	for _press in 20:
+		await _tap(KEY_E)
+	_check(not _contest.active and _host.held_pickup == _pickup and not round_timer.paused, "Winning resumes the host timer and preserves the winner's item")
+	if not await _expect(func() -> bool: return _apartment.get_node("HUD/RoundEnd").visible, "The host's resumed timer ends play after the contest"):
 		return
 	_verify_timeout()
 	var camera_reference: WeakRef = weakref(_camera)
@@ -174,10 +188,19 @@ func _test_guest() -> void:
 	await _tap(KEY_E)
 	if not await _expect(func() -> bool: return _contest.active and _contest.round_id == first_round + 2, "The recovered guest can challenge again"):
 		return
-	if not await _expect(func() -> bool: return _barrier.stage >= 6, "Both peers see the third closeup before time runs out"):
+	if not await _expect(func() -> bool: return _barrier.stage >= 6, "Both peers see the third closeup with a paused countdown"):
 		return
 	_check(_camera.size < _camera_size and _contest.presentation.gauge.is_visible_in_tree(), "The guest sees the closeup and gauge")
-	if not await _expect(func() -> bool: return _apartment.get_node("HUD/RoundEnd").visible, "Timeout reaches the guest during a contest"):
+	await _wait_frames(8)
+	var frozen_text: String = _apartment.get_node("HUD/TimeLeft").text
+	if not await _expect(func() -> bool: return _barrier.stage >= 7, "The host waits beyond the remaining round time before resolving the contest"):
+		return
+	_check(_contest.active and not _apartment.get_node("HUD/RoundEnd").visible, "The guest's contest remains playable beyond the remaining round time")
+	_check(_apartment.get_node("RoundTimer").paused and _apartment.get_node("HUD/TimeLeft").text == frozen_text, "The guest's visible countdown stays frozen throughout the contest")
+	_barrier.acknowledge.rpc_id(1, 7)
+	if not await _expect(func() -> bool: return not _contest.active and not _apartment.get_node("RoundTimer").paused, "The winning result resumes the guest's timer state"):
+		return
+	if not await _expect(func() -> bool: return _apartment.get_node("HUD/RoundEnd").visible, "Timeout reaches the guest after the contest ends"):
 		return
 	_verify_timeout()
 	var camera_reference: WeakRef = weakref(_camera)
@@ -191,6 +214,7 @@ func _test_guest() -> void:
 
 func _verify_active_round(holder: int) -> void:
 	_check(_contest.active and _contest.presentation.active, "The contest and its presentation are active together")
+	_check(_apartment.get_node("RoundTimer").paused, "Both peers pause the round timer while the contest is active")
 	_check(is_equal_approx(_contest.progress, 0.5) and is_equal_approx(_contest.presentation.progress, 0.5), "The two-color gauge begins exactly half full")
 	_check(_contest.presentation.gauge.is_visible_in_tree(), "The bottom contest gauge is visible")
 	_check(_host.contest_active and _guest.contest_active, "Both players are movement locked during the contest")
@@ -212,6 +236,7 @@ func _verify_result(winner: int) -> void:
 	var observed_at := Time.get_ticks_msec()
 	var loser_position := loser.global_position
 	_check(not _contest.active and not _contest.presentation.active and not _host.contest_active and not _guest.contest_active, "Finishing releases both contest movement locks")
+	_check(not _apartment.get_node("RoundTimer").paused, "Finishing resumes the round timer on both peers")
 	_check(is_equal_approx(_contest.progress, 1.0 if winner == 0 else 0.0), "The winner's color fills the entire gauge")
 	_check(loser.is_stunned() and loser._stun_remaining > 2.2, "The losing player receives the new 2.5-second stun")
 	_check(_pickup.get_parent() == (_host if winner == 0 else _guest).get_node("RightArm/HandSocket"), "Only the winner's hand owns the item after the reliable result")

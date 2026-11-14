@@ -1,11 +1,18 @@
 extends Node
 
+signal active_changed(is_active: bool)
+
 const PRESENTATION := preload("res://contest_presentation.gd")
 const SIMULTANEOUS_WINDOW_MS := 250
 const PRESS_ADVANTAGE_TO_WIN := 20
 const LOSS_STUN_SECONDS := 2.5
 
-var active := false
+var active := false:
+	set(value):
+		if active == value:
+			return
+		active = value
+		active_changed.emit(active)
 var progress := 0.5
 var round_id := 0
 var revision := 0

@@ -130,6 +130,14 @@ func _run() -> void:
 	contest.request_interaction(player)
 	await _wait_for_physics(2)
 	_check(contest.active, "Another contest can start after both players recover")
+	var timer := apartment.get_node("RoundTimer") as Timer
+	_check(timer.paused, "A repeated contest pauses the countdown again")
+	var remaining := timer.time_left
+	contest.cancel_round()
+	await _wait_for_physics(5)
+	_check(not timer.paused and timer.time_left < remaining, "Cancelling a contest resumes the countdown")
+	contest.request_interaction(player)
+	_check(contest.active and timer.paused, "A contest can pause the countdown again after cancellation")
 	apartment.queue_free()
 	await _wait_for_physics(3)
 	_check(not is_instance_valid(apartment), "Leaving while a contest is active safely removes its camera and UI")

@@ -57,10 +57,16 @@ func _ready() -> void:
 	_contest = PICKUP_CONTEST.new()
 	_contest.name = "PickupContest"
 	add_child(_contest)
+	_contest.active_changed.connect(_on_contest_active_changed)
 	_contest.setup(self, _players if guest_peer_id != 0 else [_host], _pickups)
 	if guest_peer_id == 0 or multiplayer.is_server():
 		_round_timer.timeout.connect(_on_round_timeout)
 		_round_timer.start()
+
+
+func _on_contest_active_changed(is_active: bool) -> void:
+	if is_instance_valid(_round_timer):
+		_round_timer.paused = is_active
 
 
 func _update_throw_power(is_aiming: bool, speed: float) -> void:

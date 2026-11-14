@@ -69,14 +69,23 @@ func _run() -> void:
 	_check(apartment.get_node("HUD/TimeLeft").text == "01:00", "R resets the countdown to one minute")
 	_check(player.held_pickup == null and not player.is_stunned(), "Reset clears held objects and player state")
 	_check(get_nodes_in_group(&"pickups").size() == 21 and get_nodes_in_group(&"apartment_props").size() == 18, "Reset restores every prop without duplicates")
+	timer = apartment.get_node("RoundTimer") as Timer
+	clock = apartment.get_node("HUD/TimeLeft") as Label
 	await _tap(KEY_G)
 	_check(apartment._contest.active and player.contest_active and mode.target.held_pickup != null, "G starts an offline contest against the test target")
+	var paused_time := timer.time_left
+	var paused_display := clock.text
+	await _wait_for_physics(15)
+	_check(timer.paused and is_equal_approx(timer.time_left, paused_time) and clock.text == paused_display, "The countdown and its display stay frozen during a contest")
 	var contested: RigidBody3D = mode.target.held_pickup
 	for _press in 45:
 		if not apartment._contest.active:
 			break
 		await _tap(KEY_E)
 	_check(not apartment._contest.active and player.held_pickup == contested and mode.target.is_stunned(), "E mashing can beat the offline opponent and take its object")
+	_check(not timer.paused and timer.time_left > paused_time - 0.2, "The result resumes the saved countdown without subtracting contest time")
+	await _wait_for_physics(15)
+	_check(timer.time_left < paused_time - 0.2, "The countdown continues after the contest")
 	await _tap(KEY_R)
 	apartment = lobby.get_node("Apartment") as Node3D
 	_check(not apartment._contest.active and apartment.get_node("Player").held_pickup == null, "Reset clears the contest and restores the test stage")
