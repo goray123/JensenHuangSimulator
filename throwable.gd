@@ -225,6 +225,8 @@ func _on_body_entered(body: Node) -> void:
 	_hit_players.append(player_id)
 	body.receive_hit()
 	var stage := _stage()
+	if stage != null:
+		stage.log_attack(self, body)
 	if stage != null and attack_power > 0:
 		# Changing collision shapes and parents must wait for the physics callback to finish.
 		stage.drop_hit_items.call_deferred(body, attack_power)

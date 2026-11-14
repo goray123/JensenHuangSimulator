@@ -72,6 +72,8 @@ func _run() -> void:
 	banana.disarm()
 	await _expect(func() -> bool: return target.held_pickup == null and egg.is_in_group(&"pickups"),
 		"The real projectile also drops the test target's held item")
+	_check(logs.get_child_count() == 2 and logs.get_child(0).text.ends_with("남편을 공격 하였다!")
+		and logs.get_child(1).text.ends_with("떨어졌다!"), "The hit logs the attack and the dropped item")
 	await _wait_for_physics(35)
 	_check(not target.is_stunned() and target._body_meshes[0].material_overlay == null, "The target recovers and the hit flash clears")
 
@@ -95,7 +97,8 @@ func _run() -> void:
 		and ring.freeze and ring.collision_layer == 0 and not player.get_node("ThrowTrajectory").visible,
 		"A right click during aim bags the item and removes it from physics and selection")
 	_check(wife_bag.get_child_count() == 1 and wife_bag.get_child(0).texture.resource_path.ends_with("Item_Ring.png")
-		and husband_bag.get_child_count() == 0 and logs.get_child_count() == 1,
+		and husband_bag.get_child_count() == 0 and logs.get_child(logs.get_child_count() - 1).text.ends_with("획득했습니다!")
+		and logs.get_children().filter(func(log: Label) -> bool: return log.text.ends_with("획득했습니다!")).size() == 1,
 		"Bagging adds the ring icon and acquisition log only once")
 	apartment._apply_bag_item(0, item_index, apartment._ownership_revision)
 	_check(wife_bag.get_child_count() == 1, "Duplicate deposit events cannot award the item twice")

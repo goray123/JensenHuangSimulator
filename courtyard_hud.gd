@@ -53,14 +53,46 @@ func add_bag_item(player_index: int, pickup_index: int, pickup: RigidBody3D) -> 
 	if pickup.gold_value >= proud_gold_threshold:
 		portraits[player_index].play_reaction(&"proud")
 	set_process(true)
+	add_log("%s님이 %s을(를) 획득했습니다!" % [player_name(player_index), item_name(pickup)])
 
+
+func add_attack_log(pickup: RigidBody3D, victim_index: int) -> void:
+	var item := item_name(pickup)
+	var victim := player_name(victim_index)
+	add_log("%s%s %s%s 공격 하였다!" % [item, "으로" if _needs_euro(item) else "로", victim, "을" if _has_final_consonant(victim) else "를"])
+
+
+func add_drop_log(pickup: RigidBody3D) -> void:
+	var item := item_name(pickup)
+	add_log("%s%s 떨어졌다!" % [item, "이" if _has_final_consonant(item) else "가"])
+
+
+static func player_name(player_index: int) -> String:
+	return "아내" if player_index == 0 else "남편"
+
+
+static func item_name(pickup: RigidBody3D) -> String:
+	return str(pickup.get_meta(&"pickup_name", "구"))
+
+
+## True when the last Hangul syllable has a final consonant (받침).
+static func _has_final_consonant(word: String) -> bool:
+	var code := word.unicode_at(word.length() - 1) if not word.is_empty() else 0
+	return code >= 0xAC00 and code <= 0xD7A3 and (code - 0xAC00) % 28 != 0
+
+
+## "으로" after a final consonant other than ㄹ, otherwise "로".
+static func _needs_euro(word: String) -> bool:
+	return _has_final_consonant(word) and (word.unicode_at(word.length() - 1) - 0xAC00) % 28 != 8
+
+
+func add_log(text: String) -> void:
 	if _logs.get_child_count() == 2:
 		var oldest := _logs.get_child(0)
 		_logs.remove_child(oldest)
 		oldest.queue_free()
 	var log := Label.new()
-	var player_name := "아내" if player_index == 0 else "남편"
-	log.text = "%s님이 %s을(를) 획득했습니다!" % [player_name, pickup.get_meta(&"pickup_name", "구")]
+	log.text = text
 	log.custom_minimum_size.y = 46.0
 	log.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	log.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

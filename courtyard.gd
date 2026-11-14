@@ -302,6 +302,7 @@ func _apply_hit_drops(pickup_indices: Array[int], poses: Array[Transform3D], rev
 			_bagged_items.erase(pickup_index)
 			_players[owner].bag_weight -= pickup.weight
 			$HUD.remove_bag_item(owner, pickup_index, pickup.gold_value)
+		$HUD.add_drop_log(pickup)
 		pickup.disarm()
 		pickup.global_transform = poses[slot]
 		pickup.add_to_group(&"pickups")
@@ -454,6 +455,25 @@ func broadcast_prop_impact(pickup: RigidBody3D, sound: StringName) -> void:
 func _play_prop_impact(pickup_index: int, sound: StringName) -> void:
 	if pickup_index >= 0 and pickup_index < _pickups.size() and sound in [&"hit_thud", &"hit_soft", &"hit_metal", &"hit_shatter"]:
 		SFX.play_at(_pickups[pickup_index], sound)
+
+
+func log_attack(pickup: RigidBody3D, victim: Node3D) -> void:
+	if not multiplayer.is_server() or _round_finished:
+		return
+	var pickup_index := _pickups.find(pickup)
+	var victim_index := _players.find(victim)
+	if pickup_index < 0 or victim_index < 0:
+		return
+	if guest_peer_id != 0:
+		_show_attack_log.rpc(pickup_index, victim_index)
+	else:
+		_show_attack_log(pickup_index, victim_index)
+
+
+@rpc("authority", "call_local", "reliable")
+func _show_attack_log(pickup_index: int, victim_index: int) -> void:
+	if not _round_finished and pickup_index >= 0 and pickup_index < _pickups.size() and victim_index >= 0 and victim_index < _players.size():
+		$HUD.add_attack_log(_pickups[pickup_index], victim_index)
 
 
 func reward_thrower(thrower: Node3D) -> void:
