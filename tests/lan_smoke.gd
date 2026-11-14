@@ -60,6 +60,7 @@ func _run() -> void:
 	barrier.name = "SmokeBarrier"
 	root.add_child(barrier)
 	_lobby = LOBBY.instantiate()
+	_lobby.play_intro = false
 	root.add_child(_lobby)
 	var start := _lobby.get_node("%Start") as Button
 	if is_host:
@@ -69,6 +70,7 @@ func _run() -> void:
 		await physics_frame
 		_check(not start.disabled, "Joining enables the host's Start button")
 		start.pressed.emit()
+		await _lobby.child_entered_tree
 	else:
 		_lobby.get_node("%Join").pressed.emit()
 		await _lobby.child_entered_tree

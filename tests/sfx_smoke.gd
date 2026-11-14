@@ -167,8 +167,9 @@ func _run() -> void:
 	sphere.disarm()
 	world.free()
 	var lobby := preload("res://lan_lobby.tscn").instantiate()
+	lobby.play_intro = false
 	root.add_child(lobby)
-	lobby.get_node("%TestMode").pressed.emit()
+	lobby._start_test_mode()
 	await _frames(15)
 	events.clear()
 	lobby.get_node("Apartment/TestMode").target.receive_hit(&"hit_bonk")

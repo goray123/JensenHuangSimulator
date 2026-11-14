@@ -55,6 +55,7 @@ func _run() -> void:
 	_barrier.name = "ContestSmokeBarrier"
 	root.add_child(_barrier)
 	_lobby = LOBBY.instantiate()
+	_lobby.play_intro = false
 	root.add_child(_lobby)
 	if is_host:
 		_lobby.get_node("%Host").pressed.emit()

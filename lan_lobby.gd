@@ -4,11 +4,15 @@ enum State { IDLE, HOSTING, SEARCHING, CONNECTING, JOINED, TESTING }
 
 const APARTMENT := preload("res://house.tscn")
 const TEST_MODE := preload("res://test_mode.gd")
+const INTRO := preload("res://intro_cutscene.gd")
 const GAME_PORT := 33443
 const DISCOVERY_PORT := 33444
 const TIMEOUT_MS := 4500
 const SEARCH_INTERVAL_MS := 350
-const READY_MESSAGE := "혼자 테스트하거나, 같은 네트워크에서 2명이 함께 플레이합니다."
+const READY_MESSAGE := ""
+
+## Off in automated tests so they enter the game without waiting for the comic intro.
+@export var play_intro := true
 
 var _state := State.IDLE
 var _peer: ENetMultiplayerPeer
@@ -18,13 +22,15 @@ var _reply := "JensenHuangSimulator room 5".to_utf8_buffer()
 var _deadline := 0
 var _next_search := 0
 var _apartment: Node3D
+var _intro: CanvasLayer
+var _intro_done_peers: Array[int] = []
 
 @onready var _menu: Control = $Menu
 @onready var _status: Label = %Status
+@onready var _status_panel: Control = %StatusPanel
 @onready var _host_button: Button = %Host
 @onready var _join_button: Button = %Join
 @onready var _start_button: Button = %Start
-@onready var _test_button: Button = %TestMode
 @onready var _back_hint: Label = %BackHint
 
 
@@ -32,7 +38,6 @@ func _ready() -> void:
 	_host_button.pressed.connect(_host_room)
 	_join_button.pressed.connect(_find_room)
 	_start_button.pressed.connect(_start_game)
-	_test_button.pressed.connect(_start_test_mode)
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	multiplayer.connected_to_server.connect(_on_connected_to_host)
@@ -48,6 +53,9 @@ func _exit_tree() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if _state != State.IDLE and event.is_action_pressed(&"ui_cancel"):
 		_return_to_menu(READY_MESSAGE)
+		get_viewport().set_input_as_handled()
+	elif _state == State.IDLE and event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_F2:
+		_start_test_mode()
 		get_viewport().set_input_as_handled()
 	elif _state == State.TESTING and event.is_action_pressed(&"test_reset"):
 		_restart_test_mode.call_deferred()
@@ -166,6 +174,37 @@ func _start_game() -> void:
 	var peers := multiplayer.get_peers()
 	if peers.size() == 1:
 		_peer.refuse_new_connections = true
+		_intro_done_peers.clear()
+		_play_match_intro.rpc(peers[0])
+
+
+## Both players watch the intro; the host opens the map once both have finished it.
+@rpc("authority", "call_local", "reliable")
+func _play_match_intro(guest_id: int) -> void:
+	if _apartment != null or _intro != null or (_state != State.HOSTING and multiplayer.get_unique_id() != guest_id):
+		return
+	_run_intro(_on_match_intro_done)
+
+
+func _on_match_intro_done() -> void:
+	if _intro != null:
+		_intro.show_waiting()
+	if multiplayer.is_server():
+		_report_intro_done()
+	elif _state == State.JOINED:
+		_report_intro_done.rpc_id(1)
+
+
+@rpc("any_peer", "call_remote", "reliable")
+func _report_intro_done() -> void:
+	if not multiplayer.is_server() or _state != State.HOSTING or _apartment != null:
+		return
+	var sender := multiplayer.get_remote_sender_id()
+	var peer_id := sender if sender != 0 else 1
+	if peer_id not in _intro_done_peers:
+		_intro_done_peers.append(peer_id)
+	var peers := multiplayer.get_peers()
+	if peers.size() == 1 and 1 in _intro_done_peers and peers[0] in _intro_done_peers:
 		_open_apartment.rpc(peers[0])
 
 
@@ -173,6 +212,7 @@ func _start_game() -> void:
 func _open_apartment(guest_id: int) -> void:
 	if _apartment != null or (_state != State.HOSTING and multiplayer.get_unique_id() != guest_id):
 		return
+	_remove_intro()
 	_apartment = APARTMENT.instantiate()
 	_apartment.guest_peer_id = guest_id
 	add_child(_apartment)
@@ -184,10 +224,34 @@ func _start_test_mode() -> void:
 		return
 	_close_network()
 	_state = State.TESTING
-	_open_test_apartment()
+	_run_intro(_on_test_intro_done)
+
+
+func _on_test_intro_done() -> void:
+	if _state == State.TESTING and _apartment == null:
+		_open_test_apartment()
+
+
+## Shows the comic intro over everything, then calls on_done.
+func _run_intro(on_done: Callable) -> void:
+	_menu.hide()
+	if not play_intro:
+		on_done.call_deferred()
+		return
+	_intro = INTRO.new()
+	_intro.name = "Intro"
+	_intro.finished.connect(on_done)
+	add_child(_intro)
+
+
+func _remove_intro() -> void:
+	if _intro != null:
+		_intro.queue_free()
+		_intro = null
 
 
 func _open_test_apartment() -> void:
+	_remove_intro()
 	_apartment = APARTMENT.instantiate()
 	add_child(_apartment)
 	var test_mode := TEST_MODE.new()
@@ -197,13 +261,14 @@ func _open_test_apartment() -> void:
 
 
 func _restart_test_mode() -> void:
-	if _state != State.TESTING:
+	if _state != State.TESTING or _apartment == null:
 		return
 	_remove_apartment()
 	_open_test_apartment()
 
 
 func _remove_apartment() -> void:
+	_remove_intro()
 	if _apartment != null:
 		remove_child(_apartment)
 		_apartment.queue_free()
@@ -229,7 +294,7 @@ func _show_lobby(message: String) -> void:
 	_status.text = message
 	_host_button.visible = _state == State.IDLE
 	_join_button.visible = _state == State.IDLE
-	_test_button.visible = _state == State.IDLE
+	_status_panel.visible = _state != State.IDLE or not message.is_empty()
 	_start_button.visible = _state == State.HOSTING
 	_start_button.disabled = _state != State.HOSTING or multiplayer.get_peers().is_empty()
 	_back_hint.visible = _state != State.IDLE
