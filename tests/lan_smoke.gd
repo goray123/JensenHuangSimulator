@@ -5,11 +5,13 @@ const LOBBY := preload("res://lan_lobby.tscn")
 const Player := preload("res://player.gd")
 const HOST_SPAWN := Vector3(4.7, 0.065, -2.1)
 const GUEST_SPAWN := Vector3(7.5, 0.065, -3.7)
+const TV_PICKUP_OFFSET := Vector3(0.0, 0.8, 0.95)
 const TIME_LIMIT_MESSAGE := "시간 종료"
 
 class StartBarrier:
 	extends Node
 	var started := false
+	var guest_ready := false
 	var hits_verified := false
 	var tv_verified := false
 	var tv_requested := false
@@ -18,6 +20,9 @@ class StartBarrier:
 	@rpc("authority", "call_remote", "reliable")
 	func begin() -> void:
 		started = true
+	@rpc("any_peer", "call_remote", "reliable")
+	func ready_to_move() -> void:
+		guest_ready = true
 	@rpc("authority", "call_remote", "reliable")
 	func finish_hits() -> void:
 		hits_verified = true
@@ -77,7 +82,7 @@ func _run() -> void:
 	_host = apartment.get_node("Player")
 	_guest = apartment.get_node("Guest")
 	_pickup = apartment.get_node("Items/Item_06_egg")
-	var banana: RigidBody3D = apartment.get_node("Items/Item_01_banana")
+	var second: RigidBody3D = apartment.get_node("Items/Item_10_tissue_box")
 	_check(apartment._pickups.size() == 21, "Only the 21 household items have pickup indices")
 	await _wait_frames(8)
 	_check(not _lobby.get_node("Menu").visible, "Start opens the new map for both players")
@@ -94,12 +99,17 @@ func _run() -> void:
 	_check(clock.text == "01:00" and timer.wait_time == 60.0 and timer.is_stopped() != is_host,
 		"Both HUDs start at one minute and only the host timer runs")
 	if is_host:
+		await _expect(func() -> bool: return barrier.guest_ready,
+			"The guest finishes spawn checks before the host clears the movement lane")
+		_prepare_clear_lane(apartment)
 		_pickup.global_position = Vector3(7, 0.065, -2.4)
-		banana.global_position = Vector3(5, 0.065, -3.5)
+		second.global_position = Vector3(5, 0.065, -3.5)
+		await _wait_frames(12)
 		barrier.begin.rpc_id(apartment.guest_peer_id)
-		await _test_host(banana)
+		await _test_host(second)
 		timer.start(2.0)
 	else:
+		barrier.ready_to_move.rpc_id(1)
 		await _expect(func() -> bool: return barrier.started, "Both peers finish checking spawn positions before movement begins")
 		await _test_guest()
 	await _expect(func() -> bool: return clock.text == "00:02" or clock.text == "00:01", "The host's remaining time is displayed")
@@ -124,7 +134,10 @@ func _test_host(second: RigidBody3D) -> void:
 		if not is_holding and guest_launch.is_empty():
 			guest_launch["velocity"] = _pickup.linear_velocity
 	)
-	_check(_guest.position.x < 7.25 and _guest.position.z > -2.6, "The host receives both axes of guest movement")
+	# Contact with the target sphere can slide the guest slightly backward
+	# during the sideways leg, after the client's S threshold already passed.
+	_check(_guest.position.x < GUEST_SPAWN.x - 0.25 and _guest.position.z > GUEST_SPAWN.z + 0.9,
+		"The host receives substantial movement on both guest input axes")
 	_check(_guest.rotation.y > 1.0, "The host receives guest turning")
 	_check(_host.position.distance_to(HOST_SPAWN) < 0.08 and _host.held_pickup == null, "Guest input affects only the guest")
 	var from := _pickup.global_position
@@ -139,13 +152,31 @@ func _test_host(second: RigidBody3D) -> void:
 	_key(KEY_W, false)
 	_check(_host._highlighted_pickup == second and _guest._highlighted_pickup == null, "Only the host's own nearest grab target is highlighted on the host")
 	await _hold_left(75)
-	_check(_host.held_pickup == second, "Host can pick up the banana")
+	_check(_host.held_pickup == second, "Host can pick up the tissue box")
 	_mouse(MOUSE_BUTTON_LEFT, true)
 	await _wait_frames(20)
+	var second_release := second.global_position
 	_mouse(MOUSE_BUTTON_LEFT, false)
+	await _expect(func() -> bool: return _host.held_pickup == null and second.global_position.distance_to(second_release) > 0.35,
+		"The host's tissue-box throw moves through physics before the TV fixture is prepared")
+	# Completed throws can land closer to the guest than the TV's safe, separate
+	# collider. Clear those old targets so E still selects the intended TV.
+	for index in 2:
+		var thrown := _pickup if index == 0 else second
+		thrown.freeze = true
+		thrown.disarm()
+		thrown.linear_velocity = Vector3.ZERO
+		thrown.angular_velocity = Vector3.ZERO
+		thrown.global_position = Vector3(44.0 + index * 4.0, 3.0, 0.0)
 	var apartment := _lobby.get_node("Apartment")
-	var tv: RigidBody3D = apartment._pickups.filter(func(item: RigidBody3D) -> bool: return item.get_meta(&"item_id", "") == "17-tv")[0]
-	tv.global_position = _guest.global_position + Vector3.UP * 0.8
+	var tv := apartment.get_node("Items/Item_17_tv") as RigidBody3D
+	# This test measures ownership and throws after a known teleport. Gravity
+	# must not move the TV away before the guest observes that fixture pose.
+	tv.freeze = true
+	tv.linear_velocity = Vector3.ZERO
+	tv.angular_velocity = Vector3.ZERO
+	# Keep its collider beside the player rather than overlapping their capsule.
+	tv.global_position = _guest.global_position + TV_PICKUP_OFFSET
 	await _expect(func() -> bool: return _guest.held_pickup == tv, "A guest can also pick up the shared TV")
 	var tv_from := tv.global_position
 	await _expect(func() -> bool: return _guest.held_pickup == null and tv.global_position.distance_to(tv_from) > 0.35, "A charged TV throw is simulated by the host")
@@ -158,7 +189,7 @@ func _test_host(second: RigidBody3D) -> void:
 	_host.hold_pickup(second)
 	_mouse(MOUSE_BUTTON_RIGHT, true)
 	_mouse(MOUSE_BUTTON_RIGHT, false)
-	await _expect(func() -> bool: return apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000020", "The host's banana deposit awards 20 gold")
+	await _expect(func() -> bool: return apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000020", "The host's tissue-box deposit awards 20 gold")
 	await _expect(func() -> bool: return root.get_node("SmokeBarrier").deposit_verified, "The guest confirmed the deposit before the hit")
 	# Use a power-four projectile to prove the host rolls bag loss and relays it to the guest.
 	var pan: RigidBody3D = apartment.get_node("Items/Item_07_frying_pan")
@@ -166,6 +197,19 @@ func _test_host(second: RigidBody3D) -> void:
 	pan._on_body_entered(_guest)
 	await _expect(func() -> bool: return tv.visible and apartment.get_node("HUD/HusbandProfile/HusbandWallet/Gold").text == "000000", "The host restores the dropped TV and deducts 900 gold")
 	await _expect(func() -> bool: return root.get_node("SmokeBarrier").drop_verified, "The guest confirmed the synchronized loss")
+
+
+func _prepare_clear_lane(apartment: Node3D) -> void:
+	# Room furniture has its own contact/snapshot test. Keep this older movement,
+	# pickup, and projectile lane clear while retaining every network body index.
+	for index in apartment._physics_bodies.size():
+		var body: RigidBody3D = apartment._physics_bodies[index]
+		body.freeze = true
+		body.linear_velocity = Vector3.ZERO
+		body.angular_velocity = Vector3.ZERO
+		if body.has_method(&"disarm"):
+			body.disarm()
+		body.global_position = Vector3(50.0 + index * 4.0, 3.0, 0.0)
 
 
 func _test_guest() -> void:
@@ -188,16 +232,16 @@ func _test_guest() -> void:
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	await _expect(func() -> bool: return _guest.held_pickup == null and _pickup.global_position.distance_to(from) > 0.35,
 		"Guest sees the shared throw after releasing left click")
-	await _expect(func() -> bool: return _host.held_pickup != null, "Guest sees the host move and pick up the banana")
+	await _expect(func() -> bool: return _host.held_pickup != null, "Guest sees the host move and pick up the tissue box")
 	_check(_host.position.z < -2.65 and _guest.held_pickup == null, "Host input affects only the host")
 	var host_pickup := _host.held_pickup
 	var host_release := host_pickup.global_position
 	await _expect(func() -> bool: return _host.held_pickup == null and host_pickup.global_position.distance_to(host_release) > 0.35,
 		"Guest sees the host throw the shared sphere")
 	var apartment := _lobby.get_node("Apartment")
-	var tv: RigidBody3D = apartment._pickups.filter(func(item: RigidBody3D) -> bool: return item.get_meta(&"item_id", "") == "17-tv")[0]
-	await _expect(func() -> bool: return tv.global_position.distance_to(_guest.global_position + Vector3.UP * 0.8) < 0.1, "Guest receives the shared TV transform")
-	await _hold_left(96)
+	var tv := apartment.get_node("Items/Item_17_tv") as RigidBody3D
+	await _expect(func() -> bool: return tv.global_position.distance_to(_guest.global_position + TV_PICKUP_OFFSET) < 0.1, "Guest receives the shared TV transform")
+	await _hold_left(130)
 	await _expect(func() -> bool: return _guest.held_pickup == tv, "Guest sees the TV attached with its prop-specific hand offset")
 	_mouse(MOUSE_BUTTON_LEFT, true)
 	await _wait_frames(60)
@@ -235,9 +279,15 @@ func _test_hits_host(apartment: Node3D) -> void:
 	_host.hold_pickup(ring)
 	_host.release_pickup(true, _host.throw_velocity_at_speed(8.0))
 	await _expect(func() -> bool: return _guest.is_stunned(), "The host's projectile stuns the guest on the authoritative server")
+	# The contact was real; remove the ring so this timing check measures input
+	# lock without the capsule separating from its new physical projectile.
+	ring.disarm()
+	ring.freeze = true
+	ring.global_position = Vector3(40.0, 3.0, 0.0)
 	var hit_position := _guest.global_position
 	await _wait_frames(20)
-	_check(_guest.is_stunned() and _guest.global_position.distance_to(hit_position) < 0.02, "The server blocks guest movement during the stun")
+	_check(_guest.is_stunned() and _guest.global_position.distance_to(hit_position) < 0.02,
+		"The server blocks guest movement during the stun (position %s -> %s, stun %.3f)" % [hit_position, _guest.global_position, _guest._stun_remaining])
 	await _wait_frames(20)
 	_check(not _guest.is_stunned(), "The server releases the guest's movement after half a second")
 	_host.position = Vector3(6.5, 0.065, -3.05)

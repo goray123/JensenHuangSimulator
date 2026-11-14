@@ -48,7 +48,9 @@ func _run() -> void:
 	_set_key(KEY_W, true)
 	await _wait_for_physics(48)
 	_set_key(KEY_W, false)
-	_check(player.global_position.z < start.z - 1.0 and target.global_position.distance_to(target_start) < 0.02, "WASD moves only the controllable player")
+	# The nearby practice item now has a physical response on contact.
+	_check(player.global_position.z < start.z - 0.5 and target.global_position.distance_to(target_start) < 0.02,
+		"WASD moves only the controllable player (player %s -> %s, target %s -> %s)" % [start, player.global_position, target_start, target.global_position])
 	_check(pointer.visible and not target.get_node("Head/PlayerPosPointer").visible and pointer_start.y > start.y + player.get_node("CollisionShape3D").shape.height
 		and (pointer.global_position - pointer_start).is_equal_approx(player.global_position - start),
 		"Only the controllable player has a pointer, and it follows their movement above their head")
@@ -64,6 +66,10 @@ func _run() -> void:
 	_check(player.get_node("ThrowTrajectory").visible and apartment.get_node("HUD/ThrowPower").visible, "A second left hold shows the trajectory and speed gauge")
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	await _expect(func() -> bool: return target.is_stunned(), "A real throw can hit and stun the test target")
+	# Catch this projectile before it reaches the floor; conversion and peel
+	# consumption have their own tests, while this case continues testing bags.
+	banana.freeze = true
+	banana.disarm()
 	await _expect(func() -> bool: return target.held_pickup == null and egg.is_in_group(&"pickups"),
 		"The real projectile also drops the test target's held item")
 	await _wait_for_physics(35)

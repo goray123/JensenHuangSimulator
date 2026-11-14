@@ -8,6 +8,9 @@ const GUEST_MODEL := preload("res://assets/characters/thump/02_Woman.glb")
 const INPUT_TIMEOUT_MS := 500
 const HIT_DROP_COUNTS := [0, 1, 2, 2, 3, 3]
 const HIT_EXTRA_DROP_CHANCES := [0.0, 0.0, 0.0, 0.3, 0.0, 0.5]
+const ROOM_PHYSICS := preload("res://room_physics.gd")
+const PHYSICS_MASS := preload("res://physics_mass.gd")
+const FURNITURE_SNAPSHOT_BATCH := 16
 
 var guest_peer_id := 0
 var _last_guest_input := -1
@@ -17,6 +20,8 @@ var _players: Array[Player]
 var _pickups: Array[RigidBody3D]
 var _bagged_items: Dictionary[int, int] = {}
 var _ownership_revision := 0
+var _physics_bodies: Array[RigidBody3D]
+var _room_physics: Node
 var _round_finished := false
 var _contest: Node
 
@@ -28,9 +33,22 @@ var _contest: Node
 
 
 func _ready() -> void:
+	_room_physics = ROOM_PHYSICS.new()
+	_room_physics.name = "RoomPhysics"
+	add_child(_room_physics)
+	_room_physics.setup($Map)
 	_pickups.assign(get_tree().get_nodes_in_group(&"pickups").filter(is_ancestor_of))
 	# Reparenting held props must never change their network indices.
 	_pickups.sort_custom(func(a: Node, b: Node) -> bool: return str(a.get_path()) < str(b.get_path()))
+	for pickup in _pickups:
+		if not pickup.has_meta(&"physics_volume"):
+			var shape := pickup.get_node("CollisionShape3D") as CollisionShape3D
+			var bounds := shape.transform * shape.shape.get_debug_mesh().get_aabb()
+			pickup.mass = PHYSICS_MASS.from_bounds(bounds)
+			pickup.set_meta(&"physics_volume", bounds.get_volume())
+		pickup.freeze = not multiplayer.is_server()
+	_physics_bodies.assign(_pickups)
+	_physics_bodies.append_array(_room_physics.bodies)
 	_local_player = _host
 	_players = [_host]
 	_host.global_position = $Map/Markers/Player1Spawn.global_position
@@ -52,6 +70,7 @@ func _ready() -> void:
 			for index in _players.size():
 				_players[index].hit_received.connect(_broadcast_hit.bind(index))
 				_players[index].status_effect_applied.connect(_broadcast_status_effect.bind(index))
+				_players[index].banana_peel_stepped.connect(_broadcast_banana_peel_stun.bind(index))
 		process_physics_priority = 1
 		if not is_host:
 			_local_player = _guest
@@ -75,6 +94,9 @@ func _ready() -> void:
 	_contest.active_changed.connect(_on_contest_active_changed)
 	_contest.setup(self, _players, _pickups)
 	if guest_peer_id == 0 or multiplayer.is_server():
+		for index in _pickups.size():
+			_pickups[index].banana_landed.connect(_broadcast_banana_peel.bind(index))
+			_pickups[index].banana_peel_consumed.connect(_broadcast_banana_peel_consumed.bind(index))
 		_round_timer.timeout.connect(_on_round_timeout)
 		_round_timer.start()
 
@@ -115,6 +137,13 @@ func _physics_process(_delta: float) -> void:
 	for pose in transforms:
 		poses.append_array(PackedFloat32Array([pose.basis.x.x, pose.basis.x.y, pose.basis.x.z, pose.basis.y.x, pose.basis.y.y, pose.basis.y.z, pose.basis.z.x, pose.basis.z.y, pose.basis.z.z, pose.origin.x, pose.origin.y, pose.origin.z]))
 	_receive_snapshot.rpc_id(guest_peer_id, poses, Vector4i(holding.x, holding.y, _ownership_revision, seconds_left))
+	# Keep each unreliable packet below the network MTU as the room fills up.
+	var furniture: Array[RigidBody3D] = _room_physics.bodies
+	for start in range(0, furniture.size(), FURNITURE_SNAPSHOT_BATCH):
+		var furniture_poses: Array[Transform3D] = []
+		for index in range(start, mini(start + FURNITURE_SNAPSHOT_BATCH, furniture.size())):
+			furniture_poses.append(furniture[index].global_transform)
+		_apply_furniture_snapshot.rpc_id(guest_peer_id, start, furniture_poses)
 
 
 func _update_time_left(seconds: int) -> void:
@@ -134,6 +163,8 @@ func _end_round() -> void:
 	_contest.cancel_round()
 	_grab_progress.hide()
 	_throw_power.hide()
+	for body in _physics_bodies:
+		body.freeze = true
 	_update_time_left(0)
 	$HUD/RoundEnd.show()
 	process_mode = Node.PROCESS_MODE_DISABLED
@@ -308,6 +339,51 @@ func _apply_status_effect(player_index: int, effect: StringName, seconds: float)
 		_players[player_index].apply_status_effect(effect, seconds)
 
 
+func _broadcast_banana_peel_stun(player_index: int) -> void:
+	_apply_banana_peel_stun.rpc_id(guest_peer_id, player_index)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_banana_peel_stun(player_index: int) -> void:
+	if not _round_finished and player_index >= 0 and player_index < _players.size():
+		_players[player_index].receive_banana_peel()
+
+
+func _broadcast_banana_peel(landing_transform: Transform3D, pickup_index: int) -> void:
+	if guest_peer_id != 0 and multiplayer.get_peers().has(guest_peer_id):
+		_apply_banana_peel.rpc_id(guest_peer_id, pickup_index, landing_transform)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_banana_peel(pickup_index: int, landing_transform: Transform3D) -> void:
+	if pickup_index < 0 or pickup_index >= _pickups.size() or not landing_transform.is_finite():
+		return
+	var pickup := _pickups[pickup_index]
+	if pickup.is_banana_peel:
+		return
+	# Landing may arrive before the snapshot that releases the thrower's hand.
+	for player in _players:
+		if player.held_pickup == pickup:
+			player.release_pickup(false)
+	pickup.become_banana_peel(landing_transform)
+
+
+func _broadcast_banana_peel_consumed(pickup_index: int) -> void:
+	if guest_peer_id != 0 and multiplayer.get_peers().has(guest_peer_id):
+		_apply_banana_peel_consumed.rpc_id(guest_peer_id, pickup_index)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_banana_peel_consumed(pickup_index: int) -> void:
+	if pickup_index < 0 or pickup_index >= _pickups.size():
+		return
+	var pickup := _pickups[pickup_index]
+	for player in _players:
+		if player.held_pickup == pickup:
+			player.release_pickup(false)
+	pickup.consume_banana_peel()
+
+
 @rpc("authority", "call_remote", "unreliable_ordered")
 func _receive_snapshot(poses: PackedFloat32Array, state: Vector4i) -> void:
 	if poses.size() != (_players.size() + _pickups.size()) * 12:
@@ -332,8 +408,9 @@ func _apply_snapshot(transforms: Array, holding: Vector2i, ownership_revision: i
 	for pose in transforms:
 		if not (pose is Transform3D and pose.is_finite()):
 			return
+	# Bagged items and converted peels cannot be restored by an old held index.
 	for index in _players.size():
-		if _bagged_items.has(holding[index]) or (holding[index] >= 0 and not is_instance_valid(_pickups[holding[index]])):
+		if _bagged_items.has(holding[index]) or (holding[index] >= 0 and (not is_instance_valid(_pickups[holding[index]]) or _pickups[holding[index]].is_banana_peel)):
 			holding[index] = -1
 	_update_time_left(seconds_left)
 	# Release old holders first, including when an intermediate throw was missed.
@@ -347,7 +424,7 @@ func _apply_snapshot(transforms: Array, holding: Vector2i, ownership_revision: i
 		if pickup_index >= 0 and _players[index].held_pickup == null:
 			_players[index].hold_pickup(_pickups[pickup_index])
 	for index in _pickups.size():
-		if index != holding.x and index != holding.y and not _bagged_items.has(index) and is_instance_valid(_pickups[index]):
+		if index != holding.x and index != holding.y and not _bagged_items.has(index) and is_instance_valid(_pickups[index]) and not _pickups[index].is_banana_peel:
 			_pickups[index].global_transform = transforms[_players.size() + index]
 
 
@@ -392,3 +469,17 @@ func reward_thrower(thrower: Node3D) -> void:
 func _play_hit_reward() -> void:
 	if not _round_finished and is_instance_valid(_local_player):
 		SFX.play_ui(_local_player, &"pickup_coin", -6.0)
+
+
+@rpc("authority", "call_remote", "unreliable_ordered")
+func _apply_furniture_snapshot(start: int, poses: Array[Transform3D]) -> void:
+	if _round_finished or start < 0 or poses.size() > FURNITURE_SNAPSHOT_BATCH:
+		return
+	var furniture: Array[RigidBody3D] = _room_physics.bodies
+	if start + poses.size() > furniture.size():
+		return
+	for pose in poses:
+		if not pose.is_finite():
+			return
+	for index in poses.size():
+		furniture[start + index].global_transform = poses[index]
