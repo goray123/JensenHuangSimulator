@@ -99,6 +99,14 @@ theme_override_font_sizes/font_size = 20
 disabled = true
 text = "게임 시작"
 
+[node name="TestMode" type="Button" parent="Menu/Center/Panel/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "테스트 모드"
+tooltip_text = "혼자서 이동, 물건 들기와 던지기, 피격 효과를 시험합니다."
+
 [node name="BackHint" type="Label" parent="Menu/Center/Panel/Content"]
 unique_name_in_owner = true
 visible = false

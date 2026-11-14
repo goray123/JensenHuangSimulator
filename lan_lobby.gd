@@ -1,13 +1,14 @@
 extends Node
 
-enum State { IDLE, HOSTING, SEARCHING, CONNECTING, JOINED }
+enum State { IDLE, HOSTING, SEARCHING, CONNECTING, JOINED, TESTING }
 
 const APARTMENT := preload("res://courtyard.tscn")
+const TEST_MODE := preload("res://test_mode.gd")
 const GAME_PORT := 33443
 const DISCOVERY_PORT := 33444
 const TIMEOUT_MS := 4500
 const SEARCH_INTERVAL_MS := 350
-const READY_MESSAGE := "같은 네트워크에서 2명이 함께 플레이합니다."
+const READY_MESSAGE := "혼자 테스트하거나, 같은 네트워크에서 2명이 함께 플레이합니다."
 
 var _state := State.IDLE
 var _peer: ENetMultiplayerPeer
@@ -23,6 +24,7 @@ var _apartment: Node3D
 @onready var _host_button: Button = %Host
 @onready var _join_button: Button = %Join
 @onready var _start_button: Button = %Start
+@onready var _test_button: Button = %TestMode
 @onready var _back_hint: Label = %BackHint
 
 
@@ -30,6 +32,7 @@ func _ready() -> void:
 	_host_button.pressed.connect(_host_room)
 	_join_button.pressed.connect(_find_room)
 	_start_button.pressed.connect(_start_game)
+	_test_button.pressed.connect(_start_test_mode)
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	multiplayer.connected_to_server.connect(_on_connected_to_host)
@@ -173,6 +176,31 @@ func _open_apartment(guest_id: int) -> void:
 	_menu.hide()
 
 
+func _start_test_mode() -> void:
+	if _state != State.IDLE or _apartment != null:
+		return
+	_close_network()
+	_state = State.TESTING
+	_open_test_apartment()
+
+
+func _open_test_apartment() -> void:
+	_apartment = APARTMENT.instantiate()
+	add_child(_apartment)
+	var test_mode := TEST_MODE.new()
+	test_mode.name = "TestMode"
+	test_mode.reset_requested.connect(_restart_test_mode, CONNECT_DEFERRED)
+	_apartment.add_child(test_mode)
+	_menu.hide()
+
+
+func _restart_test_mode() -> void:
+	if _state != State.TESTING:
+		return
+	_remove_apartment()
+	_open_test_apartment()
+
+
 func _remove_apartment() -> void:
 	if _apartment != null:
 		remove_child(_apartment)
@@ -199,6 +227,7 @@ func _show_lobby(message: String) -> void:
 	_status.text = message
 	_host_button.visible = _state == State.IDLE
 	_join_button.visible = _state == State.IDLE
+	_test_button.visible = _state == State.IDLE
 	_start_button.visible = _state == State.HOSTING
 	_start_button.disabled = _state != State.HOSTING or multiplayer.get_peers().is_empty()
 	_back_hint.visible = _state != State.IDLE
