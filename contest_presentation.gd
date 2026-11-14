@@ -3,10 +3,28 @@ extends Node
 const GOLD := Color(0.91, 0.74, 0.29)
 const BLUE := Color(0.36, 0.48, 0.94)
 const CAMERA_TRANSITION_SECONDS := 0.35
+const PLAYER := preload("res://player.gd")
+const MOTION_MANIFEST := preload("res://assets/characters/motions/CHARACTER_MOTIONS_MANIFEST.json")
+const TUG_SECONDS := {&"Tug_Fast": 1.6, &"Tug_Slow": 4.0}
+# A press within this window keeps the fast pull; otherwise the slow strain plays.
+const TUG_FAST_WINDOW := 0.6
 
 var active := false
 var progress := 0.5
 var gauge: ColorRect
+## "auto" follows the press rate; "fast"/"slow" force a tempo. Phase is kept across changes.
+var tug_tempo: StringName = &"auto"
+## Shared normalized tug phase; both characters and the contested object use it.
+var tug_phase := 0.0
+## Authoritative corrections applied on this peer (guests only).
+var tug_syncs := 0
+
+var _tug_pickup: Node3D
+var _tug_pickup_rest := Transform3D.IDENTITY
+var _tug_center := Vector3.ZERO
+var _tug_axis := Vector3.RIGHT
+var _tug_paths: Dictionary = {}
+var _since_press := INF
 
 var _players: Array[Node3D] = []
 var _camera: Camera3D
@@ -39,8 +57,11 @@ func setup(apartment: Node3D, players: Array) -> void:
 	_on_viewport_resized()
 
 
-func start_contest(item_name: String) -> void:
-	if _players.size() != 2 or not is_instance_valid(_ui):
+func start_contest(item_name: String, pickup: Node3D = null) -> void:
+	if _players.size() != 2:
+		return
+	_begin_tug(pickup)
+	if not is_instance_valid(_ui):
 		return
 	_stop_result_tween()
 	_result.hide()
@@ -57,12 +78,16 @@ func start_contest(item_name: String) -> void:
 
 
 func set_progress(value: float) -> void:
+	if not is_equal_approx(value, progress):
+		_since_press = 0.0
 	progress = clampf(value, 0.0, 1.0)
 	if is_instance_valid(gauge):
 		(gauge.material as ShaderMaterial).set_shader_parameter(&"progress", progress)
 
 
 func finish_contest(winner_index: int) -> void:
+	# The winner already holds the item, so only the stance is cleared here.
+	_end_tug(false)
 	if not active:
 		return
 	active = false
@@ -80,6 +105,7 @@ func finish_contest(winner_index: int) -> void:
 
 
 func cancel_contest() -> void:
+	_end_tug(true)
 	active = false
 	_stop_result_tween()
 	_restore_camera(false)
@@ -87,6 +113,80 @@ func cancel_contest() -> void:
 		_contest_panel.hide()
 	if is_instance_valid(_result):
 		_result.hide()
+
+
+func is_tug_fast() -> bool:
+	return tug_tempo == &"fast" or (tug_tempo == &"auto" and _since_press < TUG_FAST_WINDOW)
+
+
+## Applies the host's authoritative phase/tempo; ignored when no tug is running.
+func apply_tug_sync(phase: float, fast: bool) -> void:
+	if not is_instance_valid(_tug_pickup) or not is_finite(phase):
+		return
+	tug_syncs += 1
+	tug_phase = fposmod(phase, 1.0)
+	_since_press = 0.0 if fast else maxf(_since_press, TUG_FAST_WINDOW)
+	_apply_tug()
+
+
+func _begin_tug(pickup: Node3D) -> void:
+	_end_tug(true)
+	if not is_instance_valid(pickup):
+		return
+	for player in _players:
+		if not is_instance_valid(player):
+			return
+	_tug_pickup = pickup
+	_tug_pickup_rest = pickup.global_transform
+	_tug_center = pickup.global_position
+	_tug_center.y = (_players[0].global_position.y + _players[1].global_position.y) * 0.5
+	var axis := _players[1].global_position - _players[0].global_position
+	axis.y = 0.0
+	_tug_axis = axis.normalized() if axis.length_squared() > 0.0001 else -_players[0].global_basis.z
+	# One controller path for the shared object: player 0's character decides it.
+	_tug_paths = MOTION_MANIFEST.data.assets[_players[0].motion_asset()].tug_controller_paths
+	tug_phase = 0.0
+	_since_press = INF
+	for index in 2:
+		_players[index].begin_tug(_tug_center, _tug_axis, index)
+	_apply_tug()
+
+
+func _end_tug(restore_pickup: bool) -> void:
+	for player in _players:
+		if is_instance_valid(player):
+			player.end_tug()
+	if restore_pickup and is_instance_valid(_tug_pickup) and _tug_pickup.is_in_group(&"pickups"):
+		_tug_pickup.global_transform = _tug_pickup_rest
+	_tug_pickup = null
+
+
+func _process(delta: float) -> void:
+	if _tug_pickup == null:
+		return
+	if not is_instance_valid(_tug_pickup):
+		_end_tug(false)
+		return
+	_since_press += delta
+	tug_phase = fposmod(tug_phase + delta / float(TUG_SECONDS[&"Tug_Fast" if is_tug_fast() else &"Tug_Slow"]), 1.0)
+	_apply_tug()
+
+
+func _apply_tug() -> void:
+	var fast := is_tug_fast()
+	for player in _players:
+		player.update_tug(tug_phase, fast)
+	var path: Array = _tug_paths.Fast if fast else _tug_paths.Slow
+	var at := tug_phase * (path.size() - 1)
+	var index := mini(floori(at), path.size() - 2)
+	var a: Array = path[index].position_godot
+	var b: Array = path[index + 1].position_godot
+	# Stage x runs from side 0 to side 1; the few-mm stage z sway is not applied.
+	var point := Vector2(a[0], a[1]).lerp(Vector2(b[0], b[1]), at - index) * PLAYER.MODEL_SCALE
+	var pose := _tug_pickup_rest
+	pose.origin = _tug_center + _tug_axis * point.x
+	pose.origin.y = maxf(_tug_center.y + point.y, _tug_pickup_rest.origin.y)
+	_tug_pickup.global_transform = pose
 
 
 func _zoom_to_players() -> void:

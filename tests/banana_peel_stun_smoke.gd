@@ -4,9 +4,9 @@ const PLAYER := preload("res://player.tscn")
 const PICKUP := preload("res://tests/pickup_fixture.tscn")
 const PEEL := preload("res://assets/household_items/scenes/03-banana-peel.tscn")
 const CHARACTER_MODELS := [
-	preload("res://assets/characters/thump/03_Young.glb"),
-	preload("res://assets/characters/thump/02_Woman.glb"),
-	preload("res://assets/characters/thump/01_Elder.glb"),
+	preload("res://assets/characters/motions/03_Young.glb"),
+	preload("res://assets/characters/motions/02_Woman.glb"),
+	preload("res://assets/characters/motions/01_Elder.glb"),
 ]
 
 var failed := false
