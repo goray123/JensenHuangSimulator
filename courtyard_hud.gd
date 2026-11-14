@@ -1,6 +1,7 @@
 extends CanvasLayer
 
 const FALLBACK_ICON := preload("res://assets/Sprites/Items/Item_Ring.png")
+const SPEECH_BUBBLES := preload("res://ui/speech_bubbles.gd")
 const GOLD_STEP_SECONDS := 0.04
 const LOG_SECONDS := 3.0
 
@@ -16,10 +17,16 @@ var _bound_players: Array[CharacterBody3D] = []
 @onready var _gold: Array[Label] = [$HusbandProfile/HusbandWallet/Gold, $WifeProfile/WifeWallet/Gold]
 @onready var _logs: VBoxContainer = $AcquisitionLogs
 @onready var portraits: Array[TextureRect] = [$HusbandProfile/Portrait, $WifeProfile/Portrait]
+var speech: Control
 
 
 func _ready() -> void:
 	set_process(false)
+	speech = SPEECH_BUBBLES.new()
+	speech.name = "SpeechBubbles"
+	add_child(speech)
+	# Behind the cards, bags and logs so a bubble near the edge never covers the scores.
+	move_child(speech, 0)
 
 
 ## Index 0 is the husband (host) card and 1 the wife (guest) card, matching the bag and gold order.
@@ -37,6 +44,14 @@ func bind_player(player_index: int, player: CharacterBody3D) -> void:
 	player.held_pickup_changed.connect(func(is_holding: bool) -> void:
 		if is_holding and player.held_pickup != null and player.held_pickup.gold_value >= proud_gold_threshold:
 			portrait.play_reaction(&"proud"))
+	speech.bind(player_index, player.get_node("Model"))
+	player.hit_received.connect(speech.crunch.bind(player_index))
+	player.hit_received.connect(speech.say.bind(player_index, &"hit"))
+	player.banana_peel_stepped.connect(speech.say.bind(player_index, &"slip"))
+	player.throw_played.connect(speech.say.bind(player_index, &"throw"))
+	player.contest_lost.connect(func() -> void:
+		speech.say(player_index, &"lost")
+		speech.say(1 - player_index, &"won"))
 
 
 func add_bag_item(player_index: int, pickup_index: int, pickup: RigidBody3D) -> void:
@@ -52,6 +67,7 @@ func add_bag_item(player_index: int, pickup_index: int, pickup: RigidBody3D) -> 
 	# Reliable on every peer, unlike the held-item snapshot a quick pickup-and-bag can skip.
 	if pickup.gold_value >= proud_gold_threshold:
 		portraits[player_index].play_reaction(&"proud")
+	speech.say(player_index, &"bag")
 	set_process(true)
 	add_log("%s님이 %s을(를) 획득했습니다!" % [player_name(player_index), item_name(pickup)])
 

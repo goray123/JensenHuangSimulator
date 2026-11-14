@@ -15,6 +15,8 @@ signal shared_sfx_requested(sound: StringName)
 signal banana_peel_stepped
 ## Emitted on the simulating peer after a validated launch (never for drops or transfers).
 signal pickup_launched(pickup: RigidBody3D)
+## Emitted on every peer when the validated Throw motion starts (host launch or guest _apply_throw).
+signal throw_played
 
 const SFX := preload("res://sfx.gd")
 
@@ -277,6 +279,7 @@ func show_remote_grab(target: RigidBody3D) -> void:
 func play_throw_motion() -> void:
 	if _tug_side < 0:
 		_play_once(&"Throw", THROW_PLAYBACK)
+		throw_played.emit()
 
 
 ## Moves the visual model into the authored tug stance around the shared contest object.

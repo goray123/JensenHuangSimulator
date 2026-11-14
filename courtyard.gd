@@ -110,6 +110,8 @@ func _ready() -> void:
 func _on_contest_active_changed(is_active: bool) -> void:
 	if is_instance_valid(_round_timer):
 		_round_timer.paused = is_active
+	if is_active:
+		$HUD.speech.say_all(&"contest")
 
 
 func _update_throw_power(is_aiming: bool, speed: float) -> void:
@@ -183,6 +185,7 @@ func _end_round(gold: Vector2i) -> void:
 	_contest.cancel_round()
 	_grab_progress.hide()
 	_throw_power.hide()
+	$HUD.speech.clear()
 	for body in _physics_bodies:
 		body.freeze = true
 	_update_time_left(0)
