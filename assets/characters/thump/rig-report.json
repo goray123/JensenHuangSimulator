@@ -1,0 +1,208 @@
+{
+  "version": 4,
+  "fps": 30,
+  "motion_style": "뚱땅뚱땅",
+  "clips": {
+    "Idle": {
+      "first_frame": 1,
+      "last_frame": 61,
+      "duration_seconds": 2.0,
+      "loop": true,
+      "events": []
+    },
+    "Walk": {
+      "first_frame": 1,
+      "last_frame": 37,
+      "duration_seconds": 1.2,
+      "loop": true,
+      "events": []
+    },
+    "Run": {
+      "first_frame": 1,
+      "last_frame": 31,
+      "duration_seconds": 1.0,
+      "loop": true,
+      "events": [
+        {
+          "frame": 1,
+          "event": "footstep_L",
+          "socket": "foot.L"
+        },
+        {
+          "frame": 16,
+          "event": "footstep_R",
+          "socket": "foot.R"
+        }
+      ]
+    },
+    "Pickup": {
+      "first_frame": 1,
+      "last_frame": 49,
+      "duration_seconds": 1.6,
+      "loop": false,
+      "events": [
+        {
+          "frame": 24,
+          "event": "attach_to_hand",
+          "socket": "socket_grip.R"
+        }
+      ]
+    },
+    "Carry": {
+      "first_frame": 1,
+      "last_frame": 61,
+      "duration_seconds": 2.0,
+      "loop": true,
+      "events": []
+    },
+    "Throw": {
+      "first_frame": 1,
+      "last_frame": 43,
+      "duration_seconds": 1.4,
+      "loop": false,
+      "events": [
+        {
+          "frame": 18,
+          "event": "release_throw",
+          "socket": "socket_grip.R"
+        }
+      ]
+    },
+    "Stow": {
+      "first_frame": 1,
+      "last_frame": 55,
+      "duration_seconds": 1.8,
+      "loop": false,
+      "events": [
+        {
+          "frame": 33,
+          "event": "inventory_insert",
+          "socket": "socket_bag_mouth"
+        }
+      ]
+    }
+  },
+  "characters": {
+    "01_Elder": {
+      "bones_total": 66,
+      "game_bones": 58,
+      "run_ground_speed_mps": 0.4842153898505278,
+      "game_clips": [
+        "01_Elder__Idle",
+        "01_Elder__Walk",
+        "01_Elder__Run",
+        "01_Elder__Pickup",
+        "01_Elder__Carry",
+        "01_Elder__Throw",
+        "01_Elder__Stow"
+      ]
+    },
+    "02_Woman": {
+      "bones_total": 76,
+      "game_bones": 68,
+      "run_ground_speed_mps": 0.3949164443237837,
+      "game_clips": [
+        "02_Woman__Idle",
+        "02_Woman__Walk",
+        "02_Woman__Run",
+        "02_Woman__Pickup",
+        "02_Woman__Carry",
+        "02_Woman__Throw",
+        "02_Woman__Stow"
+      ]
+    },
+    "03_Young": {
+      "bones_total": 66,
+      "game_bones": 58,
+      "run_ground_speed_mps": 0.4595303618630698,
+      "game_clips": [
+        "03_Young__Idle",
+        "03_Young__Walk",
+        "03_Young__Run",
+        "03_Young__Pickup",
+        "03_Young__Carry",
+        "03_Young__Throw",
+        "03_Young__Stow"
+      ]
+    }
+  },
+  "events": {
+    "Run": [
+      {
+        "frame": 1,
+        "event": "footstep_L",
+        "socket": "foot.L"
+      },
+      {
+        "frame": 16,
+        "event": "footstep_R",
+        "socket": "foot.R"
+      }
+    ],
+    "Pickup": [
+      {
+        "frame": 24,
+        "event": "attach_to_hand",
+        "socket": "socket_grip.R"
+      }
+    ],
+    "Throw": [
+      {
+        "frame": 18,
+        "event": "release_throw",
+        "socket": "socket_grip.R"
+      }
+    ],
+    "Stow": [
+      {
+        "frame": 33,
+        "event": "inventory_insert",
+        "socket": "socket_bag_mouth"
+      }
+    ]
+  },
+  "sockets": [
+    "socket_grip.R",
+    "socket_grip.L",
+    "socket_bag_mouth"
+  ],
+  "game_root_motion": "in_place",
+  "run_stance_fraction": 0.43,
+  "run_stride_factor": 0.28,
+  "run_cycle_seconds": 1.0,
+  "appearance_and_non_run_clips_preserved": {
+    "01_Elder": {
+      "geometry_sha256": "c25fcc0af4a3bd3b918098e4de8bcfa49939d0958c076d8f1571a33302411add",
+      "non_run_action_sha256": {
+        "Idle": "e17bce870a08efccdb8dde11092467ef18a4289b0c8a8f9782d643f74172d967",
+        "Walk": "2e720e4b08b763debdecdc207bc82e52c96d8301f8aae75030a67ceccc5c8457",
+        "Pickup": "6f7293a93eecc3a3717491f586f18cea0e5f6ad9e93ad3dd84de3cc051615816",
+        "Carry": "11129f6af0c2eddd791b26f263552e6aca5af2f33cae981e017a6ebb9c857425",
+        "Throw": "96325351008cd66bbfcfe63514387047b10cb1ea5733a6fad0247649d8385663",
+        "Stow": "58b64c175e32b894d09d3ebecc30f68e80005771c973c157cc6671b7468894ba"
+      }
+    },
+    "02_Woman": {
+      "geometry_sha256": "e9c0b3f4917220cadd8783de554186e689a2242d5b829fbc2953e559a85349e9",
+      "non_run_action_sha256": {
+        "Idle": "a4bbee9637d29d3f3fd9dfb3c6a12967a5c010564f7e882444d8362037bdd5c4",
+        "Walk": "16dc7d402cabf224664edfbcd0f2a7a698bf0021277eb52d59e0b98474d72323",
+        "Pickup": "8cd74c3c4808348e85bb376df26d8eca249967a791d7c6a4ebc76a9d51968a85",
+        "Carry": "61ba11bdb0821e4ec45a0ec2648064ccbc57ba9044576db1d4214afd3a0b287e",
+        "Throw": "0ce1ee121f3359976698aa42843d5b82b6b80d8ffdf19aa8baa93be09c9ee2d9",
+        "Stow": "d7a1c6e93cfcc8ebde29cb3e1972d1d97e5360849620de5fcf03a7057a2bb95a"
+      }
+    },
+    "03_Young": {
+      "geometry_sha256": "2854ab323fa65ad7fc80f7a685540d3601359166a3ac4fab7385f03c6a1c447c",
+      "non_run_action_sha256": {
+        "Idle": "6df303ce4e5bc0657ee27ae7e6dbf0bd3709734a18da2abe7fe1f14bcbc6ea74",
+        "Walk": "d09253aac49e6945f4304d5ff7bf3c23835bcbe468f61e3385ba010366385c41",
+        "Pickup": "ebddc3c45d0ed01abb0621e2404aa2917bce9e9f58ea8d8f893c19d867ba9b06",
+        "Carry": "1521fd8faf499f7b60837c51e364f9a0257bf4ee3032447de79371909cda89a3",
+        "Throw": "71d3c1151ed048c1f16d9941a1a37a945761658348c5e9c5716d752b2f4625fb",
+        "Stow": "53ea577e71d6dd9308ab802ed8b49f497cb6b8e4bb254816501bebba3f43dee0"
+      }
+    }
+  }
+}

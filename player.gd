@@ -7,8 +7,11 @@ signal grab_changed(is_grabbing: bool, progress: float)
 signal throw_requested(speed: float)
 signal bag_requested
 signal hit_received
+signal shared_sfx_requested(sound: StringName)
 
-const MOVE_SPEED := 4.0
+const SFX := preload("res://sfx.gd")
+
+const MOVE_SPEED := 1.5
 const TURN_SPEED := 6.0
 const PICKUP_RANGE := 1.2
 const GRAB_SECONDS := 1.0
@@ -19,6 +22,18 @@ const THROW_HEIGHT_DROP := 0.15
 const HIT_FLASH_DURATION := 0.2
 const HIT_STUN_DURATION := 0.5
 const HIT_FLASH_INTERVAL := 0.05
+const DEFAULT_MODEL := preload("res://assets/characters/thump/03_Young.glb")
+const MODEL_SCALE := 0.45
+# The in-place Run clip covers ~0.46 m/s at the GLB's own scale (rig-report.json).
+const RUN_CLIP_SPEED := 0.46 * MODEL_SCALE
+# Covers MOVE_SPEED / RUN_CLIP_SPEED (~7.2x); the short-stepped clip needs fast playback.
+const MAX_RUN_PLAYBACK := 8.0
+const MIN_HAND_HEIGHT := 0.47
+const LOOPING_CLIPS := ["Idle", "Walk", "Run", "Carry"]
+const ONE_SHOT_CLIPS := ["Pickup", "Throw"]
+
+## Rigged character from assets/characters/thump; set before adding the player to the tree.
+@export var model_scene: PackedScene = DEFAULT_MODEL
 
 var held_pickup: RigidBody3D = null
 var reads_local_input := true
@@ -37,20 +52,91 @@ var _original_overlays: Array[Material]
 var _hit_material := StandardMaterial3D.new()
 var _highlighted_pickup: RigidBody3D
 
-@onready var _hand_socket: Marker3D = $RightArm/HandSocket
+var _anim: AnimationPlayer
+var _clip_prefix := ""
+var _grip: BoneAttachment3D
+var _last_position := Vector3.ZERO
+var last_hit_sound: StringName = &"hit_bonk"
+var _peak_sound_played := false
+var _step_position := Vector3.ZERO
+var _step_distance := 0.0
+var _step_regions: Array[Dictionary] = []
+var _step_ray := PhysicsRayQueryParameters3D.new()
+
+@onready var _hand_socket: Marker3D = $HandSocket
 @onready var _trajectory: MeshInstance3D = $ThrowTrajectory
 
 
 func _ready() -> void:
 	_hit_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_hit_material.albedo_color = Color(1, 0.04, 0.04)
-	for node in get_children():
-		if node is MeshInstance3D and node != _trajectory:
-			_body_meshes.append(node)
-			_original_overlays.append(node.material_overlay)
+	var model := _setup_model()
+	_step_position = global_position
+	_cache_step_regions()
+	_step_ray.collision_mask = 1
+	_step_ray.exclude = [get_rid()]
+	for node: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
+		_body_meshes.append(node)
+		_original_overlays.append(node.material_overlay)
 
 
-func receive_hit() -> void:
+func _setup_model() -> Node3D:
+	var model := model_scene.instantiate() as Node3D
+	model.name = "Model"
+	model.scale = Vector3.ONE * MODEL_SCALE
+	# The exported characters face +Z; the player faces -Z.
+	model.rotation.y = PI
+	add_child(model)
+	_anim = model.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
+	_clip_prefix = _anim.get_animation_list()[0].get_slice("__", 0) + "__"
+	for clip: String in LOOPING_CLIPS:
+		_anim.get_animation(_clip_prefix + clip).loop_mode = Animation.LOOP_LINEAR
+	_grip = BoneAttachment3D.new()
+	_grip.bone_name = "socket_grip.R"
+	model.find_children("*", "Skeleton3D", true, false)[0].add_child(_grip)
+	_last_position = global_position
+	_play(&"Idle", 1.0)
+	return model
+
+
+func _update_animation(delta: float) -> void:
+	var moved := global_position - _last_position
+	_last_position = global_position
+	# Follow the grip bone's position only, so held items keep the player's heading and size.
+	# Crouching clips lower the hand to the floor; held items would then block every throw.
+	var hand := _grip.global_position
+	var minimum_height := MIN_HAND_HEIGHT
+	if held_pickup != null:
+		var collider := held_pickup.get_node("CollisionShape3D") as CollisionShape3D
+		var local_bounds := (held_pickup.transform * collider.transform) * collider.shape.get_debug_mesh().get_aabb()
+		minimum_height = maxf(minimum_height, THROW_HEIGHT_DROP + 0.021 - local_bounds.position.y)
+	hand.y = maxf(hand.y, global_position.y + minimum_height)
+	_hand_socket.global_position = hand
+	if _anim.is_playing() and _anim.current_animation.trim_prefix(_clip_prefix) in ONE_SHOT_CLIPS:
+		return
+	var ground_speed := Vector2(moved.x, moved.z).length() / delta
+	if ground_speed > 0.2:
+		_play(&"Run", minf(ground_speed / RUN_CLIP_SPEED, MAX_RUN_PLAYBACK))
+	else:
+		_play(&"Carry" if held_pickup != null else &"Idle", 1.0)
+
+
+func _play(clip: StringName, speed: float) -> void:
+	var animation_name := _clip_prefix + clip
+	if _anim.current_animation != animation_name:
+		_anim.play(animation_name, 0.15)
+	_anim.speed_scale = speed
+
+
+func _play_once(clip: StringName, from_seconds: float, speed: float) -> void:
+	_anim.play(_clip_prefix + clip, 0.1)
+	_anim.seek(from_seconds, true)
+	_anim.speed_scale = speed
+
+
+func receive_hit(sound: StringName = &"") -> void:
+	last_hit_sound = sound if sound in [&"hit_bonk", &"hit_boing"] else (&"hit_bonk" if randf() < 0.7 else &"hit_boing")
+	SFX.play_at(self, last_hit_sound)
 	apply_stun(HIT_STUN_DURATION)
 	_flash_remaining = HIT_FLASH_DURATION
 	_set_hit_flash(true)
@@ -153,6 +239,7 @@ func _cancel_aim() -> void:
 	var was_aiming := _is_aiming
 	_is_aiming = false
 	_aim_elapsed = 0.0
+	_peak_sound_played = false
 	if is_instance_valid(_trajectory):
 		_trajectory.clear_trajectory()
 	if was_aiming:
@@ -220,11 +307,14 @@ func _update_pickup_highlight() -> void:
 
 
 func _set_highlighted_pickup(pickup: RigidBody3D) -> void:
+	var changed := _highlighted_pickup != pickup
 	if _highlighted_pickup != pickup and is_instance_valid(_highlighted_pickup):
 		_highlighted_pickup.set_pickup_highlighted(false)
 	_highlighted_pickup = pickup
 	if is_instance_valid(_highlighted_pickup):
 		_highlighted_pickup.set_pickup_highlighted(true)
+		if changed and reads_local_input:
+			SFX.play_ui(self, &"pickup_pop", -14.0)
 
 
 func _exit_tree() -> void:
@@ -250,6 +340,8 @@ func hold_pickup(pickup: RigidBody3D) -> void:
 	pickup.position = pickup.get_meta(&"hold_offset", Vector3.ZERO)
 	held_pickup = pickup
 	_cancel_grab()
+	_play_once(&"Pickup", 0.45, 2.0)
+	_shared_sound(&"pickup_grab")
 	held_pickup_changed.emit(true)
 
 
@@ -268,6 +360,10 @@ func release_pickup(launch: bool, launch_velocity := Vector3.ZERO) -> void:
 		if not get_world_3d().direct_space_state.intersect_shape(query, 1).is_empty():
 			throw_blocked.emit()
 			return
+	if launch:
+		var speed := launch_velocity.length()
+		var sound: StringName = &"throw_cartoon" if speed >= 9.5 else (&"throw_spin" if speed >= 6.0 else (&"throw_heavy" if held_pickup.mass >= 2.0 else &"throw_light"))
+		_shared_sound(sound)
 	var pickup := held_pickup
 	held_pickup = null
 	_cancel_aim()
@@ -283,6 +379,7 @@ func release_pickup(launch: bool, launch_velocity := Vector3.ZERO) -> void:
 		if pickup.has_method(&"arm"):
 			pickup.arm(self)
 	pickup.add_to_group(&"pickups")
+	_play_once(&"Throw", 0.45, 1.5)
 	held_pickup_changed.emit(false)
 
 
@@ -302,10 +399,18 @@ func _physics_process(delta: float) -> void:
 			_grab_elapsed = minf(_grab_elapsed + delta, GRAB_SECONDS)
 			grab_changed.emit(true, _grab_elapsed / GRAB_SECONDS)
 	_update_pickup_highlight()
+	_update_animation(delta)
+	_update_footsteps()
 	if reads_local_input and _is_aiming and held_pickup != null and Input.is_action_pressed(&"interact"):
 		_aim_elapsed = fmod(_aim_elapsed + delta, THROW_CYCLE_SECONDS)
 		_trajectory.update_trajectory(self, held_pickup, _throw_velocity(), _throw_transform())
-		aim_changed.emit(true, _throw_speed())
+		var speed := _throw_speed()
+		if speed >= MAX_THROW_SPEED * 0.97 and not _peak_sound_played:
+			SFX.play_ui(self, &"pickup_powerup", -8.0)
+			_peak_sound_played = true
+		elif speed < MAX_THROW_SPEED * 0.97:
+			_peak_sound_played = false
+		aim_changed.emit(true, speed)
 	elif _is_aiming:
 		_cancel_aim()
 
@@ -321,3 +426,77 @@ func _move(input: Vector2, delta: float) -> void:
 	if not is_on_floor():
 		velocity += get_gravity() * delta
 	move_and_slide()
+
+
+func _shared_sound(sound: StringName) -> void:
+	# LAN sends real interaction events reliably; ownership snapshots may skip a
+	# brief hold or release an item for a contest rather than a throw.
+	if not shared_sfx_requested.get_connections().is_empty():
+		if simulates_movement:
+			shared_sfx_requested.emit(sound)
+	else:
+		SFX.play_at(self, sound, -4.0 if sound == &"pickup_grab" else 0.0)
+
+
+func _cache_step_regions() -> void:
+	var world := get_parent()
+	while world.get_parent() != null and not world.has_method(&"_apply_snapshot"):
+		world = world.get_parent()
+	for node in world.find_children("*", "Node3D", true, false):
+		var label := String(node.name).to_lower()
+		var sound: StringName = &""
+		if "rug" in label or "carpet" in label or label.ends_with("mat"):
+			sound = &"step_carpet"
+		elif "tile" in label or "checkers" in label or label == "entryfloor" or label == "entrance_pink_floor":
+			sound = &"step_tile"
+		if sound.is_empty():
+			continue
+		var meshes: Array[Node] = []
+		if node is MeshInstance3D or node is CSGBox3D:
+			meshes.append(node)
+		else:
+			meshes.assign(node.find_children("*", "MeshInstance3D", true, false))
+		for mesh in meshes:
+			var local_box: AABB
+			if mesh is MeshInstance3D:
+				local_box = mesh.get_aabb()
+			elif mesh is CSGBox3D:
+				local_box = AABB(-mesh.size * 0.5, mesh.size)
+			else:
+				continue
+			var box: AABB = mesh.global_transform * local_box
+			_step_regions.append({"area": Rect2(Vector2(box.position.x, box.position.z), Vector2(box.size.x, box.size.z)), "sound": sound})
+
+
+func _footstep_surface() -> StringName:
+	if held_pickup != null:
+		return &"step_cartoon"
+	var position_xz := Vector2(global_position.x, global_position.z)
+	var result: StringName = &"step_wood"
+	for region in _step_regions:
+		if (region.area as Rect2).has_point(position_xz):
+			if region.sound == &"step_carpet":
+				return &"step_carpet"
+			result = region.sound
+	return result
+
+
+func _grounded_for_steps() -> bool:
+	if simulates_movement:
+		return is_on_floor()
+	# Replicas never call move_and_slide, so is_on_floor/velocity are stale.
+	_step_ray.from = global_position + Vector3.UP * 0.12
+	_step_ray.to = global_position + Vector3.DOWN * 0.18
+	return not get_world_3d().direct_space_state.intersect_ray(_step_ray).is_empty()
+
+
+func _update_footsteps() -> void:
+	var distance := Vector2(global_position.x - _step_position.x, global_position.z - _step_position.z).length()
+	_step_position = global_position
+	if distance > 0.8 or is_stunned() or contest_active or not _grounded_for_steps():
+		_step_distance = 0.0
+		return
+	_step_distance += distance
+	while _step_distance >= 0.55:
+		_step_distance -= 0.55
+		SFX.play_at(self, _footstep_surface(), -10.0, 0.08)

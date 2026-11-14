@@ -31,17 +31,17 @@ func _run() -> void:
 	var target: CharacterBody3D = mode.target
 	_check(lobby._peer == null and not lobby._discovery.is_bound() and lobby.multiplayer.get_peers().is_empty(), "Test Mode opens without hosting, discovery, or another peer")
 	_check(not lobby.get_node("Menu").visible and apartment.guest_peer_id == 0, "Test Mode opens the offline apartment directly")
-	_check(target.is_on_floor() and not target.reads_local_input and player.is_on_floor(), "The player and the blue test target stand on the floor")
-	_check(get_nodes_in_group(&"pickups").size() == 21, "All spheres and apartment props remain available")
+	_check(target.is_on_floor() and not target.reads_local_input and player.is_on_floor(), "The player and test target stand on the floor")
+	_check(get_nodes_in_group(&"pickups").size() == 24, "All spheres and apartment props remain available")
 	var start := player.global_position
 	var target_start := target.global_position
 	var pointer := player.get_node("Head/PlayerPosPointer") as Sprite3D
 	var pointer_start := pointer.global_position
 	_set_key(KEY_W, true)
-	await _wait_for_physics(18)
+	await _wait_for_physics(48)
 	_set_key(KEY_W, false)
 	_check(player.global_position.z < start.z - 1.0 and target.global_position.distance_to(target_start) < 0.02, "WASD moves only the controllable player")
-	_check(pointer.visible and not target.get_node("Head/PlayerPosPointer").visible and pointer_start.y > start.y + 1.85
+	_check(pointer.visible and not target.get_node("Head/PlayerPosPointer").visible and pointer_start.y > start.y + player.get_node("CollisionShape3D").shape.height
 		and (pointer.global_position - pointer_start).is_equal_approx(player.global_position - start),
 		"Only the controllable player has a pointer, and it follows their movement above their head")
 	_mouse(MOUSE_BUTTON_LEFT, true)
@@ -57,7 +57,7 @@ func _run() -> void:
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	await _expect(func() -> bool: return target.is_stunned(), "A real throw can hit and stun the test target")
 	await _wait_for_physics(35)
-	_check(not target.is_stunned() and target.get_node("Torso").material_overlay == null, "The target recovers and returns to blue")
+	_check(not target.is_stunned() and target._body_meshes[0].material_overlay == null, "The target recovers and the hit flash clears")
 	var thrown_item: RigidBody3D = apartment.get_node("Pickup3")
 
 	var before_hit := player.global_position
@@ -111,7 +111,7 @@ func _run() -> void:
 	_check(apartment.get_node("HUD/WifeBag/Items").get_child_count() == 0
 		and apartment.get_node("HUD/WifeProfile/WifeWallet/Gold").text == "000000", "A new test round resets bags and gold")
 	_check(player.held_pickup == null and not player.is_stunned(), "Reset clears held objects and player state")
-	_check(get_nodes_in_group(&"pickups").size() == 21 and get_nodes_in_group(&"apartment_props").size() == 18, "Reset restores every prop without duplicates")
+	_check(get_nodes_in_group(&"pickups").size() == 24 and get_nodes_in_group(&"household_items").size() == 21, "Reset restores every prop without duplicates")
 	timer = apartment.get_node("RoundTimer") as Timer
 	clock = apartment.get_node("HUD/TimeLeft") as Label
 	await _tap(KEY_G)

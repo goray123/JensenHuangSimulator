@@ -1,0 +1,48 @@
+{
+  "fps": 30,
+  "events": {
+    "Run": [
+      {
+        "frame": 1,
+        "event": "footstep_L",
+        "socket": "foot.L",
+        "time_seconds": 0.0
+      },
+      {
+        "frame": 16,
+        "event": "footstep_R",
+        "socket": "foot.R",
+        "time_seconds": 0.5
+      }
+    ],
+    "Pickup": [
+      {
+        "frame": 24,
+        "event": "attach_to_hand",
+        "socket": "socket_grip.R",
+        "time_seconds": 0.7666666666666667
+      }
+    ],
+    "Throw": [
+      {
+        "frame": 18,
+        "event": "release_throw",
+        "socket": "socket_grip.R",
+        "time_seconds": 0.5666666666666667
+      }
+    ],
+    "Stow": [
+      {
+        "frame": 33,
+        "event": "inventory_insert",
+        "socket": "socket_bag_mouth",
+        "time_seconds": 1.0666666666666667
+      }
+    ]
+  },
+  "run_speeds_mps": {
+    "01_Elder": 0.4842153898505278,
+    "02_Woman": 0.3949164443237837,
+    "03_Young": 0.4595303618630698
+  }
+}

@@ -19,7 +19,7 @@ func _run() -> void:
 	_check(spawn.distance_to(spawn_marker.global_position) < 0.02 and player.is_on_floor(), "Player starts on the floor at the new map's spawn")
 
 	player.global_position = Vector3(8.8, spawn.y, -0.8)
-	await _hold_key(KEY_S, 45)
+	await _hold_key(KEY_S, 120)
 	_check(absf(player.global_position.z + 0.32) < 0.06 and player.is_on_floor(), "The play area boundary keeps the player from falling down the entry steps")
 
 	for passage in [
@@ -61,7 +61,7 @@ func _run() -> void:
 		for key: Key in movement_case.keys:
 			_set_key(key, false)
 		var displacement := player.global_position - living_room
-		_check(displacement.distance_to(direction * 1.6) < 0.15, "Keys %s move steadily in the requested direction at a consistent speed" % [movement_case.keys])
+		_check(displacement.distance_to(direction * player.MOVE_SPEED * 24.0 / 60.0) < 0.15, "Keys %s move steadily in the requested direction at a consistent speed" % [movement_case.keys])
 		_check((-player.global_transform.basis.z).dot(direction) > 0.99, "Keys %s turn the player toward movement" % [movement_case.keys])
 
 	await _wait_for_physics(2)
@@ -83,7 +83,7 @@ func _run() -> void:
 		{"start": living_room, "key": KEY_D, "direction": Vector3.RIGHT, "distance": 2.09},
 	]:
 		player.global_position = wall_case.start
-		await _hold_key(wall_case.key, 45)
+		await _hold_key(wall_case.key, 150)
 		var traveled := (player.global_position - (wall_case.start as Vector3)).dot(wall_case.direction)
 		_check(absf(traveled - wall_case.distance) < 0.15, "Wall blocks movement in direction %s" % wall_case.direction)
 

@@ -16,11 +16,11 @@ func _run() -> void:
 	victim.reads_local_input = false
 	var blue := StandardMaterial3D.new()
 	blue.albedo_color = Color(0.16, 0.65, 0.98)
-	victim.get_node("Torso").material_override = blue
 	apartment.add_child(victim)
+	victim._body_meshes[0].material_override = blue
 	await _wait_for_physics(15)
 	var ground_y := thrower.global_position.y
-	var torso := victim.get_node("Torso") as MeshInstance3D
+	var torso := victim._body_meshes[0] as MeshInstance3D
 	var original_overlay := torso.material_overlay
 	var hit_positions: Array[Vector3] = []
 	victim.hit_received.connect(func() -> void: hit_positions.append(victim.global_position))
@@ -45,7 +45,7 @@ func _run() -> void:
 	await _wait_for_physics(12)
 	_check(victim.is_stunned() and victim.global_position.distance_to(hit_position) < 0.01, "Held movement input cannot move the victim during the 0.5-second stun")
 	await _wait_for_physics(8)
-	_check(not victim.is_stunned() and victim.global_position.x > hit_position.x + 0.1, "Movement resumes after 0.5 seconds")
+	_check(not victim.is_stunned() and victim.global_position.x > hit_position.x + 0.02 and is_equal_approx(victim.velocity.x, victim.MOVE_SPEED), "Movement resumes at the authored speed after 0.5 seconds")
 
 	var tv := apartment.get_node("Furnishings/LivingRoom/Television") as RigidBody3D
 	victim.remote_input = Vector2.ZERO

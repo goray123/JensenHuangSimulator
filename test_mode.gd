@@ -1,7 +1,9 @@
 extends Node3D
 
+const SFX := preload("res://sfx.gd")
+
 const PLAYER_SCENE := preload("res://player.tscn")
-const TARGET_COLOR := Color(0.16, 0.65, 0.98)
+const TARGET_MODEL := preload("res://assets/characters/thump/01_Elder.glb")
 const PRACTICE_SPAWN := Vector3(6.6, 0.065, -0.9)
 
 var target: CharacterBody3D
@@ -22,13 +24,10 @@ func _ready() -> void:
 	target.name = "TestTarget"
 	target.reads_local_input = false
 	target.position = Vector3(6.6, 0.065, -4.0)
-	var jacket := StandardMaterial3D.new()
-	jacket.albedo_color = TARGET_COLOR
-	jacket.roughness = 0.88
-	for part in [&"Torso", &"LeftArm", &"RightArm"]:
-		target.get_node(NodePath(part)).material_override = jacket
+	target.model_scene = TARGET_MODEL
 	add_child(target)
 	_apartment._contest.register_opponent(target)
+	target.hit_received.connect(_on_target_hit)
 
 
 func _physics_process(delta: float) -> void:
@@ -68,3 +67,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_G:
 		_start_contest_test()
 		get_viewport().set_input_as_handled()
+
+
+func _on_target_hit() -> void:
+	SFX.play_ui(self, &"pickup_sparkle")

@@ -1,0 +1,770 @@
+{
+  "created_at": "2026-11-14T18:58:53.226810+09:00",
+  "blender_version": "5.2.1 LTS",
+  "workflow_order_verified": true,
+  "concept_images": 23,
+  "ai_turnaround_sheets": 23,
+  "items": [
+    {
+      "id": "01-banana",
+      "name": "바나나",
+      "name_en": "Banana",
+      "room": "부엌",
+      "gameplay_note": "던져 바닥에 닿으면 지뢰가 됨",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.2,
+      "mesh_objects": 3,
+      "vertices": 66,
+      "triangles": 120,
+      "bounds_min": [
+        -0.29970017075538635,
+        -0.054999999701976776,
+        0.0
+      ],
+      "bounds_max": [
+        0.29970017075538635,
+        0.054999999701976776,
+        0.32157036662101746
+      ],
+      "size_m": [
+        0.5994003415107727,
+        0.10999999940395355,
+        0.32157036662101746
+      ],
+      "concept_path": "concepts/01-banana.png",
+      "turnaround_path": "turnarounds/01-banana.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "02-water-puddle",
+      "name": "물웅덩이",
+      "name_en": "Water puddle",
+      "room": "부엌",
+      "gameplay_note": "물 뿌리기 / 미끄러짐",
+      "gameplay_implemented": false,
+      "physics_kind": "area",
+      "mass_kg_proposal": 0,
+      "mesh_objects": 4,
+      "vertices": 64,
+      "triangles": 112,
+      "bounds_min": [
+        -0.5040000081062317,
+        -0.3238934874534607,
+        0.0
+      ],
+      "bounds_max": [
+        0.5040000081062317,
+        0.3238934874534607,
+        0.014999999664723873
+      ],
+      "size_m": [
+        1.0080000162124634,
+        0.6477869749069214,
+        0.014999999664723873
+      ],
+      "concept_path": "concepts/02-water-puddle.png",
+      "turnaround_path": "turnarounds/02-water-puddle.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "03-banana-peel",
+      "name": "바나나껍질",
+      "name_en": "Banana peel",
+      "room": "부엌",
+      "gameplay_note": "미끄러짐 함정",
+      "gameplay_implemented": false,
+      "physics_kind": "area",
+      "mass_kg_proposal": 0,
+      "mesh_objects": 5,
+      "vertices": 72,
+      "triangles": 124,
+      "bounds_min": [
+        -0.24332532286643982,
+        -0.2809678614139557,
+        0.0
+      ],
+      "bounds_max": [
+        0.24332532286643982,
+        0.2809678614139557,
+        0.27300000190734863
+      ],
+      "size_m": [
+        0.48665064573287964,
+        0.5619357228279114,
+        0.27300000190734863
+      ],
+      "concept_path": "concepts/03-banana-peel.png",
+      "turnaround_path": "turnarounds/03-banana-peel.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "04-kimchi",
+      "name": "김치통",
+      "name_en": "Kimchi",
+      "room": "부엌",
+      "gameplay_note": "김치 효과 미정(?)",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.7,
+      "mesh_objects": 17,
+      "vertices": 176,
+      "triangles": 284,
+      "bounds_min": [
+        -0.2150000035762787,
+        -0.1550000011920929,
+        0.0
+      ],
+      "bounds_max": [
+        0.2150000035762787,
+        0.1550000011920929,
+        0.21000000834465027
+      ],
+      "size_m": [
+        0.4300000071525574,
+        0.3100000023841858,
+        0.21000000834465027
+      ],
+      "concept_path": "concepts/04-kimchi.png",
+      "turnaround_path": "turnarounds/04-kimchi.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "05-cake",
+      "name": "케이크",
+      "name_en": "Cake",
+      "room": "부엌",
+      "gameplay_note": "투척 시 화면 가리기",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.6,
+      "mesh_objects": 7,
+      "vertices": 170,
+      "triangles": 312,
+      "bounds_min": [
+        -0.22499999403953552,
+        -0.21398772299289703,
+        0.0
+      ],
+      "bounds_max": [
+        0.22499999403953552,
+        0.21398772299289703,
+        0.3779999911785126
+      ],
+      "size_m": [
+        0.44999998807907104,
+        0.42797544598579407,
+        0.3779999911785126
+      ],
+      "concept_path": "concepts/05-cake.png",
+      "turnaround_path": "turnarounds/05-cake.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "06-egg",
+      "name": "계란",
+      "name_en": "Egg",
+      "room": "부엌",
+      "gameplay_note": "화면 효과 미정(?)",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.08,
+      "mesh_objects": 1,
+      "vertices": 48,
+      "triangles": 92,
+      "bounds_min": [
+        -0.07800000160932541,
+        -0.07800000160932541,
+        0.0
+      ],
+      "bounds_max": [
+        0.07800000160932541,
+        0.07800000160932541,
+        0.23000000417232513
+      ],
+      "size_m": [
+        0.15600000321865082,
+        0.15600000321865082,
+        0.23000000417232513
+      ],
+      "concept_path": "concepts/06-egg.png",
+      "turnaround_path": "turnarounds/06-egg.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "07-frying-pan",
+      "name": "프라이팬",
+      "name_en": "Frying pan",
+      "room": "부엌",
+      "gameplay_note": "투척/근접 물건",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 1.2,
+      "mesh_objects": 3,
+      "vertices": 56,
+      "triangles": 100,
+      "bounds_min": [
+        -0.4024999737739563,
+        -0.20923243463039398,
+        0.0
+      ],
+      "bounds_max": [
+        0.4024999737739563,
+        0.20923243463039398,
+        0.07750000059604645
+      ],
+      "size_m": [
+        0.8049999475479126,
+        0.41846486926078796,
+        0.07750000059604645
+      ],
+      "concept_path": "concepts/07-frying-pan.png",
+      "turnaround_path": "turnarounds/07-frying-pan.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "08-computer",
+      "name": "컴퓨터",
+      "name_en": "Computer",
+      "room": "방1",
+      "gameplay_note": "고가 가전",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 8,
+      "mesh_objects": 33,
+      "vertices": 312,
+      "triangles": 492,
+      "bounds_min": [
+        -0.3727499842643738,
+        -0.3479999899864197,
+        0.0
+      ],
+      "bounds_max": [
+        0.3727499842643738,
+        0.3479999899864197,
+        0.5299999713897705
+      ],
+      "size_m": [
+        0.7454999685287476,
+        0.6959999799728394,
+        0.5299999713897705
+      ],
+      "concept_path": "concepts/08-computer.png",
+      "turnaround_path": "turnarounds/08-computer.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "09-dumbbell",
+      "name": "덤벨",
+      "name_en": "Dumbbell",
+      "room": "방1",
+      "gameplay_note": "무거운 투척 물건",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 5,
+      "mesh_objects": 5,
+      "vertices": 60,
+      "triangles": 100,
+      "bounds_min": [
+        -0.25200000405311584,
+        -0.09959292411804199,
+        0.0
+      ],
+      "bounds_max": [
+        0.25200000405311584,
+        0.09959292411804199,
+        0.23000001907348633
+      ],
+      "size_m": [
+        0.5040000081062317,
+        0.19918584823608398,
+        0.23000001907348633
+      ],
+      "concept_path": "concepts/09-dumbbell.png",
+      "turnaround_path": "turnarounds/09-dumbbell.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "10-tissue-box",
+      "name": "휴지",
+      "name_en": "Tissue box",
+      "room": "방1",
+      "gameplay_note": "효과 미정",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.15,
+      "mesh_objects": 5,
+      "vertices": 56,
+      "triangles": 92,
+      "bounds_min": [
+        -0.14499999582767487,
+        -0.0949999988079071,
+        0.0
+      ],
+      "bounds_max": [
+        0.14499999582767487,
+        0.0949999988079071,
+        0.3400000035762787
+      ],
+      "size_m": [
+        0.28999999165534973,
+        0.1899999976158142,
+        0.3400000035762787
+      ],
+      "concept_path": "concepts/10-tissue-box.png",
+      "turnaround_path": "turnarounds/10-tissue-box.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "11-bed",
+      "name": "침대",
+      "name_en": "Bed",
+      "room": "방2",
+      "gameplay_note": "큰 물건 / 고가",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 35,
+      "mesh_objects": 10,
+      "vertices": 83,
+      "triangles": 126,
+      "bounds_min": [
+        -0.75,
+        -1.0,
+        0.0
+      ],
+      "bounds_max": [
+        0.75,
+        1.0,
+        0.949999988079071
+      ],
+      "size_m": [
+        1.5,
+        2.0,
+        0.949999988079071
+      ],
+      "concept_path": "concepts/11-bed.png",
+      "turnaround_path": "turnarounds/11-bed.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "12-ring",
+      "name": "반지",
+      "name_en": "Ring",
+      "room": "방2",
+      "gameplay_note": "고가 / 가짜 다이아 시나리오 후보",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.03,
+      "mesh_objects": 6,
+      "vertices": 120,
+      "triangles": 220,
+      "bounds_min": [
+        -0.12300000339746475,
+        -0.0689999982714653,
+        0.0
+      ],
+      "bounds_max": [
+        0.12300000339746475,
+        0.0689999982714653,
+        0.3149999976158142
+      ],
+      "size_m": [
+        0.2460000067949295,
+        0.1379999965429306,
+        0.3149999976158142
+      ],
+      "concept_path": "concepts/12-ring.png",
+      "turnaround_path": "turnarounds/12-ring.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "13-photo-album",
+      "name": "앨범",
+      "name_en": "Photo album",
+      "room": "방2",
+      "gameplay_note": "추억 가치 / 효과 미정(?)",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.5,
+      "mesh_objects": 9,
+      "vertices": 72,
+      "triangles": 108,
+      "bounds_min": [
+        -0.16200000047683716,
+        -0.13500000536441803,
+        0.0
+      ],
+      "bounds_max": [
+        0.16200000047683716,
+        0.13500000536441803,
+        0.0729999989271164
+      ],
+      "size_m": [
+        0.3240000009536743,
+        0.27000001072883606,
+        0.0729999989271164
+      ],
+      "concept_path": "concepts/13-photo-album.png",
+      "turnaround_path": "turnarounds/13-photo-album.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "14-letter",
+      "name": "편지",
+      "name_en": "Letter",
+      "room": "방2",
+      "gameplay_note": "결산 시 불륜 등 특수 이벤트 후보",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.02,
+      "mesh_objects": 5,
+      "vertices": 46,
+      "triangles": 72,
+      "bounds_min": [
+        -0.1405675709247589,
+        -0.08539730310440063,
+        0.0
+      ],
+      "bounds_max": [
+        0.1405675709247589,
+        0.08539730310440063,
+        0.020999999716877937
+      ],
+      "size_m": [
+        0.2811351418495178,
+        0.17079460620880127,
+        0.020999999716877937
+      ],
+      "concept_path": "concepts/14-letter.png",
+      "turnaround_path": "turnarounds/14-letter.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "15-desk",
+      "name": "책상",
+      "name_en": "Desk",
+      "room": "거실",
+      "gameplay_note": "가구 / 가치 물건",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 20,
+      "mesh_objects": 9,
+      "vertices": 72,
+      "triangles": 108,
+      "bounds_min": [
+        -0.675000011920929,
+        -0.32499998807907104,
+        0.0
+      ],
+      "bounds_max": [
+        0.675000011920929,
+        0.32499998807907104,
+        0.7599999904632568
+      ],
+      "size_m": [
+        1.350000023841858,
+        0.6499999761581421,
+        0.7599999904632568
+      ],
+      "concept_path": "concepts/15-desk.png",
+      "turnaround_path": "turnarounds/15-desk.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "16-piggy-bank",
+      "name": "저금통",
+      "name_en": "Piggy bank",
+      "room": "거실",
+      "gameplay_note": "랜덤 돈 가치",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.8,
+      "mesh_objects": 18,
+      "vertices": 212,
+      "triangles": 352,
+      "bounds_min": [
+        -0.14742334187030792,
+        -0.2645000219345093,
+        0.0
+      ],
+      "bounds_max": [
+        0.14742334187030792,
+        0.2645000219345093,
+        0.38499999046325684
+      ],
+      "size_m": [
+        0.29484668374061584,
+        0.5290000438690186,
+        0.38499999046325684
+      ],
+      "concept_path": "concepts/16-piggy-bank.png",
+      "turnaround_path": "turnarounds/16-piggy-bank.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "17-tv",
+      "name": "TV",
+      "name_en": "TV",
+      "room": "거실",
+      "gameplay_note": "고가 가전 / 쟁탈 물건",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 6,
+      "mesh_objects": 9,
+      "vertices": 144,
+      "triangles": 252,
+      "bounds_min": [
+        -0.4399999976158142,
+        -0.10000000149011612,
+        0.0
+      ],
+      "bounds_max": [
+        0.4399999976158142,
+        0.10000000149011612,
+        0.6349999904632568
+      ],
+      "size_m": [
+        0.8799999952316284,
+        0.20000000298023224,
+        0.6349999904632568
+      ],
+      "concept_path": "concepts/17-tv.png",
+      "turnaround_path": "turnarounds/17-tv.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "18-folded-clothes",
+      "name": "옷",
+      "name_en": "Folded shirt",
+      "room": "드레스룸",
+      "gameplay_note": "의류 / 효과 미정(?)",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.4,
+      "mesh_objects": 6,
+      "vertices": 92,
+      "triangles": 164,
+      "bounds_min": [
+        -0.23999999463558197,
+        -0.1550000011920929,
+        0.0
+      ],
+      "bounds_max": [
+        0.23999999463558197,
+        0.1550000011920929,
+        0.17249999940395355
+      ],
+      "size_m": [
+        0.47999998927116394,
+        0.3100000023841858,
+        0.17249999940395355
+      ],
+      "concept_path": "concepts/18-folded-clothes.png",
+      "turnaround_path": "turnarounds/18-folded-clothes.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "19-shoes",
+      "name": "신발",
+      "name_en": "Shoes",
+      "room": "드레스룸",
+      "gameplay_note": "의류 / 효과 미정",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.8,
+      "mesh_objects": 12,
+      "vertices": 168,
+      "triangles": 288,
+      "bounds_min": [
+        -0.15950000286102295,
+        -0.15000000596046448,
+        0.0
+      ],
+      "bounds_max": [
+        0.15950000286102295,
+        0.15000000596046448,
+        0.1509999930858612
+      ],
+      "size_m": [
+        0.3190000057220459,
+        0.30000001192092896,
+        0.1509999930858612
+      ],
+      "concept_path": "concepts/19-shoes.png",
+      "turnaround_path": "turnarounds/19-shoes.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "20-coat",
+      "name": "코트",
+      "name_en": "Coat",
+      "room": "드레스룸",
+      "gameplay_note": "공격 1회 방어",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 1,
+      "mesh_objects": 10,
+      "vertices": 192,
+      "triangles": 356,
+      "bounds_min": [
+        -0.5216283202171326,
+        -0.17550000548362732,
+        0.0
+      ],
+      "bounds_max": [
+        0.5216283202171326,
+        0.17550000548362732,
+        1.034999966621399
+      ],
+      "size_m": [
+        1.0432566404342651,
+        0.35100001096725464,
+        1.034999966621399
+      ],
+      "concept_path": "concepts/20-coat.png",
+      "turnaround_path": "turnarounds/20-coat.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "21-plunger",
+      "name": "뚫어뻥",
+      "name_en": "Plunger",
+      "room": "욕실",
+      "gameplay_note": "독 피해 / 이속 저하·구토 후보",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.5,
+      "mesh_objects": 2,
+      "vertices": 92,
+      "triangles": 180,
+      "bounds_min": [
+        -0.14000000059604645,
+        -0.13314791023731232,
+        0.0
+      ],
+      "bounds_max": [
+        0.14000000059604645,
+        0.13314791023731232,
+        0.9100000262260437
+      ],
+      "size_m": [
+        0.2800000011920929,
+        0.26629582047462463,
+        0.9100000262260437
+      ],
+      "concept_path": "concepts/21-plunger.png",
+      "turnaround_path": "turnarounds/21-plunger.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "22-bucket",
+      "name": "양동이",
+      "name_en": "Bucket",
+      "room": "욕실",
+      "gameplay_note": "물 운반/투척 용도 후보",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.6,
+      "mesh_objects": 9,
+      "vertices": 112,
+      "triangles": 188,
+      "bounds_min": [
+        -0.20465925335884094,
+        -0.17119017243385315,
+        0.0
+      ],
+      "bounds_max": [
+        0.20465925335884094,
+        0.17119017243385315,
+        0.48465925455093384
+      ],
+      "size_m": [
+        0.4093185067176819,
+        0.3423803448677063,
+        0.48465925455093384
+      ],
+      "concept_path": "concepts/22-bucket.png",
+      "turnaround_path": "turnarounds/22-bucket.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    },
+    {
+      "id": "23-shampoo",
+      "name": "샴푸",
+      "name_en": "Shampoo",
+      "room": "욕실",
+      "gameplay_note": "샴푸 등 / 효과 미정(?)",
+      "gameplay_implemented": false,
+      "physics_kind": "rigid_body",
+      "mass_kg_proposal": 0.4,
+      "mesh_objects": 6,
+      "vertices": 108,
+      "triangles": 192,
+      "bounds_min": [
+        -0.08300000429153442,
+        -0.04924999922513962,
+        0.0
+      ],
+      "bounds_max": [
+        0.08300000429153442,
+        0.04924999922513962,
+        0.3720000088214874
+      ],
+      "size_m": [
+        0.16600000858306885,
+        0.09849999845027924,
+        0.3720000088214874
+      ],
+      "concept_path": "concepts/23-shampoo.png",
+      "turnaround_path": "turnarounds/23-shampoo.png",
+      "closed_parts": true,
+      "flat_shaded": true,
+      "origin": "bottom center, metres, Blender Z up"
+    }
+  ],
+  "total_triangles": 4434,
+  "materials": "flat face colors; glTF Unlit; no image textures"
+}
