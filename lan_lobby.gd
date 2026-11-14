@@ -49,6 +49,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if _state != State.IDLE and event.is_action_pressed(&"ui_cancel"):
 		_return_to_menu(READY_MESSAGE)
 		get_viewport().set_input_as_handled()
+	elif _state == State.TESTING and event.is_action_pressed(&"test_reset"):
+		_restart_test_mode.call_deferred()
+		get_viewport().set_input_as_handled()
 
 
 func _host_room() -> void:
@@ -186,11 +189,9 @@ func _start_test_mode() -> void:
 
 func _open_test_apartment() -> void:
 	_apartment = APARTMENT.instantiate()
-	_apartment.timed_round = false
 	add_child(_apartment)
 	var test_mode := TEST_MODE.new()
 	test_mode.name = "TestMode"
-	test_mode.reset_requested.connect(_restart_test_mode, CONNECT_DEFERRED)
 	_apartment.add_child(test_mode)
 	_menu.hide()
 

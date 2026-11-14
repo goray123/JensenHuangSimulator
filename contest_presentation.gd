@@ -19,8 +19,6 @@ var _ui: Control
 var _contest_panel: PanelContainer
 var _title: Label
 var _result: Label
-var _controls: Control
-var _controls_were_visible := true
 
 
 func setup(apartment: Node3D, players: Array) -> void:
@@ -30,7 +28,6 @@ func setup(apartment: Node3D, players: Array) -> void:
 		if player is Node3D:
 			_players.append(player)
 	_camera = apartment.get_node_or_null("Overview") as Camera3D
-	_controls = apartment.get_node_or_null("HUD/Controls") as Control
 	var hud := apartment.get_node_or_null("HUD")
 	if hud == null:
 		return
@@ -52,11 +49,8 @@ func start_contest(item_name: String) -> void:
 		_original_transform = _camera.global_transform
 		_original_size = _camera.size
 		_camera_saved = true
-	if not active and is_instance_valid(_controls):
-		_controls_were_visible = _controls.visible
-		_controls.hide()
 	active = true
-	_title.text = "%s 쟁탈전  ·  E를 빠르게 연타하세요!" % item_name
+	_title.text = "%s 쟁탈전" % item_name
 	_contest_panel.show()
 	set_progress(0.5)
 	_zoom_to_players()
@@ -73,9 +67,8 @@ func finish_contest(winner_index: int) -> void:
 		return
 	active = false
 	_contest_panel.hide()
-	_restore_controls()
 	_restore_camera(true)
-	_result.text = "%s 승리!  ·  물건 획득 / 상대는 2.5초 동안 이동 불가" % ("주황 플레이어" if winner_index == 0 else "파란 플레이어")
+	_result.text = "%s 승리!" % ("주황 플레이어" if winner_index == 0 else "파란 플레이어")
 	_result.add_theme_color_override(&"font_color", GOLD if winner_index == 0 else BLUE)
 	_result.modulate.a = 1.0
 	_result.show()
@@ -89,7 +82,6 @@ func finish_contest(winner_index: int) -> void:
 func cancel_contest() -> void:
 	active = false
 	_stop_result_tween()
-	_restore_controls()
 	_restore_camera(false)
 	if is_instance_valid(_contest_panel):
 		_contest_panel.hide()
@@ -142,11 +134,6 @@ func _finish_camera_restore() -> void:
 		_camera.global_transform = _original_transform
 		_camera.size = _original_size
 	_camera_saved = false
-
-
-func _restore_controls() -> void:
-	if is_instance_valid(_controls):
-		_controls.visible = _controls_were_visible
 
 
 func _stop_camera_tween() -> void:
@@ -232,8 +219,8 @@ void fragment() {
 	_result.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 	_result.offset_left = 24.0
 	_result.offset_right = -24.0
-	_result.offset_top = -154.0
-	_result.offset_bottom = -86.0
+	_result.offset_top = -100.0
+	_result.offset_bottom = -32.0
 	_ui.add_child(_result)
 	_contest_panel.hide()
 	_result.hide()
@@ -261,8 +248,8 @@ func _on_viewport_resized() -> void:
 	panel_width = minf(panel_width, maxf(width - 32.0, 1.0))
 	_contest_panel.offset_left = (width - panel_width) * 0.5
 	_contest_panel.offset_right = -(width - panel_width) * 0.5
-	_contest_panel.offset_top = -190.0
-	_contest_panel.offset_bottom = -62.0
+	_contest_panel.offset_top = -150.0
+	_contest_panel.offset_bottom = -22.0
 	if active:
 		_zoom_to_players()
 

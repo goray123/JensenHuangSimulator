@@ -21,7 +21,6 @@ class StartBarrier:
 var _lobby: Node
 var _host: Player
 var _guest: Player
-var _status: Label
 var _pickup: RigidBody3D
 var _failed := false
 
@@ -63,7 +62,6 @@ func _run() -> void:
 	var apartment := _lobby.get_node("Apartment")
 	_host = apartment.get_node("Player")
 	_guest = apartment.get_node("Guest")
-	_status = apartment.get_node("HUD/PickupStatus")
 	_pickup = apartment.get_node("Pickup3")
 	_check(apartment._pickups.size() == 21, "All spheres, TV, and small props have shared network indices")
 	await _wait_frames(8)
@@ -111,7 +109,7 @@ func _test_host(second: RigidBody3D) -> void:
 	)
 	_check(_guest.position.x < 7.25 and _guest.position.z > -2.6, "The host receives both axes of guest movement")
 	_check(_guest.rotation.y > 1.0, "The host receives guest turning")
-	_check(_host.position.distance_to(HOST_SPAWN) < 0.08 and _status.text == "손: 비어 있음", "Guest input affects only the guest")
+	_check(_host.position.distance_to(HOST_SPAWN) < 0.08 and _host.held_pickup == null, "Guest input affects only the guest")
 	var from := _pickup.global_position
 	await _expect(func() -> bool: return _guest.held_pickup == null and _pickup.global_position.distance_to(from) > 0.35,
 		"Guest throw moves the shared pickup on the host")
@@ -124,7 +122,7 @@ func _test_host(second: RigidBody3D) -> void:
 	_key(KEY_W, false)
 	_check(_host._highlighted_pickup == second and _guest._highlighted_pickup == null, "Only the host's own nearest E target is highlighted on the host")
 	await _tap(KEY_E)
-	_check(_host.held_pickup == second and _status.text.contains("손: 구"), "Host can pick up a sphere and see their own HUD")
+	_check(_host.held_pickup == second, "Host can pick up a sphere")
 	_key(KEY_T, true)
 	await _wait_frames(20)
 	_key(KEY_T, false)
@@ -147,7 +145,6 @@ func _test_guest() -> void:
 	_check(_guest._highlighted_pickup == _pickup and _host._highlighted_pickup == null, "Only the guest's own nearest E target is highlighted on the client")
 	await _tap(KEY_E)
 	await _expect(func() -> bool: return _guest.held_pickup == _pickup, "Guest sees the sphere attach to their hand")
-	_check(_status.text.contains("손: 구"), "Guest's HUD tracks their own holding state")
 	_key(KEY_T, true)
 	await _wait_frames(12)
 	_check(_guest.get_node("ThrowTrajectory").visible, "Guest can aim before throwing")
@@ -158,7 +155,7 @@ func _test_guest() -> void:
 	await _expect(func() -> bool: return _guest.held_pickup == null and _pickup.global_position.distance_to(from) > 0.35,
 		"Guest sees the shared throw after releasing T")
 	await _expect(func() -> bool: return _host.held_pickup != null, "Guest sees the host move and pick up another sphere")
-	_check(_host.position.z < -2.65 and _status.text == "손: 비어 있음", "Host input affects only the host")
+	_check(_host.position.z < -2.65 and _guest.held_pickup == null, "Host input affects only the host")
 	var host_pickup := _host.held_pickup
 	var host_release := host_pickup.global_position
 	await _expect(func() -> bool: return _host.held_pickup == null and host_pickup.global_position.distance_to(host_release) > 0.35,
@@ -167,7 +164,6 @@ func _test_guest() -> void:
 	await _expect(func() -> bool: return tv.global_position.distance_to(_guest.global_position + Vector3.UP * 0.8) < 0.1, "Guest receives the shared TV transform")
 	await _tap(KEY_E)
 	await _expect(func() -> bool: return _guest.held_pickup == tv, "Guest sees the TV attached with its prop-specific hand offset")
-	_check(_status.text.contains("TV"), "The guest's HUD names the held TV")
 	_key(KEY_T, true)
 	await _wait_frames(60)
 	_check(_lobby.get_node("Apartment/HUD/ThrowPower").value > 9.9, "Guest charging reaches ten despite regular snapshots")

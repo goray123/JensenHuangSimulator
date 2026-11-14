@@ -19,7 +19,6 @@ func _run() -> void:
 	var apartment := preload("res://courtyard.tscn").instantiate()
 	root.add_child(apartment)
 	var player := apartment.get_node("Player") as CharacterBody3D
-	var status := apartment.get_node("HUD/PickupStatus") as Label
 	var trajectory := player.get_node("ThrowTrajectory") as MeshInstance3D
 	var power := apartment.get_node("HUD/ThrowPower") as ProgressBar
 	var props := get_nodes_in_group(&"apartment_props")
@@ -56,7 +55,6 @@ func _run() -> void:
 		if player.held_pickup != body:
 			body.remove_from_group(&"pickups")
 			continue
-		_check(status.text.contains(str(body.get_meta(&"pickup_name"))), "%s is named in the HUD" % body.name)
 		_check(body.freeze and body.collision_layer == 0, "%s is safe to carry" % body.name)
 		player.global_position = launch_position
 		player.rotation.y = 0.0
@@ -109,9 +107,11 @@ func _run() -> void:
 	player.set_physics_process(false)
 	player.global_position = Vector3(6.5, ground_y, -0.33)
 	player.rotation.y = PI
+	var blocked := [false]
+	player.throw_blocked.connect(func() -> void: blocked[0] = true, CONNECT_ONE_SHOT)
 	await _tap(KEY_T)
 	_check(player.held_pickup == tv and tv.freeze, "A blocked TV throw keeps the TV in hand")
-	_check(status.text.contains("공간이 부족"), "A blocked throw explains how to make room")
+	_check(blocked[0], "The player signals that the throw was blocked")
 	_check(get_nodes_in_group(&"apartment_props").size() == 18, "Throw cycles preserve every prop without duplicating bodies")
 	if not failed:
 		print("Apartment props smoke test passed.")

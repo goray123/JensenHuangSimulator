@@ -6,7 +6,6 @@ const PICKUP_CONTEST := preload("res://pickup_contest.gd")
 const GUEST_COLOR := Color(0.16, 0.65, 0.98)
 const INPUT_TIMEOUT_MS := 500
 
-var timed_round := true
 var guest_peer_id := 0
 var _last_guest_input := -1
 var _guest: Player
@@ -17,7 +16,6 @@ var _round_finished := false
 var _contest: Node
 
 @onready var _host: Player = $Player
-@onready var _pickup_status: Label = $HUD/PickupStatus
 @onready var _throw_power: ProgressBar = $HUD/ThrowPower
 @onready var _round_timer: Timer = $RoundTimer
 @onready var _time_left: Label = $HUD/TimeLeft
@@ -29,8 +27,6 @@ func _ready() -> void:
 	_pickups.sort_custom(func(a: Node, b: Node) -> bool: return str(a.get_path()) < str(b.get_path()))
 	_local_player = _host
 	_host.global_position = $Map/Markers/Player1Spawn.global_position
-	_time_left.visible = timed_round
-	set_physics_process(timed_round)
 	if guest_peer_id != 0:
 		var is_host := multiplayer.is_server()
 		_host.reads_local_input = is_host
@@ -56,42 +52,20 @@ func _ready() -> void:
 		if not is_host:
 			_local_player = _guest
 			_guest.pickup_action_requested.connect(_send_pickup_action)
-		$HUD/LanRole.text = "내 캐릭터: 주황색   ·   Esc 나가기" if is_host else "내 캐릭터: 파란색   ·   Esc 나가기"
-		$HUD/LanRole.show()
-		$HUD/RoundEnd/Message.text += "\nEsc  로비로 돌아가기"
 	_local_player.get_node("Head/PlayerPosPointer").show()
-	_local_player.held_pickup_changed.connect(_update_pickup_status)
-	_local_player.throw_blocked.connect(_show_throw_blocked)
-	_local_player.aim_changed.connect(_update_aim_status)
-	_update_pickup_status(_local_player.held_pickup != null)
+	_local_player.aim_changed.connect(_update_throw_power)
 	_contest = PICKUP_CONTEST.new()
 	_contest.name = "PickupContest"
 	add_child(_contest)
 	_contest.setup(self, _players if guest_peer_id != 0 else [_host], _pickups)
-	if timed_round and (guest_peer_id == 0 or multiplayer.is_server()):
+	if guest_peer_id == 0 or multiplayer.is_server():
 		_round_timer.timeout.connect(_on_round_timeout)
 		_round_timer.start()
 
 
-func _update_pickup_status(is_holding: bool) -> void:
-	if is_holding:
-		var item_name := str(_local_player.held_pickup.get_meta(&"pickup_name", "구"))
-		_pickup_status.text = "손: %s (T 누르기: 조준 / 떼기: 던지기)" % item_name
-	else:
-		_pickup_status.text = "손: 비어 있음"
-
-
-func _show_throw_blocked() -> void:
-	_pickup_status.text = "던질 공간이 부족합니다. 벽이나 가구에서 떨어져 주세요."
-
-
-func _update_aim_status(is_aiming: bool, speed: float) -> void:
+func _update_throw_power(is_aiming: bool, speed: float) -> void:
 	_throw_power.visible = is_aiming
 	_throw_power.value = speed
-	if is_aiming:
-		_pickup_status.text = "던지기 속도: %.1f / 10 (T를 떼면 던지기)" % speed
-	else:
-		_update_pickup_status(_local_player.held_pickup != null)
 
 
 func _physics_process(_delta: float) -> void:

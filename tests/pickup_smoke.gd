@@ -11,7 +11,6 @@ func _run() -> void:
 	var courtyard := preload("res://courtyard.tscn").instantiate()
 	root.add_child(courtyard)
 	var player := courtyard.get_node("Player") as CharacterBody3D
-	var status := courtyard.get_node("HUD/PickupStatus") as Label
 	var hand := player.get_node("RightArm/HandSocket") as Marker3D
 	var trajectory := player.get_node("ThrowTrajectory") as MeshInstance3D
 	var power := courtyard.get_node("HUD/ThrowPower") as ProgressBar
@@ -31,7 +30,6 @@ func _run() -> void:
 		_check(is_equal_approx(sphere.radius, head_mesh.radius / 3.0), "Pickup diameter is one third of the head diameter")
 		_check(is_equal_approx(sphere.height, sphere.radius * 2.0), "Pickup is a sphere")
 		_check(absf(pickup.global_position.y - ground_y - sphere.radius) < 0.002, "Pickup rests above the floor")
-	_check(status.text == "손: 비어 있음", "HUD starts with empty hands")
 
 	await _tap(KEY_T)
 	_check(not trajectory.visible, "Empty hands do not show a throw preview")
@@ -47,7 +45,6 @@ func _run() -> void:
 	await _tap(KEY_E)
 	_check(player.held_pickup == first and first.get_parent() == hand, "E attaches the nearby sphere to the hand instead of deleting it")
 	_check(first.freeze and first.global_position.distance_to(hand.global_position) < 0.001, "The held sphere stays fixed at the hand")
-	_check(status.text.contains("T 누르기: 조준 / 떼기: 던지기"), "HUD explains press-to-aim and release-to-throw")
 	_set_key(KEY_D, true)
 	await _wait_for_physics(36)
 	_set_key(KEY_D, false)
@@ -101,7 +98,7 @@ func _run() -> void:
 	var horizontal_velocity := first.linear_velocity * Vector3(1, 0, 1)
 	_check(horizontal_velocity.normalized().dot(heading) > 0.99, "Variable-speed throws still follow the current heading")
 	_check(not trajectory.visible and trajectory.points.is_empty(), "Releasing T clears the predicted path")
-	_check(status.text == "손: 비어 있음" and holding_changes == [true, false], "Throwing clears the hand and updates the HUD")
+	_check(holding_changes == [true, false], "Pickup and release each emit a holding change once")
 	await _wait_for_physics(4)
 	_check((first.global_position - release_position).dot(heading) > 0.15, "The thrown sphere travels forward")
 	var path_error := INF

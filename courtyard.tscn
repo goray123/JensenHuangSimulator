@@ -3,14 +3,13 @@
 [ext_resource type="PackedScene" path="res://player.tscn" id="1_player"]
 [ext_resource type="PackedScene" path="res://assets/ownership_dispute_map.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://pickup.tscn" id="2_pickup"]
-[ext_resource type="Script" path="res://courtyard.gd" id="3_courtyard"]
+[ext_resource type="Script" uid="uid://o1t28ps6mq6g" path="res://courtyard.gd" id="3_courtyard"]
 [ext_resource type="PackedScene" path="res://map_props.tscn" id="4_props"]
-[ext_resource type="Texture2D" path="res://assets/Sprites/WifeProfile.png" id="5_wife"]
-[ext_resource type="Texture2D" path="res://assets/Sprites/HusbandProfile.png" id="6_husband"]
-[ext_resource type="Texture2D" path="res://assets/Sprites/BagBG.png" id="7_bag"]
-[ext_resource type="Texture2D" path="res://assets/Sprites/TimerBG.png" id="8_timer"]
-[ext_resource type="FontFile" path="res://assets/Fonts/IntelOneMono-Bold.otf" id="9_timer_font"]
-[ext_resource type="Texture2D" path="res://assets/Sprites/LogBG.png" id="10_log"]
+[ext_resource type="Texture2D" uid="uid://ccdp5gmk5qcdy" path="res://assets/Sprites/WifeProfile.png" id="5_wife"]
+[ext_resource type="Texture2D" uid="uid://c6x75ooanv5yq" path="res://assets/Sprites/HusbandProfile.png" id="6_husband"]
+[ext_resource type="Texture2D" uid="uid://bdjnjaubptlbk" path="res://assets/Sprites/BagBG.png" id="7_bag"]
+[ext_resource type="Texture2D" uid="uid://p4l46rmyyi1b" path="res://assets/Sprites/TimerBG.png" id="8_timer"]
+[ext_resource type="FontFile" uid="uid://byxdr0v4mkixn" path="res://assets/Fonts/IntelOneMono-Bold.otf" id="9_timer_font"]
 
 [sub_resource type="Environment" id="Environment_apartment"]
 background_mode = 3
@@ -50,57 +49,58 @@ light_energy = 0.9
 shadow_enabled = true
 shadow_opacity = 0.7
 
-[node name="Map" parent="." instance=ExtResource("2_map")]
+[node name="Map" parent="." unique_id=499345440 instance=ExtResource("2_map")]
 
-[node name="Furnishings" parent="." instance=ExtResource("4_props")]
+[node name="Furnishings" parent="." unique_id=1939885987 instance=ExtResource("4_props")]
 
-[node name="PlayAreaBoundary" type="StaticBody3D" parent="."]
+[node name="PlayAreaBoundary" type="StaticBody3D" parent="." unique_id=1680432007]
 collision_mask = 0
 
-[node name="West" type="CollisionShape3D" parent="PlayAreaBoundary"]
-position = Vector3(-0.1, 2.2, -3.75)
+[node name="West" type="CollisionShape3D" parent="PlayAreaBoundary" unique_id=927750426]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.1, 2.2, -3.75)
 shape = SubResource("BoxShape3D_boundary_x")
 
-[node name="East" type="CollisionShape3D" parent="PlayAreaBoundary"]
-position = Vector3(14.1, 2.2, -3.75)
+[node name="East" type="CollisionShape3D" parent="PlayAreaBoundary" unique_id=1329461971]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 14.1, 2.2, -3.75)
 shape = SubResource("BoxShape3D_boundary_x")
 
-[node name="North" type="CollisionShape3D" parent="PlayAreaBoundary"]
-position = Vector3(7, 2.2, -7.6)
+[node name="North" type="CollisionShape3D" parent="PlayAreaBoundary" unique_id=1262312853]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 2.2, -7.6)
 shape = SubResource("BoxShape3D_boundary_z")
 
-[node name="South" type="CollisionShape3D" parent="PlayAreaBoundary"]
-position = Vector3(7, 2.2, 0.1)
+[node name="South" type="CollisionShape3D" parent="PlayAreaBoundary" unique_id=1339188114]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 2.2, 0.1)
 shape = SubResource("BoxShape3D_boundary_z")
 
 [node name="Player" parent="." unique_id=1551723369 instance=ExtResource("1_player")]
-position = Vector3(4.7, 0.065, -2.1)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4.7, 0.065, -2.1)
 
-[node name="Pickup1" parent="." instance=ExtResource("2_pickup")]
-position = Vector3(3.1, 0.13666667, -1.05)
+[node name="Pickup1" parent="." unique_id=669713500 instance=ExtResource("2_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.1, 0.13666667, -1.05)
 
-[node name="Pickup2" parent="." instance=ExtResource("2_pickup")]
-position = Vector3(5.0, 0.13666667, -3.5)
+[node name="Pickup2" parent="." unique_id=1236803442 instance=ExtResource("2_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0.13666667, -3.5)
 
-[node name="Pickup3" parent="." instance=ExtResource("2_pickup")]
-position = Vector3(7.0, 0.13666667, -2.4)
+[node name="Pickup3" parent="." unique_id=1786193243 instance=ExtResource("2_pickup")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 7, 0.13666667, -2.4)
 
 [node name="Overview" type="Camera3D" parent="." unique_id=2101783900]
-transform = Transform3D(0.91629654, 0.30255362, -0.2624156, -1.2129094e-08, 0.6552192, 0.75543886, 0.40050048, -0.692206, 0.60037506, 0.42701977, 19.411077, 11.734961)
+transform = Transform3D(0.91629654, 0.30255362, -0.2624156, -1.2129094e-08, 0.6552192, 0.75543886, 0.40050048, -0.692206, 0.60037506, 0.427, 21, 11.735)
 projection = 1
 current = true
 size = 13.6
 far = 150.0
 
-[node name="RoundTimer" type="Timer" parent="."]
+[node name="RoundTimer" type="Timer" parent="." unique_id=1442103769]
 wait_time = 60.0
 one_shot = true
 ignore_time_scale = true
 
-[node name="Backdrop" type="CanvasLayer" parent="."]
+[node name="Backdrop" type="CanvasLayer" parent="." unique_id=860664763]
 layer = -1
 
-[node name="Gradient" type="TextureRect" parent="Backdrop"]
+[node name="Gradient" type="TextureRect" parent="Backdrop" unique_id=1159199657]
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
@@ -109,52 +109,56 @@ expand_mode = 1
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1501621115]
 
-[node name="WifeProfile" type="TextureRect" parent="HUD"]
-anchor_left = 0.024
-anchor_right = 0.34
-offset_top = 44.0
-offset_bottom = 170.0
+[node name="WifeProfile" type="TextureRect" parent="HUD" unique_id=1888945962]
+anchors_preset = -1
+anchor_left = 0.025
+anchor_right = 0.3425
+offset_top = 40.0
+offset_bottom = 166.0
 mouse_filter = 2
 texture = ExtResource("5_wife")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="HusbandProfile" type="TextureRect" parent="HUD"]
-anchor_left = 0.642
-anchor_right = 0.972
-offset_top = 44.0
-offset_bottom = 170.0
+[node name="HusbandProfile" type="TextureRect" parent="HUD" unique_id=1299687456]
+anchors_preset = -1
+anchor_left = 0.645
+anchor_right = 0.975
+offset_top = 40.0
+offset_bottom = 166.0
 mouse_filter = 2
 texture = ExtResource("6_husband")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="WifeBag" type="TextureRect" parent="HUD"]
-anchor_left = 0.024
-anchor_right = 0.024
-offset_top = 123.0
+[node name="WifeBag" type="TextureRect" parent="HUD" unique_id=439223]
+anchors_preset = -1
+anchor_left = 0.025
+anchor_right = 0.025
+offset_top = 118.0
 offset_right = 124.0
-offset_bottom = 533.0
+offset_bottom = 528.0
 mouse_filter = 2
 texture = ExtResource("7_bag")
 expand_mode = 1
 
-[node name="HusbandBag" type="TextureRect" parent="HUD"]
-anchor_left = 0.972
-anchor_right = 0.972
+[node name="HusbandBag" type="TextureRect" parent="HUD" unique_id=1680505510]
+anchors_preset = -1
+anchor_left = 0.975
+anchor_right = 0.975
 offset_left = -124.0
-offset_top = 123.0
-offset_bottom = 533.0
+offset_top = 118.0
+offset_bottom = 528.0
 mouse_filter = 2
 texture = ExtResource("7_bag")
 expand_mode = 1
 
-[node name="TimeLeft" type="Label" parent="HUD"]
+[node name="TimeLeft" type="Label" parent="HUD" unique_id=1218965045]
+anchors_preset = -1
 anchor_left = 0.402
 anchor_right = 0.598
-offset_top = 47.0
-offset_bottom = 124.0
-mouse_filter = 2
+offset_top = 40.0
+offset_bottom = 117.0
 theme_override_colors/font_color = Color(0.863, 0.2, 0.137, 1)
 theme_override_fonts/font = ExtResource("9_timer_font")
 theme_override_font_sizes/font_size = 50
@@ -162,9 +166,10 @@ text = "01:00"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TimerBackground" type="TextureRect" parent="HUD/TimeLeft"]
+[node name="TimerBackground" type="TextureRect" parent="HUD/TimeLeft" unique_id=698753130]
 show_behind_parent = true
 layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_bottom = 8.0
@@ -173,79 +178,25 @@ texture = ExtResource("8_timer")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="LogBackground" type="TextureRect" parent="HUD"]
-anchor_left = 0.5
-anchor_top = 1.0
-anchor_right = 0.5
-anchor_bottom = 1.0
-offset_left = -332.0
-offset_top = -59.0
-offset_right = 332.0
-offset_bottom = -9.0
-mouse_filter = 2
-texture = ExtResource("10_log")
-expand_mode = 1
-
-[node name="Controls" type="Label" parent="HUD" unique_id=1054411171]
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -34.0
-offset_bottom = -13.0
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.94, 0.92, 0.97, 1)
-theme_override_font_sizes/font_size = 16
-text = "W A S D  이동 + 방향 전환     E  물건 들기     T 유지: 속도 0~10 반복 / 떼기: 던지기"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="PickupStatus" type="Label" parent="HUD"]
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = -56.0
-offset_bottom = -34.0
-mouse_filter = 2
-theme_override_colors/font_color = Color(1, 0.87, 0.51, 1)
-theme_override_font_sizes/font_size = 17
-text = "손: 비어 있음"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="ThrowPower" type="ProgressBar" parent="HUD"]
+[node name="ThrowPower" type="ProgressBar" parent="HUD" unique_id=736468666]
 visible = false
+anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -120.0
-offset_top = -81.0
+offset_top = -44.0
 offset_right = 120.0
-offset_bottom = -65.0
+offset_bottom = -28.0
 mouse_filter = 2
 max_value = 10.0
 step = 0.001
 show_percentage = false
 
-[node name="LanRole" type="Label" parent="HUD"]
+[node name="RoundEnd" type="ColorRect" parent="HUD" unique_id=173380585]
 visible = false
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -350.0
-offset_top = 13.0
-offset_right = -24.0
-offset_bottom = 36.0
-grow_horizontal = 0
-mouse_filter = 2
-theme_override_colors/font_color = Color(1, 0.97, 1, 1)
-theme_override_colors/font_outline_color = Color(0.16, 0.052, 0.19, 0.9)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 16
-horizontal_alignment = 2
-
-[node name="RoundEnd" type="ColorRect" parent="HUD"]
-visible = false
+z_index = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -253,15 +204,13 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.04, 0.06, 0.08, 0.86)
 
-[node name="Message" type="Label" parent="HUD/RoundEnd"]
+[node name="Message" type="Label" parent="HUD/RoundEnd" unique_id=964137031]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/line_spacing = 12
 theme_override_font_sizes/font_size = 30
 text = "시간 종료   ·   00:00"
 horizontal_alignment = 1

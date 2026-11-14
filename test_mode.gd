@@ -1,14 +1,10 @@
 extends Node3D
 
-signal reset_requested
-
 const PLAYER_SCENE := preload("res://player.tscn")
 const TARGET_COLOR := Color(0.16, 0.65, 0.98)
 const PRACTICE_SPAWN := Vector3(6.6, 0.065, -0.9)
 
 var target: CharacterBody3D
-var hit_count := 0
-var _status := Label.new()
 var _contest_bot := false
 var _bot_tap_elapsed := 0.0
 
@@ -33,34 +29,6 @@ func _ready() -> void:
 		target.get_node(NodePath(part)).material_override = jacket
 	add_child(target)
 	_apartment._contest.register_opponent(target)
-	target.hit_received.connect(_on_target_hit)
-	var role := _apartment.get_node("HUD/LanRole") as Label
-	role.text = "테스트 모드  ·  Esc 메뉴"
-	role.show()
-	_status.name = "TestStatus"
-	_add_label(_status, 14.0)
-	var help := Label.new()
-	help.text = "파란 대상에 물건을 던져 피격 확인\nF  내 캐릭터 피격 테스트\nG  쟁탈전 테스트 (E 연타)\nR  물건·피격 상태 초기화"
-	_add_label(help, 40.0)
-	_update_status()
-
-
-func _add_label(label: Label, top: float) -> void:
-	label.anchor_left = 0.5
-	label.anchor_right = 0.5
-	label.offset_left = -160.0
-	label.offset_right = 160.0
-	label.offset_top = top
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_font_size_override(&"font_size", 16)
-	label.add_theme_color_override(&"font_outline_color", Color(0.16, 0.052, 0.19, 0.9))
-	label.add_theme_constant_override(&"outline_size", 4)
-	_apartment.get_node("HUD").add_child(label)
-
-
-func _process(_delta: float) -> void:
-	_update_status()
 
 
 func _physics_process(delta: float) -> void:
@@ -91,21 +59,9 @@ func _start_contest_test() -> void:
 	_bot_tap_elapsed = 0.0
 
 
-func _update_status() -> void:
-	_status.text = "대상 피격: %d회  ·  %s" % [hit_count, "이동 불가" if target.is_stunned() else "대기 중"]
-
-
-func _on_target_hit() -> void:
-	hit_count += 1
-	_update_status()
-
-
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"test_hit"):
 		_player.receive_hit()
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed(&"test_reset"):
-		reset_requested.emit()
 		get_viewport().set_input_as_handled()
 	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_G:
 		_start_contest_test()
