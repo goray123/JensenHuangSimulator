@@ -276,6 +276,9 @@ func _verify_result(winner: int) -> void:
 	_check(is_equal_approx(_contest.progress, 1.0 if winner == 0 else 0.0), "The winner's color fills the entire gauge")
 	_check(loser.is_stunned() and loser._stun_remaining > 2.2, "The losing player receives the new 2.5-second stun")
 	_check(_pickup.get_parent() == (_host if winner == 0 else _guest).get_node("HandSocket"), "Only the winner's hand owns the item after the reliable result")
+	var portraits: Array = _apartment.get_node("HUD").portraits
+	_check(portraits[1 - winner].current_state == &"angry" and portraits[winner].current_state == &"idle",
+		"The loser's card turns angry (not fallen) on both peers; the 120-gold kimchi keeps the winner idle")
 	if loser.reads_local_input:
 		_key(KEY_D, true)
 	await create_timer(0.45).timeout

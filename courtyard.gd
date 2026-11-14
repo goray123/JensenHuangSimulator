@@ -51,6 +51,7 @@ func _ready() -> void:
 		if is_host:
 			for index in _players.size():
 				_players[index].hit_received.connect(_broadcast_hit.bind(index))
+				_players[index].status_effect_applied.connect(_broadcast_status_effect.bind(index))
 		process_physics_priority = 1
 		if not is_host:
 			_local_player = _guest
@@ -66,6 +67,8 @@ func _ready() -> void:
 	_local_player.aim_changed.connect(_update_throw_power)
 	_local_player.grab_changed.connect(_update_grab_progress)
 	_local_player.bag_requested.connect(_request_bag_item)
+	for index in _players.size():
+		$HUD.bind_player(index, _players[index])
 	_contest = PICKUP_CONTEST.new()
 	_contest.name = "PickupContest"
 	add_child(_contest)
@@ -292,6 +295,17 @@ func _broadcast_hit(player_index: int) -> void:
 func _apply_hit(player_index: int, sound: StringName = &"") -> void:
 	if not _round_finished and player_index >= 0 and player_index < _players.size():
 		_players[player_index].receive_hit(sound)
+
+
+func _broadcast_status_effect(effect: StringName, seconds: float, player_index: int) -> void:
+	if not _round_finished:
+		_apply_status_effect.rpc_id(guest_peer_id, player_index, effect, seconds)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_status_effect(player_index: int, effect: StringName, seconds: float) -> void:
+	if not _round_finished and player_index >= 0 and player_index < _players.size():
+		_players[player_index].apply_status_effect(effect, seconds)
 
 
 @rpc("authority", "call_remote", "unreliable_ordered")

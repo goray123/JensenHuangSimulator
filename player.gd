@@ -7,6 +7,10 @@ signal grab_changed(is_grabbing: bool, progress: float)
 signal throw_requested(speed: float)
 signal bag_requested
 signal hit_received
+## Emitted when this player loses a pickup tug-of-war (the loss stun has a different cause than a hit).
+signal contest_lost
+## Emitted by apply_status_effect(); no status-effect gameplay exists yet.
+signal status_effect_applied(effect: StringName, seconds: float)
 signal shared_sfx_requested(sound: StringName)
 
 const SFX := preload("res://sfx.gd")
@@ -148,6 +152,14 @@ func apply_stun(duration: float) -> void:
 	_cancel_grab()
 	velocity.x = 0.0
 	velocity.z = 0.0
+
+
+## Entry point for future status effects (poison, slipping, ...). It only reports the
+## effect for UI reactions; the gameplay effect itself is not implemented yet.
+## In LAN games call it on the host: courtyard.gd relays it to the guest like hits.
+func apply_status_effect(effect: StringName, seconds: float) -> void:
+	if is_finite(seconds) and seconds > 0.0:
+		status_effect_applied.emit(effect, seconds)
 
 
 func set_contest_active(value: bool) -> void:

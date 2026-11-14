@@ -28,6 +28,7 @@ func _ready() -> void:
 	target.model_scene = TARGET_MODEL
 	add_child(target)
 	_apartment._contest.register_opponent(target)
+	_apartment.get_node("HUD").bind_player(1, target)
 	target.hit_received.connect(_on_target_hit)
 
 
