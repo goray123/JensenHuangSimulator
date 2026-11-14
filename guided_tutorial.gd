@@ -7,7 +7,7 @@ signal replay_requested
 enum Step { MOVE, GRAB, BAG, AIM, THROW, CONTEST, SCORE, COMPLETE }
 
 const PLAYER_SCENE := preload("res://player.tscn")
-const TARGET_MODEL := preload("res://assets/characters/thump/02_Woman.glb")
+const TARGET_MODEL := preload("res://assets/characters/motions/02_Woman.glb")
 const GUIDE_HUD := preload("res://ui/guided_tutorial_hud.gd")
 const FONT := preload("res://assets/Fonts/IntelOneMono-Bold.otf")
 const HOME := Vector3(6.6, 0.065, -0.9)

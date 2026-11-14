@@ -107,6 +107,8 @@ func _test_host() -> void:
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 3)
 	if not await _expect(func() -> bool: return _barrier.grab_started, "The guest starts the second grab"):
 		return
+	if not await _expect(func() -> bool: return _guest.motion == &"Grab", "The host animates the guest's pending Grab"):
+		return
 	_mouse(MOUSE_BUTTON_LEFT, true)
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	_check(_contest.active and _contest.round_id == first_round + 1, "The host overlaps the guest's second grab")
@@ -146,6 +148,9 @@ func _test_host() -> void:
 	if not await _expect(func() -> bool: return _apartment.get_node("HUD/RoundEnd").visible, "The host's resumed timer ends play after the contest"):
 		return
 	_verify_timeout()
+	# The guest may only leave after this check; otherwise its disconnect can free the host's
+	# apartment before the host gets a physics frame to observe its own round end.
+	_barrier.advance.rpc_id(_apartment.guest_peer_id, 8)
 	var camera_reference: WeakRef = weakref(_camera)
 	var presentation_reference: WeakRef = weakref(_contest.presentation)
 	if not await _expect(func() -> bool: return _lobby.get_node_or_null("Apartment") == null, "Leaving after a timed round returns the host to the lobby"):
@@ -214,6 +219,8 @@ func _test_guest() -> void:
 	if not await _expect(func() -> bool: return _apartment.get_node("HUD/RoundEnd").visible, "Timeout reaches the guest after the contest ends"):
 		return
 	_verify_timeout()
+	if not await _expect(func() -> bool: return _barrier.stage >= 8, "The host verifies its own timeout before the guest leaves"):
+		return
 	var camera_reference: WeakRef = weakref(_camera)
 	var presentation_reference: WeakRef = weakref(_contest.presentation)
 	await _tap(KEY_ESCAPE)
@@ -252,6 +259,13 @@ func _verify_active_round() -> void:
 	_check(is_equal_approx(_contest.progress, 0.5) and is_equal_approx(_contest.presentation.progress, 0.5), "The two-color gauge begins exactly half full")
 	_check(_contest.presentation.gauge.is_visible_in_tree(), "The bottom contest gauge is visible")
 	_check(_host.contest_active and _guest.contest_active, "Both players are movement locked during the contest")
+	_check(_host.is_tugging() and _guest.is_tugging() and _host.motion in [&"Tug_Fast", &"Tug_Slow"] and _guest.motion == _host.motion, "Both peers play the same tug tempo on both characters")
+	var host_model := _host.get_node("Model") as Node3D
+	var guest_model := _guest.get_node("Model") as Node3D
+	var toward := guest_model.global_position - host_model.global_position
+	toward.y = 0.0
+	_check(absf(toward.length() - 2.4 * Player.MODEL_SCALE) < 0.01 and host_model.global_basis.z.normalized().dot(toward.normalized()) > 0.99 and guest_model.global_basis.z.normalized().dot(-toward.normalized()) > 0.99,
+		"Both characters face the shared object at the authored tug spacing")
 	var host_position := _host.global_position
 	var guest_position := _guest.global_position
 	_key(KEY_D, true)
@@ -263,6 +277,23 @@ func _verify_active_round() -> void:
 	_check(not _host._is_aiming and not _guest._is_aiming and _apartment._bagged_items.is_empty(), "Contested items cannot be thrown or bagged")
 	_check(_host.held_pickup == null and _guest.held_pickup == null and _pickup.freeze, "The object stays in the world until the contest ends")
 	_check(_camera.size < _camera_size - 2.0, "The local camera smoothly closes in on both players")
+	if not _apartment.multiplayer.is_server():
+		await _verify_tug_correction()
+
+
+# The guest's own clock only fills gaps: a deliberate half-cycle offset is pulled back to the host.
+func _verify_tug_correction() -> void:
+	var presentation: Node = _contest.presentation
+	var syncs: int = presentation.tug_syncs
+	var offset_phase := fposmod(float(presentation.tug_phase) + 0.5, 1.0)
+	presentation.tug_phase = offset_phase
+	var offset_at := Time.get_ticks_msec()
+	if not await _expect(func() -> bool: return presentation.tug_syncs > syncs, "The guest receives authoritative tug phase packets", 2.0):
+		return
+	# Without a correction the phase would still be about half a cycle from the host's.
+	var local_only := fposmod(offset_phase + (Time.get_ticks_msec() - offset_at) / 1000.0 / 4.0, 1.0)
+	var gap := absf(float(presentation.tug_phase) - local_only)
+	_check(minf(gap, 1.0 - gap) > 0.3, "A server tug packet corrects a deliberately offset guest phase")
 
 
 func _verify_result(winner: int) -> void:
@@ -270,6 +301,9 @@ func _verify_result(winner: int) -> void:
 	var observed_at := Time.get_ticks_msec()
 	var loser_position := loser.global_position
 	_check(not _contest.active and not _contest.presentation.active and not _host.contest_active and not _guest.contest_active, "Finishing releases both contest movement locks")
+	var rest := Transform3D(Basis(Vector3.UP, PI).scaled(Vector3.ONE * Player.MODEL_SCALE), Vector3.ZERO)
+	_check(not _host.is_tugging() and not _guest.is_tugging() and (_host.get_node("Model") as Node3D).transform.is_equal_approx(rest) and (_guest.get_node("Model") as Node3D).transform.is_equal_approx(rest),
+		"The result restores both original model transforms")
 	_check(not _apartment.get_node("RoundTimer").paused, "Finishing resumes the round timer on both peers")
 	_check(is_equal_approx(_contest.progress, 1.0 if winner == 0 else 0.0), "The winner's color fills the entire gauge")
 	_check(loser.is_stunned() and loser._stun_remaining > 2.2, "The losing player receives the new 2.5-second stun")

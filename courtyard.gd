@@ -4,7 +4,7 @@ const SFX := preload("res://sfx.gd")
 const Player := preload("res://player.gd")
 const PLAYER_SCENE := preload("res://player.tscn")
 const PICKUP_CONTEST := preload("res://pickup_contest.gd")
-const GUEST_MODEL := preload("res://assets/characters/thump/02_Woman.glb")
+const GUEST_MODEL := preload("res://assets/characters/motions/02_Woman.glb")
 const ENDING_SCENE := "res://courtroom_ending.tscn"
 const INPUT_TIMEOUT_MS := 500
 const HIT_DROP_COUNTS := [0, 1, 2, 2, 3, 3]
@@ -76,6 +76,7 @@ func _ready() -> void:
 				_players[index].hit_received.connect(_broadcast_hit.bind(index))
 				_players[index].status_effect_applied.connect(_broadcast_status_effect.bind(index))
 				_players[index].banana_peel_stepped.connect(_broadcast_banana_peel_stun.bind(index))
+				_players[index].pickup_launched.connect(_broadcast_throw.bind(index))
 		process_physics_priority = 1
 		if not is_host:
 			_local_player = _guest
@@ -211,6 +212,27 @@ func _send_throw(speed: float) -> void:
 func _receive_throw(pickup_index: int, speed: float) -> void:
 	if _is_guest_request() and _guest.held_pickup != null and _pickups.find(_guest.held_pickup) == pickup_index and is_finite(speed):
 		_guest.release_pickup(true, _guest.throw_velocity_at_speed(speed))
+
+
+# A validated launch is an ownership change: bumping the revision makes the guest drop older
+# snapshots (which could re-attach the item) until this reliable event plays the one-hand Throw.
+func _broadcast_throw(pickup: RigidBody3D, player_index: int) -> void:
+	if _round_finished or not multiplayer.is_server():
+		return
+	_ownership_revision += 1
+	if multiplayer.get_peers().has(guest_peer_id):
+		_apply_throw.rpc_id(guest_peer_id, player_index, _pickups.find(pickup), _ownership_revision)
+
+
+@rpc("authority", "call_remote", "reliable")
+func _apply_throw(player_index: int, pickup_index: int, revision: int) -> void:
+	if _round_finished or revision <= _ownership_revision or player_index < 0 or player_index >= _players.size() or pickup_index < 0 or pickup_index >= _pickups.size():
+		return
+	_ownership_revision = revision
+	var player := _players[player_index]
+	if player.held_pickup == _pickups[pickup_index]:
+		player.release_pickup(false)
+	player.play_throw_motion()
 
 
 func _request_bag_item() -> void:

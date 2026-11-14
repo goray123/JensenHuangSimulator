@@ -12,6 +12,7 @@ class StartBarrier:
 	extends Node
 	var started := false
 	var guest_ready := false
+	var hit_input_released := false
 	var hits_verified := false
 	var tv_verified := false
 	var tv_requested := false
@@ -23,6 +24,9 @@ class StartBarrier:
 	@rpc("any_peer", "call_remote", "reliable")
 	func ready_to_move() -> void:
 		guest_ready = true
+	@rpc("any_peer", "call_remote", "reliable")
+	func finish_hit_movement() -> void:
+		hit_input_released = true
 	@rpc("authority", "call_remote", "reliable")
 	func finish_hits() -> void:
 		hits_verified = true
@@ -133,11 +137,16 @@ func _run() -> void:
 
 
 func _test_host(second: RigidBody3D) -> void:
-	await _expect(func() -> bool: return _guest.held_pickup == _pickup, "Guest movement and pickup reach the host")
+	var saw_guest_grab := [false]
+	await _expect(func() -> bool:
+		saw_guest_grab[0] = saw_guest_grab[0] or _guest.motion == &"Grab"
+		return _guest.held_pickup == _pickup, "Guest movement and pickup reach the host")
+	_check(saw_guest_grab[0], "The host animates the guest's server-validated Grab")
 	var guest_launch: Dictionary = {}
 	_guest.held_pickup_changed.connect(func(is_holding: bool) -> void:
 		if not is_holding and guest_launch.is_empty():
 			guest_launch["velocity"] = _pickup.linear_velocity
+			guest_launch["position"] = _pickup.global_position
 	)
 	# Contact with the target sphere can slide the guest slightly backward
 	# during the sideways leg, after the client's S threshold already passed.
@@ -145,9 +154,11 @@ func _test_host(second: RigidBody3D) -> void:
 		"The host receives substantial movement on both guest input axes")
 	_check(_guest.rotation.y > 1.0, "The host receives guest turning")
 	_check(_host.position.distance_to(HOST_SPAWN) < 0.08 and _host.held_pickup == null, "Guest input affects only the guest")
+	# Measure from the launch point: the hold frame now shows the real Pickup floor contact.
 	var from := _pickup.global_position
-	await _expect(func() -> bool: return _guest.held_pickup == null and _pickup.global_position.distance_to(from) > 0.35,
+	await _expect(func() -> bool: return _guest.held_pickup == null and _pickup.global_position.distance_to(guest_launch.get("position", from)) > 0.35,
 		"Guest throw moves the shared pickup on the host")
+	_check(_guest.motion == &"Throw", "The host plays the guest's one-hand Throw for the validated launch")
 	_check(guest_launch.has("velocity") and (guest_launch["velocity"] as Vector3).length() <= 10.001, "The host uses the guest's charged speed within zero to ten")
 	if guest_launch.has("velocity"):
 		var direction := (guest_launch["velocity"] as Vector3).normalized()
@@ -164,6 +175,7 @@ func _test_host(second: RigidBody3D) -> void:
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	await _expect(func() -> bool: return _host.held_pickup == null and second.global_position.distance_to(second_release) > 0.35,
 		"The host's tissue-box throw moves through physics before the TV fixture is prepared")
+	_check(_host.motion == &"Throw", "The host's own launch plays the one-hand Throw")
 	# Completed throws can land closer to the guest than the TV's safe, separate
 	# collider. Clear those old targets so E still selects the intended TV.
 	for index in 2:
@@ -237,12 +249,18 @@ func _test_guest() -> void:
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	await _expect(func() -> bool: return _guest.held_pickup == null and _pickup.global_position.distance_to(from) > 0.35,
 		"Guest sees the shared throw after releasing left click")
-	await _expect(func() -> bool: return _host.held_pickup != null, "Guest sees the host move and pick up the tissue box")
+	_check(_guest.motion == &"Throw", "The server throw event plays the guest's own one-hand Throw")
+	var saw_host_grab := [false]
+	await _expect(func() -> bool:
+		saw_host_grab[0] = saw_host_grab[0] or _host.motion == &"Grab"
+		return _host.held_pickup != null, "Guest sees the host move and pick up the tissue box")
+	_check(saw_host_grab[0], "The guest animates the host's server-validated Grab")
 	_check(_host.position.z < -2.65 and _guest.held_pickup == null, "Host input affects only the host")
 	var host_pickup := _host.held_pickup
 	var host_release := host_pickup.global_position
 	await _expect(func() -> bool: return _host.held_pickup == null and host_pickup.global_position.distance_to(host_release) > 0.35,
 		"Guest sees the host throw the shared sphere")
+	_check(_host.motion == &"Throw", "The guest plays the host's one-hand Throw from the server event")
 	var apartment := _lobby.get_node("Apartment")
 	var tv := apartment.get_node("Items/Item_17_tv") as RigidBody3D
 	await _expect(func() -> bool: return tv.global_position.distance_to(_guest.global_position + TV_PICKUP_OFFSET) < 0.1, "Guest receives the shared TV transform")
@@ -295,6 +313,10 @@ func _test_hits_host(apartment: Node3D) -> void:
 		"The server blocks guest movement during the stun (position %s -> %s, stun %.3f)" % [hit_position, _guest.global_position, _guest._stun_remaining])
 	await _wait_frames(20)
 	_check(not _guest.is_stunned(), "The server releases the guest's movement after half a second")
+	# The guest holds D to verify movement resumes. Wait for that check and its
+	# released input to reach the server before resetting the next throw's pose.
+	await _expect(func() -> bool: return root.get_node("SmokeBarrier").hit_input_released and _guest.remote_input.is_zero_approx(),
+		"The guest stops its movement check before the next projectile fixture")
 	_host.position = Vector3(6.5, 0.065, -3.05)
 	_guest.position = Vector3(6.5, 0.065, -1.25)
 	_guest.rotation.y = 0
@@ -318,6 +340,7 @@ func _test_hits_guest(ring: RigidBody3D) -> void:
 	_check(_guest.is_stunned() and _guest.global_position.distance_to(hit_position) < 0.08, "Guest input cannot bypass the movement lock")
 	await _expect(func() -> bool: return not _guest.is_stunned() and _guest.position.x > hit_position.x + 0.1, "Guest movement resumes when the hit expires")
 	_key(KEY_D, false)
+	root.get_node("SmokeBarrier").finish_hit_movement.rpc_id(1)
 	await _expect(func() -> bool: return _guest.held_pickup == ring and _guest.position.z > -1.4, "The next projectile is shared with the guest")
 	_mouse(MOUSE_BUTTON_LEFT, true)
 	await _wait_frames(45)
