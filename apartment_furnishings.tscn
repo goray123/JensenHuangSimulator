@@ -1,0 +1,520 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/couch_pillows.gltf" id="sofa"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/table_low.gltf" id="coffee_table"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/cabinet_medium.gltf" id="tv_stand"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/lamp_standing.gltf" id="lamp"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/rug_rectangle_stripes_A.gltf" id="living_rug"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/table_medium.gltf" id="table"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/chair_A_wood.gltf" id="chair"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/bed_double_A.gltf" id="bed"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/bed_single_B.gltf" id="single_bed"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/cabinet_small.gltf" id="nightstand"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/lamp_table.gltf" id="table_lamp"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/book_set.gltf" id="books"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/shelf_B_large_decorated.gltf" id="shelf"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/rug_rectangle_B.gltf" id="mat"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kaykit/rug_oval_B.gltf" id="oval_rug"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/television.glb" id="tv"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/fridge.glb" id="fridge"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/stove.glb" id="stove"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/kitchen-sink.glb" id="kitchen_sink"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/kitchen-cabinet-drawer.glb" id="prep"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/toilet.glb" id="toilet"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/bathroom-sink.glb" id="bath_sink"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/bathtub.glb" id="bath"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/desk.glb" id="desk"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/desk-chair.glb" id="desk_chair"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/laptop.glb" id="laptop"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/bookcase-closed-wide.glb" id="wardrobe"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-furniture/washer.glb" id="washer"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-food/banana.glb" id="banana"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-food/cabbage.glb" id="cabbage"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-food/carrot.glb" id="carrot"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-food/cup-coffee.glb" id="coffee"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-food/cutting-board.glb" id="board"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-food/pan-stew.glb" id="pan"]
+[ext_resource type="PackedScene" path="res://assets/apartment/kenney-food/plate.glb" id="plate"]
+[ext_resource type="PackedScene" path="res://assets/apartment/poly-pizza/mop-bucket.glb" id="mop"]
+[ext_resource type="PackedScene" path="res://assets/apartment/poly-pizza/plunger.glb" id="plunger"]
+[ext_resource type="PackedScene" path="res://assets/apartment/poly-pizza/jar.glb" id="jar"]
+[ext_resource type="PackedScene" path="res://assets/apartment/poly-pizza/red-mug.glb" id="mug"]
+[ext_resource type="Shader" path="res://assets/apartment/floor.gdshader" id="floor_shader"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_kitchen"]
+shader = ExtResource("floor_shader")
+shader_parameter/floor_color = Color(0.7, 0.718, 0.696, 1)
+shader_parameter/plank_size = Vector2(0.66, 0.66)
+shader_parameter/row_offset = 0.0
+shader_parameter/color_variation = 0.055
+
+[sub_resource type="BoxMesh" id="BoxMesh_kitchen"]
+material = SubResource("ShaderMaterial_kitchen")
+size = Vector3(8.58, 0.02, 3.33)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bath"]
+shader = ExtResource("floor_shader")
+shader_parameter/floor_color = Color(0.53, 0.67, 0.7, 1)
+shader_parameter/plank_size = Vector2(0.66, 0.66)
+shader_parameter/row_offset = 0.0
+shader_parameter/color_variation = 0.055
+
+[sub_resource type="BoxMesh" id="BoxMesh_bath"]
+material = SubResource("ShaderMaterial_bath")
+size = Vector3(3.73, 0.02, 2.83)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_dressing"]
+shader = ExtResource("floor_shader")
+shader_parameter/floor_color = Color(0.73, 0.705, 0.66, 1)
+shader_parameter/plank_size = Vector2(0.66, 0.66)
+shader_parameter/row_offset = 0.0
+shader_parameter/color_variation = 0.055
+
+[sub_resource type="BoxMesh" id="BoxMesh_dressing"]
+material = SubResource("ShaderMaterial_dressing")
+size = Vector3(5.12, 0.02, 2.38)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Fridge"]
+size = Vector3(0.988, 0, 1.015)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Sink"]
+size = Vector3(1.032, 1.029, 0.945)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_PrepCounter"]
+size = Vector3(1.075, 0.90624, 0.928)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Stove"]
+size = Vector3(1.032, 0.9135, 0.945)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_DiningTable"]
+size = Vector3(1.64, 0.79, 1.44)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_DiningChairLeft"]
+size = Vector3(0.5625, 0.95608, 0.63375)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_DiningChairRight"]
+size = Vector3(0.5625, 0.95608, 0.63375)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Sofa"]
+size = Vector3(3.12, 1.2852, 1.664)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_CoffeeTable"]
+size = Vector3(1.776, 0.5, 1.29)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_TVStand"]
+size = Vector3(1.26, 0.57, 0.63126)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_DoubleBed"]
+size = Vector3(2.635, 0.9, 2.22)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_BedsideCabinet"]
+size = Vector3(0.61, 0.66, 0.69138)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_SingleBed"]
+size = Vector3(1.52, 0.89, 2.43)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Nightstand"]
+size = Vector3(0.66, 0.61, 0.6513)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Desk"]
+size = Vector3(1.7983, 0.90624, 0.882)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_DeskChair"]
+size = Vector3(0.61975, 1.11872, 0.5809)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Toilet"]
+size = Vector3(0.61035, 0.9922, 0.88245)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Basin"]
+size = Vector3(0.816, 1.1648, 0.696)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Bathtub"]
+size = Vector3(2.0587, 0.672, 0.8848)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Washer"]
+size = Vector3(0.8307, 0.9635, 0.8307)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_Wardrobe"]
+size = Vector3(1.808, 1.8723, 0.55)
+
+[node name="Furnishings" type="Node3D"]
+
+[node name="Kitchen" type="Node3D" parent="."]
+
+[node name="TileFloor" type="MeshInstance3D" parent="Kitchen"]
+position = Vector3(-6.05, -0.004, -4.23)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_kitchen")
+
+[node name="Fridge" type="StaticBody3D" parent="Kitchen"]
+position = Vector3(-9.55, 0, -5.32)
+
+[node name="Model" parent="Kitchen/Fridge" instance=ExtResource("fridge")]
+position = Vector3(0.494, 0, -0.3475)
+scale = Vector3(1.9, 1.95, 2.5)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Fridge"]
+shape = SubResource("BoxShape3D_Fridge")
+
+[node name="Sink" type="StaticBody3D" parent="Kitchen"]
+position = Vector3(-8.5, 0, -5.39)
+
+[node name="Model" parent="Kitchen/Sink" instance=ExtResource("kitchen_sink")]
+position = Vector3(0.516, 0, -0.4725)
+scale = Vector3(2.4, 2.1, 2.1)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Sink"]
+position = Vector3(0, 0.5145, 0)
+shape = SubResource("BoxShape3D_Sink")
+
+[node name="PrepCounter" type="StaticBody3D" parent="Kitchen"]
+position = Vector3(-7.42, 0, -5.39)
+
+[node name="Model" parent="Kitchen/PrepCounter" instance=ExtResource("prep")]
+scale = Vector3(2.5, 1.92, 2.9)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/PrepCounter"]
+position = Vector3(0, 0.45312, 0)
+shape = SubResource("BoxShape3D_PrepCounter")
+
+[node name="Stove" type="StaticBody3D" parent="Kitchen"]
+position = Vector3(-6.36, 0, -5.39)
+
+[node name="Model" parent="Kitchen/Stove" instance=ExtResource("stove")]
+position = Vector3(0.516, 0, -0.4725)
+scale = Vector3(2.4, 2.03, 2.1)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/Stove"]
+position = Vector3(0, 0.45675, 0)
+shape = SubResource("BoxShape3D_Stove")
+
+[node name="DiningTable" type="StaticBody3D" parent="Kitchen"]
+position = Vector3(-3.48, 0, -4.63)
+
+[node name="Model" parent="Kitchen/DiningTable" instance=ExtResource("table")]
+scale = Vector3(0.82, 0.79, 0.72)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/DiningTable"]
+position = Vector3(0, 0.395, 0)
+shape = SubResource("BoxShape3D_DiningTable")
+
+[node name="DiningChairLeft" type="StaticBody3D" parent="Kitchen"]
+position = Vector3(-4.7, 0, -4.63)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Model" parent="Kitchen/DiningChairLeft" instance=ExtResource("chair")]
+position = Vector3(0, 0, 0.03562)
+scale = Vector3(0.75, 0.76, 0.75)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/DiningChairLeft"]
+position = Vector3(0, 0.47804, 0)
+shape = SubResource("BoxShape3D_DiningChairLeft")
+
+[node name="DiningChairRight" type="StaticBody3D" parent="Kitchen"]
+position = Vector3(-2.3, 0, -4.63)
+rotation = Vector3(0, -1.5708, 0)
+
+[node name="Model" parent="Kitchen/DiningChairRight" instance=ExtResource("chair")]
+position = Vector3(0, 0, 0.03562)
+scale = Vector3(0.75, 0.76, 0.75)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Kitchen/DiningChairRight"]
+position = Vector3(0, 0.47804, 0)
+shape = SubResource("BoxShape3D_DiningChairRight")
+
+[node name="CuttingBoard" parent="Kitchen" instance=ExtResource("board")]
+position = Vector3(-7.45, 0.91, -5.36)
+rotation = Vector3(0, 1.5708, 0)
+scale = Vector3(0.91, 1, 0.86)
+
+[node name="Cabbage" parent="Kitchen" instance=ExtResource("cabbage")]
+position = Vector3(-7.52, 0.968, -5.36)
+rotation = Vector3(0, -0.20944, 0)
+scale = Vector3(1.02, 1.02, 1.02)
+
+[node name="Carrot" parent="Kitchen" instance=ExtResource("carrot")]
+position = Vector3(-7.18, 1.016, -5.31)
+rotation = Vector3(0, -0.43633, 1.5708)
+scale = Vector3(0.54, 0.54, 0.54)
+
+[node name="StewPan" parent="Kitchen" instance=ExtResource("pan")]
+position = Vector3(-6.37, 0.917, -5.45)
+rotation = Vector3(0, -0.43633, 0)
+scale = Vector3(0.8, 0.84, 0.75)
+
+[node name="FruitPlate" parent="Kitchen" instance=ExtResource("plate")]
+position = Vector3(-3.54, 0.792, -4.61)
+scale = Vector3(0.81, 0.64, 0.81)
+
+[node name="Banana" parent="Kitchen" instance=ExtResource("banana")]
+position = Vector3(-3.55, 0.851, -4.62)
+rotation = Vector3(0, 1.0472, 0)
+scale = Vector3(0.83, 0.83, 0.83)
+
+[node name="SecondBanana" parent="Kitchen" instance=ExtResource("banana")]
+position = Vector3(-3.44, 0.88, -4.6)
+rotation = Vector3(0, 1.29154, 0)
+scale = Vector3(0.72, 0.72, 0.72)
+
+[node name="PreserveJar" parent="Kitchen" instance=ExtResource("jar")]
+position = Vector3(-3, 0.792, -4.89)
+scale = Vector3(3.05, 3.05, 3.05)
+
+[node name="DiningCoffee" parent="Kitchen" instance=ExtResource("coffee")]
+position = Vector3(-3, 0.792, -4.43)
+rotation = Vector3(0, 0.41888, 0)
+scale = Vector3(1.25, 1.25, 1.25)
+
+[node name="LivingRoom" type="Node3D" parent="."]
+
+[node name="Sofa" type="StaticBody3D" parent="LivingRoom"]
+position = Vector3(-8.67, 0, 1.34)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Model" parent="LivingRoom/Sofa" instance=ExtResource("sofa")]
+position = Vector3(0, 0, -0.052)
+scale = Vector3(1.04, 1.05, 1.04)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LivingRoom/Sofa"]
+position = Vector3(0, 0.6426, 0)
+shape = SubResource("BoxShape3D_Sofa")
+
+[node name="CoffeeTable" type="StaticBody3D" parent="LivingRoom"]
+position = Vector3(-6.53, 0.04, 1.37)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Model" parent="LivingRoom/CoffeeTable" instance=ExtResource("coffee_table")]
+scale = Vector3(0.74, 1, 0.86)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LivingRoom/CoffeeTable"]
+position = Vector3(0, 0.25, 0)
+shape = SubResource("BoxShape3D_CoffeeTable")
+
+[node name="TVStand" type="StaticBody3D" parent="LivingRoom"]
+position = Vector3(-5.17, 0, 1.37)
+rotation = Vector3(0, -1.5708, 0)
+
+[node name="Model" parent="LivingRoom/TVStand" instance=ExtResource("tv_stand")]
+position = Vector3(0, 0, -0.00063)
+scale = Vector3(0.63, 0.57, 0.63)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="LivingRoom/TVStand"]
+position = Vector3(0, 0.285, 0)
+shape = SubResource("BoxShape3D_TVStand")
+
+[node name="Rug" parent="LivingRoom" instance=ExtResource("living_rug")]
+position = Vector3(-7.22, 0.007, 1.34)
+rotation = Vector3(0, 1.5708, 0)
+scale = Vector3(1.31, 0.27, 2)
+
+[node name="FloorLamp" parent="LivingRoom" instance=ExtResource("lamp")]
+position = Vector3(-9.55, 0, 3.38)
+scale = Vector3(0.81, 0.81, 0.81)
+
+[node name="Television" parent="LivingRoom" instance=ExtResource("tv")]
+position = Vector3(-5.19, 0.572, 1.36)
+rotation = Vector3(0, -1.5708, 0)
+scale = Vector3(1.55, 1.45, 1.55)
+
+[node name="CoffeeMug" parent="LivingRoom" instance=ExtResource("mug")]
+position = Vector3(-6.65476, 0.542, 1.68993)
+rotation = Vector3(0, 0.41888, 0)
+scale = Vector3(0.7, 0.7, 0.7)
+
+[node name="CoffeeTableBooks" parent="LivingRoom" instance=ExtResource("books")]
+position = Vector3(-6.62474, 0.6055, 1.10933)
+rotation = Vector3(0, 1.43117, 0)
+scale = Vector3(0.73, 0.25, 0.87)
+
+[node name="HallRunner" parent="LivingRoom" instance=ExtResource("mat")]
+position = Vector3(0.42, 0.007, 2.36)
+rotation = Vector3(0, 1.5708, 0)
+scale = Vector3(1.04, 0.25, 0.43)
+
+[node name="EntryMat" parent="LivingRoom" instance=ExtResource("mat")]
+position = Vector3(2.1, 0.007, 5.51)
+scale = Vector3(0.48, 0.22, 0.41)
+
+[node name="MainBedroom" type="Node3D" parent="."]
+
+[node name="DoubleBed" type="StaticBody3D" parent="MainBedroom"]
+position = Vector3(2.73, 0, -4.68)
+
+[node name="Model" parent="MainBedroom/DoubleBed" instance=ExtResource("bed")]
+scale = Vector3(0.85, 0.9, 0.74)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MainBedroom/DoubleBed"]
+position = Vector3(0, 0.45, 0)
+shape = SubResource("BoxShape3D_DoubleBed")
+
+[node name="BedsideCabinet" type="StaticBody3D" parent="MainBedroom"]
+position = Vector3(4.41, 0, -5.35)
+
+[node name="Model" parent="MainBedroom/BedsideCabinet" instance=ExtResource("nightstand")]
+position = Vector3(0, 0, -0.00069)
+scale = Vector3(0.61, 0.66, 0.69)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="MainBedroom/BedsideCabinet"]
+position = Vector3(0, 0.33, 0)
+shape = SubResource("BoxShape3D_BedsideCabinet")
+
+[node name="BedRug" parent="MainBedroom" instance=ExtResource("oval_rug")]
+position = Vector3(2.61, 0.006, -4.47)
+scale = Vector3(1.12, 0.22, 1.65)
+
+[node name="BedsideLamp" parent="MainBedroom" instance=ExtResource("table_lamp")]
+position = Vector3(4.43, 0.6629, -5.36)
+scale = Vector3(0.49, 0.53, 0.49)
+
+[node name="WallShelf" parent="MainBedroom" instance=ExtResource("shelf")]
+position = Vector3(0.28, 1.05, -5.825)
+scale = Vector3(0.72, 0.72, 0.72)
+
+[node name="SecondBedroom" type="Node3D" parent="."]
+
+[node name="SingleBed" type="StaticBody3D" parent="SecondBedroom"]
+position = Vector3(9.22, 0, 3.28)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="Model" parent="SecondBedroom/SingleBed" instance=ExtResource("single_bed")]
+scale = Vector3(0.95, 0.89, 0.81)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SecondBedroom/SingleBed"]
+position = Vector3(0, 0.445, 0)
+shape = SubResource("BoxShape3D_SingleBed")
+
+[node name="Nightstand" type="StaticBody3D" parent="SecondBedroom"]
+position = Vector3(8.03, 0, 4.22)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="Model" parent="SecondBedroom/Nightstand" instance=ExtResource("nightstand")]
+position = Vector3(0, 0, -0.00065)
+scale = Vector3(0.66, 0.61, 0.65)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SecondBedroom/Nightstand"]
+position = Vector3(0, 0.305, 0)
+shape = SubResource("BoxShape3D_Nightstand")
+
+[node name="Desk" type="StaticBody3D" parent="SecondBedroom"]
+position = Vector3(4.52, 0, 4.03)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="Model" parent="SecondBedroom/Desk" instance=ExtResource("desk")]
+position = Vector3(0.87465, 0, -0.414)
+scale = Vector3(2.45, 2.36, 2.25)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SecondBedroom/Desk"]
+position = Vector3(0, 0.45312, 0)
+shape = SubResource("BoxShape3D_Desk")
+
+[node name="DeskChair" type="StaticBody3D" parent="SecondBedroom"]
+position = Vector3(4.54, 0, 3.14)
+
+[node name="Model" parent="SecondBedroom/DeskChair" instance=ExtResource("desk_chair")]
+position = Vector3(0.30988, 0, -0.29045)
+scale = Vector3(1.85, 1.84, 1.85)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="SecondBedroom/DeskChair"]
+position = Vector3(0, 0.55936, 0)
+shape = SubResource("BoxShape3D_DeskChair")
+
+[node name="BedRug" parent="SecondBedroom" instance=ExtResource("oval_rug")]
+position = Vector3(8.41, 0.006, 3)
+rotation = Vector3(0, 1.5708, 0)
+scale = Vector3(0.97, 0.22, 1.25)
+
+[node name="Laptop" parent="SecondBedroom" instance=ExtResource("laptop")]
+position = Vector3(4.4, 0.908, 4.15)
+rotation = Vector3(0, 3.14159, 0)
+scale = Vector3(2.4, 2.35, 2.35)
+
+[node name="DeskMug" parent="SecondBedroom" instance=ExtResource("mug")]
+position = Vector3(4.95139, 0.908, 4.04745)
+rotation = Vector3(0, -0.31416, 0)
+scale = Vector3(0.58, 0.58, 0.58)
+
+[node name="NightstandLamp" parent="SecondBedroom" instance=ExtResource("table_lamp")]
+position = Vector3(8.02, 0.61287, 4.24)
+scale = Vector3(0.5, 0.51, 0.5)
+
+[node name="Bathroom" type="Node3D" parent="."]
+
+[node name="TileFloor" type="MeshInstance3D" parent="Bathroom"]
+position = Vector3(8.475, -0.004, -4.47)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_bath")
+
+[node name="Toilet" type="StaticBody3D" parent="Bathroom"]
+position = Vector3(7, 0, -5.43)
+rotation = Vector3(0, 3.14159, 0)
+
+[node name="Model" parent="Bathroom/Toilet" instance=ExtResource("toilet")]
+position = Vector3(0.30518, 0, 0.44123)
+scale = Vector3(1.95, 2.2, 1.85)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bathroom/Toilet"]
+position = Vector3(0, 0.4961, 0)
+shape = SubResource("BoxShape3D_Toilet")
+
+[node name="Basin" type="StaticBody3D" parent="Bathroom"]
+position = Vector3(8.34, 0, -5.45)
+
+[node name="Model" parent="Bathroom/Basin" instance=ExtResource("bath_sink")]
+position = Vector3(0.408, 0.832, -0.348)
+scale = Vector3(2.4, 2.08, 2.4)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bathroom/Basin"]
+position = Vector3(0, 0.5824, 0)
+shape = SubResource("BoxShape3D_Basin")
+
+[node name="Bathtub" type="StaticBody3D" parent="Bathroom"]
+position = Vector3(9.84, 0, -4.48)
+rotation = Vector3(0, 1.5708, 0)
+
+[node name="Model" parent="Bathroom/Bathtub" instance=ExtResource("bath")]
+scale = Vector3(1.73, 1.6, 1.58)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Bathroom/Bathtub"]
+position = Vector3(0, 0.336, 0)
+shape = SubResource("BoxShape3D_Bathtub")
+
+[node name="BathMat" parent="Bathroom" instance=ExtResource("mat")]
+position = Vector3(8.55, 0.012, -3.73)
+scale = Vector3(0.39, 0.23, 0.34)
+
+[node name="Plunger" parent="Bathroom" instance=ExtResource("plunger")]
+position = Vector3(6.87, 0.30768, -4.35)
+rotation = Vector3(0, -0.31416, 0)
+scale = Vector3(0.48, 0.48, 0.48)
+
+[node name="DressingRoom" type="Node3D" parent="."]
+
+[node name="TileFloor" type="MeshInstance3D" parent="DressingRoom"]
+position = Vector3(7.78, -0.004, -1.7)
+cast_shadow = 0
+mesh = SubResource("BoxMesh_dressing")
+
+[node name="Washer" type="StaticBody3D" parent="DressingRoom"]
+position = Vector3(5.79, 0, -2.17)
+
+[node name="Model" parent="DressingRoom/Washer" instance=ExtResource("washer")]
+scale = Vector3(2.13, 2.05, 2.13)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DressingRoom/Washer"]
+position = Vector3(0, 0.48175, 0)
+shape = SubResource("BoxShape3D_Washer")
+
+[node name="Wardrobe" type="StaticBody3D" parent="DressingRoom"]
+position = Vector3(9.25, 0, -2.45)
+
+[node name="Model" parent="DressingRoom/Wardrobe" instance=ExtResource("wardrobe")]
+scale = Vector3(2.26, 2.37, 2.2)
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="DressingRoom/Wardrobe"]
+position = Vector3(0, 0.93615, 0)
+shape = SubResource("BoxShape3D_Wardrobe")
+
+[node name="MopAndBucket" parent="DressingRoom" instance=ExtResource("mop")]
+position = Vector3(9.75509, -0.01316, -0.82357)
+rotation = Vector3(0, 3.14159, 0)
+scale = Vector3(0.47, 0.47, 0.47)

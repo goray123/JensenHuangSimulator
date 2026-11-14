@@ -24,6 +24,7 @@ func _run() -> void:
 	_check(player.global_position.z < 3.0 and player.is_on_floor(), "Player can walk into the living room from the entry")
 
 	for passage in [
+		{"room": "kitchen", "start": Vector3(-5.0, 0.04, -0.6), "motion": Vector3.FORWARD * 3},
 		{"room": "bedroom 1", "start": Vector3(-0.8, 0.04, -1), "motion": Vector3.FORWARD * 3},
 		{"room": "bedroom 2", "start": Vector3(1.2, 0.04, -1.825), "motion": Vector3.RIGHT * 3},
 		{"room": "dressing room", "start": Vector3(7.35, 0.04, 1.3), "motion": Vector3.FORWARD * 3},
@@ -32,7 +33,17 @@ func _run() -> void:
 		var start := Transform3D(Basis.IDENTITY, passage.start)
 		_check(not player.test_move(start, passage.motion), "Player fits through the passage to %s" % passage.room)
 
-	var living_room := Vector3(-5.55, spawn.y, 1.2)
+	var sofa_approach := Transform3D(Basis.IDENTITY, Vector3(-8.7, 0.04, -1.5))
+	var hit := KinematicCollision3D.new()
+	_check(
+		player.test_move(sofa_approach, Vector3.BACK * 3, hit)
+		and hit.get_collider() == apartment.get_node("Furnishings/LivingRoom/Sofa"),
+		"The living room sofa blocks the player"
+	)
+	var mat_approach := Transform3D(Basis.IDENTITY, Vector3(-0.6, 0.04, 2.36))
+	_check(not player.test_move(mat_approach, Vector3.RIGHT * 2), "The hall runner can be walked over")
+
+	var living_room := Vector3(-2.0, spawn.y, 1.2)
 	var movement_cases := [
 		{"keys": [KEY_W], "direction": Vector3.FORWARD},
 		{"keys": [KEY_A], "direction": Vector3.LEFT},
@@ -69,14 +80,16 @@ func _run() -> void:
 	_check(player.global_position.distance_to(stopped) < 0.01, "Opposite keys cancel movement")
 	_check(is_equal_approx(player.rotation.y, stopped_yaw), "Opposite keys preserve the heading")
 
-	var wall_distances := {KEY_W: 6.63, KEY_A: 4.33, KEY_S: 2.98, KEY_D: 8.08}
-	for movement_case in movement_cases.slice(0, 4):
-		player.global_position = living_room
-		var key: Key = movement_case.keys[0]
-		await _hold_key(key, 150)
-		var direction: Vector3 = movement_case.direction
-		var traveled := (player.global_position - living_room).dot(direction)
-		_check(absf(traveled - wall_distances[key]) < 0.15, "Wall blocks movement in direction %s" % direction)
+	for wall_case in [
+		{"start": Vector3(-0.8, spawn.y, -3.6), "key": KEY_W, "direction": Vector3.FORWARD, "distance": 1.83},
+		{"start": Vector3(-6.5, spawn.y, -0.95), "key": KEY_A, "direction": Vector3.LEFT, "distance": 3.38},
+		{"start": living_room, "key": KEY_S, "direction": Vector3.BACK, "distance": 2.98},
+		{"start": living_room, "key": KEY_D, "direction": Vector3.RIGHT, "distance": 4.38},
+	]:
+		player.global_position = wall_case.start
+		await _hold_key(wall_case.key, 150)
+		var traveled := (player.global_position - (wall_case.start as Vector3)).dot(wall_case.direction)
+		_check(absf(traveled - wall_case.distance) < 0.15, "Wall blocks movement in direction %s" % wall_case.direction)
 
 	_check(camera.projection == Camera3D.PROJECTION_ORTHOGONAL and camera.global_basis.z.is_equal_approx(Vector3.UP) and camera.global_basis.y.is_equal_approx(Vector3.FORWARD), "Camera looks straight down with north at the top")
 	_check(camera.is_current() and camera.global_transform == camera_transform, "Camera stays fixed")
