@@ -58,12 +58,9 @@ func _run() -> void:
 	_lobby.play_intro = false
 	root.add_child(_lobby)
 	if is_host:
-		_lobby.get_node("%Host").pressed.emit()
-		if not await _expect(func() -> bool: return not _lobby.get_node("%Start").disabled, "The guest joins the host's real LAN room"):
-			return
-		_lobby.get_node("%Start").pressed.emit()
+		_lobby._host_room()
 	else:
-		_lobby.get_node("%Join").pressed.emit()
+		_lobby._find_room()
 	if not await _expect(func() -> bool: return _lobby.get_node_or_null("Apartment") != null, "Both peers load the apartment"):
 		return
 	await _wait_frames(8)
@@ -155,7 +152,7 @@ func _test_host() -> void:
 		return
 	await process_frame
 	_check(camera_reference.get_ref() == null and presentation_reference.get_ref() == null, "Disconnect frees the contest camera and presentation")
-	_check(_lobby.get_node("Menu").visible and _lobby.get_node("%Start").disabled, "The host can wait for another player after contest cleanup")
+	_check(_lobby.get_node("Menu").visible and _lobby.get_node("%Cancel").visible, "The host can wait for another player after contest cleanup")
 
 
 func _test_guest() -> void:
@@ -223,7 +220,7 @@ func _test_guest() -> void:
 	await process_frame
 	_check(_lobby.get_node_or_null("Apartment") == null and _lobby.get_node("Menu").visible, "Esc after timeout restores the guest's main menu")
 	_check(camera_reference.get_ref() == null and presentation_reference.get_ref() == null, "Guest cleanup frees the contest UI and camera")
-	_check(_lobby.get_node("%Join").visible and _lobby._peer == null, "Contest cleanup closes the guest network connection")
+	_check(_lobby.get_node("%Start").visible and _lobby._peer == null, "Contest cleanup closes the guest network connection")
 
 
 func _place_fixture() -> void:

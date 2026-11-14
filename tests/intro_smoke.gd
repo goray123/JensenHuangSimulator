@@ -15,8 +15,21 @@ func _run() -> void:
 	var lobby := preload("res://lan_lobby.tscn").instantiate()
 	root.add_child(lobby)
 	await _frames(2)
-	_check(lobby.get_node("%Host").text == "방 만들기" and lobby.get_node("%Join").text == "방 참여", "The title screen shows the two room buttons")
+	var start := lobby.get_node("%Start") as TextureButton
+	_check(start.visible, "The title screen shows the START button")
 	_check(not lobby.get_node("%StatusPanel").visible, "The idle title screen has no status panel")
+	start.mouse_entered.emit()
+	await create_timer(0.25).timeout
+	_check(start.scale.x > 1.1 and start.pivot_offset == start.size / 2.0, "Hovering START enlarges it around its center")
+	start.mouse_exited.emit()
+	await create_timer(0.25).timeout
+	_check(is_equal_approx(start.scale.x, 1.0), "Leaving START restores its size")
+	start.pressed.emit()
+	_check(not start.visible and lobby.get_node("%Cancel").visible, "START searches for a room and offers cancel")
+	await create_timer(2.3).timeout
+	_check(lobby._peer != null and lobby.multiplayer.is_server(), "START opens a room when no host answers")
+	lobby.get_node("%Cancel").pressed.emit()
+	_check(start.visible and lobby._peer == null, "Cancel closes the room and shows START again")
 	await _tap(KEY_F2)
 	var intro := lobby.get_node_or_null("Intro")
 	_check(intro != null and lobby.get_node_or_null("Apartment") == null and not lobby.get_node("Menu").visible, "F2 starts the intro before the test map")

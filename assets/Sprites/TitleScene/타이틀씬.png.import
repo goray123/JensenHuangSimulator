@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b14ac3xrrrqt7"
-path="res://.godot/imported/임시 배경.png-eb28d9665e6a56e150b0a4d962b8cad5.ctex"
+uid="uid://bdlrsbadgigp6"
+path="res://.godot/imported/타이틀씬.png-845013190822c9c3bd8823babd5be0c1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/Sprites/TitleScene/임시 배경.png"
-dest_files=["res://.godot/imported/임시 배경.png-eb28d9665e6a56e150b0a4d962b8cad5.ctex"]
+source_file="res://assets/Sprites/TitleScene/타이틀씬.png"
+dest_files=["res://.godot/imported/타이틀씬.png-845013190822c9c3bd8823babd5be0c1.ctex"]
 
 [params]
 

@@ -44,14 +44,12 @@ func _run() -> void:
 	_barrier.name = "PortraitSmokeBarrier"
 	root.add_child(_barrier)
 	_lobby = LOBBY.instantiate()
+	_lobby.play_intro = false
 	root.add_child(_lobby)
 	if is_host:
-		_lobby.get_node("%Host").pressed.emit()
-		if not await _expect(func() -> bool: return not _lobby.get_node("%Start").disabled, "The guest joins the LAN room", 10.0):
-			return
-		_lobby.get_node("%Start").pressed.emit()
+		_lobby._host_room()
 	else:
-		_lobby.get_node("%Join").pressed.emit()
+		_lobby._find_room()
 	if not await _expect(func() -> bool: return _lobby.get_node_or_null("Apartment") != null, "Both peers load the apartment", 10.0):
 		return
 	await _wait_frames(8)

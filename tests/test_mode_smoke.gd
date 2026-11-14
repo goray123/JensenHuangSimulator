@@ -11,9 +11,9 @@ func _run() -> void:
 	var lobby := preload("res://lan_lobby.tscn").instantiate()
 	lobby.play_intro = false
 	root.add_child(lobby)
-	var host_button := lobby.get_node("%Host") as Button
+	var start_button := lobby.get_node("%Start") as TextureButton
 	await _wait_for_physics(2)
-	_check(host_button.visible and lobby.get_node("%Join").visible and host_button.size.y >= 50, "The title screen shows the room buttons")
+	_check(start_button.visible and start_button.size.y >= 50, "The title screen shows the START button")
 	await _tap(KEY_F2)
 	var apartment := lobby.get_node("Apartment") as Node3D
 	var timer := apartment.get_node("RoundTimer") as Timer
@@ -196,12 +196,12 @@ func _run() -> void:
 	var restarted := lobby.get_node("Apartment") as Node3D
 	_check(restarted != apartment and restarted.can_process() and restarted.get_node("HUD/TimeLeft").text == "01:00", "R starts another one-minute test round from the timeout screen")
 	await _tap(KEY_ESCAPE)
-	_check(lobby.get_node_or_null("Apartment") == null and host_button.visible and lobby.get_node("Menu").visible, "Esc returns to the main menu")
+	_check(lobby.get_node_or_null("Apartment") == null and start_button.visible and lobby.get_node("Menu").visible, "Esc returns to the main menu")
 	_check(get_nodes_in_group(&"pickups").is_empty() and lobby._peer == null, "Leaving removes the test world and keeps networking closed")
 	await _tap(KEY_F2)
 	_check(lobby.get_node_or_null("Apartment/TestMode") != null, "Test Mode can be entered again")
 	await _tap(KEY_ESCAPE)
-	_check(lobby.get_node("%Host").visible and lobby.get_node("%Join").visible, "Host and Join remain available after offline testing")
+	_check(start_button.visible, "START remains available after offline testing")
 	if not failed:
 		print("Offline test mode smoke test passed.")
 	quit(int(failed))

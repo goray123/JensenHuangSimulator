@@ -62,19 +62,15 @@ func _run() -> void:
 	_lobby = LOBBY.instantiate()
 	_lobby.play_intro = false
 	root.add_child(_lobby)
-	var start := _lobby.get_node("%Start") as Button
+	var start := _lobby.get_node("%Start") as TextureButton
 	if is_host:
-		_lobby.get_node("%Host").pressed.emit()
-		_check(start.visible and start.disabled, "Only the host sees Start, disabled before joining")
-		await _lobby.multiplayer.peer_connected
-		await physics_frame
-		_check(not start.disabled, "Joining enables the host's Start button")
-		start.pressed.emit()
+		_lobby._host_room()
+		_check(not start.visible and _lobby.get_node("%Cancel").visible, "Hosting hides START and offers cancel while waiting")
 		await _lobby.child_entered_tree
 	else:
-		_lobby.get_node("%Join").pressed.emit()
+		_lobby._find_room()
 		await _lobby.child_entered_tree
-		_check(not start.visible, "The guest cannot start the game")
+		_check(not start.visible, "START stays hidden once the guest joins")
 
 	await physics_frame
 	var apartment := _lobby.get_node("Apartment")
@@ -112,10 +108,10 @@ func _run() -> void:
 		and apartment.process_mode == Node.PROCESS_MODE_DISABLED, "The finished round displays zero and freezes play")
 	if is_host:
 		await _expect(func() -> bool: return _lobby.get_node_or_null("Apartment") == null, "The host returns to the lobby when the guest leaves")
-		_check(start.disabled, "Leaving frees the guest slot and disables Start")
+		_check(not start.visible and _lobby.get_node("%Cancel").visible, "Leaving frees the guest slot and the host waits again")
 	else:
 		await _tap(KEY_ESCAPE)
-		_check(_lobby.get_node_or_null("Apartment") == null and _lobby.get_node("%Join").visible, "Esc returns the guest to the main menu")
+		_check(_lobby.get_node_or_null("Apartment") == null and start.visible, "Esc returns the guest to the main menu")
 	if not _failed:
 		print("LAN smoke test passed (%s)." % args[0])
 	quit(int(_failed))

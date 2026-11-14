@@ -1,7 +1,8 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://lan_lobby.gd" id="1_lobby"]
-[ext_resource type="Texture2D" path="res://assets/Sprites/TitleScene/임시 배경.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://assets/Sprites/TitleScene/타이틀씬.png" id="2_bg"]
+[ext_resource type="Texture2D" path="res://assets/Sprites/TitleScene/Start.png" id="3_start"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 content_margin_left = 24.0
@@ -18,21 +19,6 @@ corner_radius_top_left = 16
 corner_radius_top_right = 16
 corner_radius_bottom_left = 16
 corner_radius_bottom_right = 16
-
-[sub_resource type="SystemFont" id="SystemFont_title"]
-font_names = PackedStringArray("Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Sans-Serif")
-font_weight = 700
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button"]
-bg_color = Color(0.86, 0.86, 0.86, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.95, 0.95, 0.95, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
-bg_color = Color(0.72, 0.72, 0.72, 1)
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_focus"]
 
 [node name="LanLobby" type="Node"]
 script = ExtResource("1_lobby")
@@ -56,54 +42,25 @@ texture = ExtResource("2_bg")
 expand_mode = 1
 stretch_mode = 6
 
-[node name="TitleButtons" type="VBoxContainer" parent="Menu"]
+[node name="Start" type="TextureButton" parent="Menu"]
+unique_name_in_owner = true
 layout_mode = 1
-anchors_preset = 8
+anchors_preset = -1
 anchor_left = 0.5
-anchor_top = 0.5
+anchor_top = 0.625
 anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = -165.0
-offset_top = 14.0
-offset_right = 165.0
-offset_bottom = 221.0
+anchor_bottom = 0.625
+offset_left = -108.0
+offset_top = -31.0
+offset_right = 108.0
+offset_bottom = 31.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 27
-
-[node name="Host" type="Button" parent="Menu/TitleButtons"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 90)
-layout_mode = 2
+pivot_offset = Vector2(108, 31)
 mouse_default_cursor_shape = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
-theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
-theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
-theme_override_fonts/font = SubResource("SystemFont_title")
-theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_focus")
-text = "방 만들기"
-
-[node name="Join" type="Button" parent="Menu/TitleButtons"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 90)
-layout_mode = 2
-mouse_default_cursor_shape = 2
-theme_override_colors/font_color = Color(0, 0, 0, 1)
-theme_override_colors/font_hover_color = Color(0, 0, 0, 1)
-theme_override_colors/font_pressed_color = Color(0, 0, 0, 1)
-theme_override_colors/font_focus_color = Color(0, 0, 0, 1)
-theme_override_fonts/font = SubResource("SystemFont_title")
-theme_override_font_sizes/font_size = 40
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_focus")
-text = "방 참여"
+texture_normal = ExtResource("3_start")
+ignore_texture_size = true
+stretch_mode = 5
 
 [node name="StatusPanel" type="PanelContainer" parent="Menu"]
 unique_name_in_owner = true
@@ -133,20 +90,12 @@ theme_override_font_sizes/font_size = 18
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Start" type="Button" parent="Menu/StatusPanel/Content"]
+[node name="Cancel" type="Button" parent="Menu/StatusPanel/Content"]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(200, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
-disabled = true
-text = "게임 시작"
-
-[node name="BackHint" type="Label" parent="Menu/StatusPanel/Content"]
-unique_name_in_owner = true
-visible = false
-layout_mode = 2
-theme_override_colors/font_color = Color(0.72, 0.78, 0.83, 1)
-theme_override_font_sizes/font_size = 16
-horizontal_alignment = 1
-text = "Esc  처음으로"
+size_flags_horizontal = 4
+mouse_default_cursor_shape = 2
+theme_override_font_sizes/font_size = 18
+text = "매칭 취소 (Esc)"
