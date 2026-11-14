@@ -34,7 +34,7 @@ var _apartment: Node3D
 var _intro: CanvasLayer
 var _intro_done_peers: Array[int] = []
 var _host_if_none := false
-var _hover_tween: Tween
+var _hover_tweens := {}
 var _bgm: Node
 
 @onready var _menu: Control = $Menu
@@ -42,7 +42,7 @@ var _bgm: Node
 @onready var _status_panel: Control = %StatusPanel
 @onready var _start_button: TextureButton = %Start
 @onready var _cancel_button: Button = %Cancel
-@onready var _tutorial_button: Button = %TutorialButton
+@onready var _tutorial_button: TextureButton = %TutorialButton
 
 
 func _ready() -> void:
@@ -50,10 +50,11 @@ func _ready() -> void:
 	_bgm.name = "Bgm"
 	add_child(_bgm)
 	_start_button.pressed.connect(_find_room.bind(true))
-	_start_button.mouse_entered.connect(_set_start_hover.bind(true))
-	_start_button.mouse_exited.connect(_set_start_hover.bind(false))
 	_cancel_button.pressed.connect(_return_to_menu.bind(READY_MESSAGE))
 	_tutorial_button.pressed.connect(_open_tutorial)
+	for button: TextureButton in [_start_button, _tutorial_button]:
+		button.mouse_entered.connect(_set_hover.bind(button, true))
+		button.mouse_exited.connect(_set_hover.bind(button, false))
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	multiplayer.connected_to_server.connect(_on_connected_to_host)
@@ -368,16 +369,19 @@ func _show_lobby(message: String) -> void:
 	_tutorial_button.visible = _state == State.IDLE
 	_cancel_button.visible = _state != State.IDLE
 	_status_panel.visible = _state != State.IDLE or not message.is_empty()
-	if _hover_tween != null:
-		_hover_tween.kill()
-	_start_button.scale = Vector2.ONE
+	for button: TextureButton in [_start_button, _tutorial_button]:
+		if _hover_tweens.has(button):
+			(_hover_tweens[button] as Tween).kill()
+		button.scale = Vector2.ONE
 	_menu.show()
 	if _start_button.visible:
 		_start_button.grab_focus()
 
 
-func _set_start_hover(hovered: bool) -> void:
-	if _hover_tween != null:
-		_hover_tween.kill()
-	_hover_tween = create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	_hover_tween.tween_property(_start_button, ^"scale", Vector2.ONE * (START_HOVER_SCALE if hovered else 1.0), START_HOVER_TIME)
+## Each image button scales on its own tween, so moving between them never leaves one enlarged.
+func _set_hover(button: TextureButton, hovered: bool) -> void:
+	if _hover_tweens.has(button):
+		(_hover_tweens[button] as Tween).kill()
+	var tween := create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(button, ^"scale", Vector2.ONE * (START_HOVER_SCALE if hovered else 1.0), START_HOVER_TIME)
+	_hover_tweens[button] = tween
