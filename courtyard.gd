@@ -222,7 +222,7 @@ func _receive_bag_request(pickup_index: int) -> void:
 
 func _bag_held_item(player_index: int, pickup_index: int) -> void:
 	var player := _players[player_index]
-	if _round_finished or player.contest_active or player.held_pickup == null or pickup_index < 0 or _bagged_items.has(pickup_index) or _pickups.find(player.held_pickup) != pickup_index:
+	if _round_finished or player.contest_active or player.is_slipping() or player.held_pickup == null or pickup_index < 0 or _bagged_items.has(pickup_index) or _pickups.find(player.held_pickup) != pickup_index:
 		return
 	var revision := _ownership_revision + 1
 	_apply_bag_item(player_index, pickup_index, revision)

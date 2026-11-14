@@ -17,6 +17,7 @@ const IMPACT_SOUNDS := {
 const PACKING_SECONDS := [1.0, 0.5, 0.7, 1.1, 1.4, 1.9]
 
 const OUTLINE_MATERIAL := preload("res://pickup_outline.tres")
+const PICKUP_MARKER := preload("res://pickup_marker.gd")
 const THROW_TRAIL := preload("res://throw_trail.gd")
 const BANANA_PEEL := preload("res://assets/household_items/scenes/03-banana-peel.tscn")
 const BANANA_ID := "01-banana"
@@ -36,6 +37,7 @@ var _armed := false
 var _thrower_id := 0
 var _hit_players: Array[int] = []
 var _outline_meshes: Array[MeshInstance3D] = []
+var _pickup_marker: MeshInstance3D
 var _impact_played := false
 var _last_impact_ms := -1000
 var _flight_generation := 0
@@ -96,7 +98,7 @@ func set_pickup_highlighted(highlighted: bool) -> void:
 		# Imported props receive their models after _ready(), so build on demand.
 		var meshes := find_children("*", "MeshInstance3D", true, false)
 		for source: MeshInstance3D in meshes:
-			if source.mesh == null:
+			if source.mesh == null or source == _pickup_marker:
 				continue
 			var outline := MeshInstance3D.new()
 			outline.name = "PickupOutline"
@@ -108,6 +110,14 @@ func set_pickup_highlighted(highlighted: bool) -> void:
 			_outline_meshes.append(outline)
 	for outline in _outline_meshes:
 		outline.visible = highlighted
+	if highlighted and _pickup_marker == null:
+		# Add the cue after collecting model meshes so it never gets its own outline.
+		_pickup_marker = PICKUP_MARKER.new()
+		_pickup_marker.name = "PickupMarker"
+		_pickup_marker.body = self
+		add_child(_pickup_marker)
+	if is_instance_valid(_pickup_marker):
+		_pickup_marker.set_active(highlighted)
 
 
 func arm(thrower: PhysicsBody3D) -> void:

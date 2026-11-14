@@ -27,6 +27,9 @@ const HIT_FLASH_DURATION := 0.2
 const HIT_STUN_DURATION := 0.5
 const HIT_FLASH_INTERVAL := 0.05
 const PEEL_STUN_DURATION := 2.0
+const SLIP_FALL_SECONDS := 0.28
+const SLIP_RECOVER_SECONDS := 0.32
+const SLIP_FALL_ANGLE := PI * 0.5
 # Sustained contact must overcome floor friction, including on large furniture.
 const PUSH_MASS := 120.0
 const PUSH_RESPONSE := 20.0
@@ -62,6 +65,11 @@ var _hit_material := StandardMaterial3D.new()
 var _highlighted_pickup: RigidBody3D
 
 var _anim: AnimationPlayer
+var _model: Node3D
+var _model_rest_transform := Transform3D.IDENTITY
+var _model_bounds := AABB()
+var _slip_active := false
+var _slip_elapsed := 0.0
 var _clip_prefix := ""
 var _grip: BoneAttachment3D
 var _last_position := Vector3.ZERO
@@ -88,6 +96,8 @@ func _ready() -> void:
 	for node: MeshInstance3D in model.find_children("*", "MeshInstance3D", true, false):
 		_body_meshes.append(node)
 		_original_overlays.append(node.material_overlay)
+		var bounds := (model.global_transform.affine_inverse() * node.global_transform) * node.get_aabb()
+		_model_bounds = bounds if _body_meshes.size() == 1 else _model_bounds.merge(bounds)
 
 
 func _setup_model() -> Node3D:
@@ -97,6 +107,8 @@ func _setup_model() -> Node3D:
 	# The exported characters face +Z; the player faces -Z.
 	model.rotation.y = PI
 	add_child(model)
+	_model = model
+	_model_rest_transform = model.transform
 	_anim = model.find_children("*", "AnimationPlayer", true, false)[0] as AnimationPlayer
 	_clip_prefix = _anim.get_animation_list()[0].get_slice("__", 0) + "__"
 	for clip: String in LOOPING_CLIPS:
@@ -122,6 +134,8 @@ func _update_animation(delta: float) -> void:
 		minimum_height = maxf(minimum_height, THROW_HEIGHT_DROP + 0.021 - local_bounds.position.y)
 	hand.y = maxf(hand.y, global_position.y + minimum_height)
 	_hand_socket.global_position = hand
+	if is_slipping():
+		return
 	if _anim.is_playing() and _anim.current_animation.trim_prefix(_clip_prefix) in ONE_SHOT_CLIPS:
 		return
 	var ground_speed := Vector2(moved.x, moved.z).length() / delta
@@ -139,6 +153,8 @@ func _play(clip: StringName, speed: float) -> void:
 
 
 func _play_once(clip: StringName, from_seconds: float, speed: float) -> void:
+	if is_slipping():
+		return
 	_anim.play(_clip_prefix + clip, 0.1)
 	_anim.seek(from_seconds, true)
 	_anim.speed_scale = speed
@@ -170,7 +186,43 @@ func apply_status_effect(effect: StringName, seconds: float) -> void:
 
 func receive_banana_peel() -> void:
 	apply_stun(PEEL_STUN_DURATION)
+	_cancel_aim()
+	_set_highlighted_pickup(null)
+	if not _slip_active:
+		_slip_active = true
+		_slip_elapsed = 0.0
+		# Hold a neutral skeletal pose while the visual model falls as one body.
+		_anim.play(_clip_prefix + "Idle", 0.0)
+		_anim.advance(0.0)
+		_anim.pause()
 	banana_peel_stepped.emit()
+
+
+func is_slipping() -> bool:
+	return _slip_active
+
+
+func _update_slip(delta: float) -> void:
+	if not _slip_active:
+		return
+	if not is_stunned():
+		_slip_active = false
+		_model.transform = _model_rest_transform
+		_anim.stop()
+		_play(&"Carry" if held_pickup != null else &"Idle", 1.0)
+		return
+	_slip_elapsed += delta
+	var fall := smoothstep(0.0, SLIP_FALL_SECONDS, _slip_elapsed)
+	var recovery := smoothstep(0.0, SLIP_RECOVER_SECONDS, _stun_remaining)
+	var angle := SLIP_FALL_ANGLE * minf(fall, recovery)
+	# Rotate in player space: +Z is backward even though the model itself faces +Z.
+	var pose := _model_rest_transform
+	pose.basis = Basis(Vector3.RIGHT, angle) * pose.basis
+	# Lift the visible body just enough to keep its back above the floor.
+	var standing_bounds := _model_rest_transform * _model_bounds
+	var fallen_bounds := pose * _model_bounds
+	pose.origin.y += maxf(standing_bounds.position.y - fallen_bounds.position.y, 0.0)
+	_model.transform = pose
 
 
 func set_contest_active(value: bool) -> void:
@@ -204,6 +256,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not reads_local_input:
 		return
 	if event is InputEventKey and event.echo:
+		return
+	if is_slipping():
+		if event.is_action(&"interact") or event.is_action(&"bag_item"):
+			get_viewport().set_input_as_handled()
 		return
 	if event.is_action_pressed(&"interact"):
 		if contest_active:
@@ -371,7 +427,7 @@ func hold_pickup(pickup: RigidBody3D) -> void:
 
 
 func release_pickup(launch: bool, launch_velocity := Vector3.ZERO) -> void:
-	if held_pickup == null or (launch and contest_active):
+	if held_pickup == null or (launch and (contest_active or is_slipping())):
 		return
 	var launch_transform := held_pickup.global_transform
 	if launch:
@@ -417,6 +473,7 @@ func _physics_process(delta: float) -> void:
 		var input := read_movement() if reads_local_input else remote_input
 		_move(Vector2.ZERO if is_stunned() or contest_active else input, delta)
 	_update_hit_effects(delta)
+	_update_slip(delta)
 	if _grab_elapsed >= 0.0:
 		if not reads_local_input or not Input.is_action_pressed(&"interact") or not is_instance_valid(_grab_target) or not can_grab(_grab_target):
 			_cancel_grab()

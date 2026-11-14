@@ -224,6 +224,8 @@ func _charged_throw() -> void:
 
 
 func _verify_step_stun(player: Player, label: String, spent: RigidBody3D, unspent: RigidBody3D = null) -> void:
+	var collider: CollisionShape3D = player.get_node("CollisionShape3D")
+	var collider_pose := collider.transform
 	if not await _expect(func() -> bool: return player.is_stunned(), "Both peers see the %s step onto the peel" % label):
 		return
 	_check(player._stun_remaining >= 1.7, "The %s receives the full two-second peel stun on both peers" % label)
@@ -236,7 +238,12 @@ func _verify_step_stun(player: Player, label: String, spent: RigidBody3D, unspen
 	if unspent != null:
 		_check(not bool(unspent.get("is_banana_peel_consumed")) and unspent.get_node("BananaPeel").is_visible_in_tree(),
 			"Consuming the first peel leaves the other peel available and visible on both peers")
-	await _wait_frames(108)
+	await _wait_frames(20)
+	_check(player.is_slipping() and player._model.basis.y.normalized().dot(Vector3.BACK) > 0.95,
+		"The %s falls backward during the peel stun on both peers" % label)
+	_check(collider.transform.is_equal_approx(collider_pose) and player.basis.y.normalized().dot(Vector3.UP) > 0.999,
+		"The %s's backward fall leaves the movement body and collider upright on both peers" % label)
+	await _wait_frames(88)
 	var during_stun := Vector2(player.global_position.x, player.global_position.z)
 	_check(player.is_stunned() and during_stun.distance_to(stopped_at) < 0.025,
 		"The %s stays in place for 1.8 seconds despite held movement input" % label)
@@ -244,6 +251,8 @@ func _verify_step_stun(player: Player, label: String, spent: RigidBody3D, unspen
 		return not player.is_stunned() and Vector2(player.global_position.x, player.global_position.z).distance_to(stopped_at) > 0.12,
 		"The %s resumes walking after two seconds without continuously refreshing the stun" % label, 0.65):
 		return
+	_check(not player.is_slipping() and player._model.transform.is_equal_approx(player._model_rest_transform),
+		"The %s returns to the standing model pose when the peel stun ends on both peers" % label)
 	_verify_consumed(spent)
 	_verify_stale_snapshot(spent, 0 if spent == _first else 1)
 	var pickup_index: int = _apartment._pickups.find(spent)
