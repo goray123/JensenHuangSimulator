@@ -3,6 +3,7 @@ extends SceneTree
 # Run two headless instances with --script res://tests/lan_smoke.gd -- host / guest.
 const LOBBY := preload("res://lan_lobby.tscn")
 const Player := preload("res://player.gd")
+const SPEECH := preload("res://ui/speech_bubbles.gd")
 const HOST_SPAWN := Vector3(4.7, 0.065, -2.1)
 const GUEST_SPAWN := Vector3(7.5, 0.065, -3.7)
 const TV_PICKUP_OFFSET := Vector3(0.0, 0.8, 0.95)
@@ -163,6 +164,7 @@ func _test_host(second: RigidBody3D) -> void:
 	await _expect(func() -> bool: return _guest.held_pickup == null and _pickup.global_position.distance_to(guest_launch.get("position", from)) > 0.35,
 		"Guest throw moves the shared pickup on the host")
 	_check(_guest.motion == &"Throw", "The host plays the guest's one-hand Throw for the validated launch")
+	_check(_throw_line(1), "The host shows the wife's throw shout")
 	_check(guest_launch.has("velocity") and (guest_launch["velocity"] as Vector3).length() <= 10.001, "The host uses the guest's charged speed within zero to ten")
 	if guest_launch.has("velocity"):
 		var direction := (guest_launch["velocity"] as Vector3).normalized()
@@ -180,6 +182,7 @@ func _test_host(second: RigidBody3D) -> void:
 	await _expect(func() -> bool: return _host.held_pickup == null and second.global_position.distance_to(second_release) > 0.35,
 		"The host's tissue-box throw moves through physics before the TV fixture is prepared")
 	_check(_host.motion == &"Throw", "The host's own launch plays the one-hand Throw")
+	_check(_throw_line(0), "The host shows the husband's own throw shout")
 	# Completed throws can land closer to the guest than the TV's safe, separate
 	# collider. Clear those old targets so E still selects the intended TV.
 	for index in 2:
@@ -254,6 +257,7 @@ func _test_guest() -> void:
 	await _expect(func() -> bool: return _guest.held_pickup == null and _pickup.global_position.distance_to(from) > 0.35,
 		"Guest sees the shared throw after releasing left click")
 	_check(_guest.motion == &"Throw", "The server throw event plays the guest's own one-hand Throw")
+	_check(_throw_line(1), "The guest shows the wife's own throw shout")
 	var saw_host_grab := [false]
 	await _expect(func() -> bool:
 		saw_host_grab[0] = saw_host_grab[0] or _host.motion == &"Grab"
@@ -265,6 +269,7 @@ func _test_guest() -> void:
 	await _expect(func() -> bool: return _host.held_pickup == null and host_pickup.global_position.distance_to(host_release) > 0.35,
 		"Guest sees the host throw the shared sphere")
 	_check(_host.motion == &"Throw", "The guest plays the host's one-hand Throw from the server event")
+	_check(_throw_line(0), "The guest shows the husband's throw shout")
 	var apartment := _lobby.get_node("Apartment")
 	var tv := apartment.get_node("Items/Item_17_tv") as RigidBody3D
 	await _expect(func() -> bool: return tv.global_position.distance_to(_guest.global_position + TV_PICKUP_OFFSET) < 0.1, "Guest receives the shared TV transform")
@@ -363,6 +368,11 @@ func _expect(condition: Callable, message: String) -> void:
 			return
 		await physics_frame
 	_check(false, message)
+
+
+func _throw_line(index: int) -> bool:
+	var bubble: PanelContainer = _lobby.get_node("Apartment/HUD").speech.bubble(index)
+	return bubble != null and (bubble.get_child(0) as Label).text in SPEECH.LINES[&"throw"][index]
 
 
 func _check(condition: bool, message: String) -> void:

@@ -15,6 +15,8 @@ signal shared_sfx_requested(sound: StringName)
 signal banana_peel_stepped
 ## Emitted on the simulating peer after a validated launch (never for drops or transfers).
 signal pickup_launched(pickup: RigidBody3D)
+## Emitted on every peer when the validated Throw motion starts (host launch or guest _apply_throw).
+signal throw_played
 
 const SFX := preload("res://sfx.gd")
 
@@ -279,6 +281,7 @@ func show_remote_grab(target: RigidBody3D) -> void:
 func play_throw_motion() -> void:
 	if _tug_side < 0:
 		_play_once(&"Throw", THROW_PLAYBACK)
+		throw_played.emit()
 
 
 ## Moves the visual model into the authored tug stance around the shared contest object.
@@ -724,10 +727,15 @@ func _physics_process(delta: float) -> void:
 		_cancel_aim()
 
 
+## Share of MOVE_SPEED left after the bag and the held item; every peer knows both weights.
+func move_speed_factor() -> float:
+	var hand_weight: float = held_pickup.weight if held_pickup != null else 0.0
+	return 1.0 / pow(1.0 + 0.03 * (bag_weight + hand_weight), 1.5)
+
+
 func _move(input: Vector2, delta: float) -> void:
 	var direction := Vector3(input.x, 0.0, input.y)
-	var hand_weight: float = held_pickup.weight if held_pickup != null else 0.0
-	var motion := direction * (MOVE_SPEED / pow(1.0 + 0.03 * (bag_weight + hand_weight), 1.5))
+	var motion := direction * MOVE_SPEED * move_speed_factor()
 	if not direction.is_zero_approx():
 		var target_yaw := atan2(-direction.x, -direction.z)
 		rotation.y = rotate_toward(rotation.y, target_yaw, TURN_SPEED * delta)

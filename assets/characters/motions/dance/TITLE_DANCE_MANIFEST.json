@@ -1,0 +1,54 @@
+{
+  "01_Elder": {
+    "file": "01_Elder_Dance.glb",
+    "bytes": 9949608,
+    "clips": {
+      "01_Elder__Dance": 3.2,
+      "01_Elder__Idle": 4
+    },
+    "bake_error": {
+      "Dance": 1.1406838893890381e-05,
+      "Idle": 8.791685104370117e-06
+    },
+    "loop_seam_error": {
+      "Dance": 0.0,
+      "Idle": 1.9873498117244833e-18
+    }
+  },
+  "02_Woman": {
+    "file": "02_Woman_Dance.glb",
+    "bytes": 20450756,
+    "clips": {
+      "02_Woman__Dance": 3.2,
+      "02_Woman__Idle": 4
+    },
+    "bake_error": {
+      "Dance": 8.970499038696289e-06,
+      "Idle": 3.926455974578857e-06
+    },
+    "loop_seam_error": {
+      "Dance": 0.0,
+      "Idle": 2.1571811584198894e-18
+    }
+  },
+  "source_blend": "Elder_Woman_Dance_v14.blend",
+  "source_sha256": "5561154a4f00f4d2bf1f20c545c587b667ef20b6cff68d97f26aaa7e208e5530",
+  "fps": 30,
+  "loop": true,
+  "clips": {
+    "Dance": {
+      "source": "Dance_Bunny_Party",
+      "source_frames": [
+        1,
+        97
+      ]
+    },
+    "Idle": {
+      "source": "Idle_Breathe",
+      "source_frames": [
+        1,
+        121
+      ]
+    }
+  }
+}

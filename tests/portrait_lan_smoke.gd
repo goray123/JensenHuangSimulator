@@ -87,6 +87,7 @@ func _test_host() -> void:
 	_host.hold_pickup(tv)
 	_apartment._bag_held_item(0, _apartment._pickups.find(tv))
 	_check(_husband.current_state == &"proud" and not tv.visible, "The quick TV deposit makes the husband proud on the host")
+	_check(_speech_text(0) == "내 월급이야!!", "The deposit makes the husband shout his bag line on the host")
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 2)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 3, "The guest checks the bag-driven proud reaction"):
 		return
@@ -94,6 +95,8 @@ func _test_host() -> void:
 	pan.arm(_host)
 	pan._on_body_entered(_guest)
 	_check(_wife.current_state == &"fallen", "The host shows the fallen wife card")
+	_check(_speech_text(1) == "아얏!!", "The hit makes the wife shout on the host")
+	_check(_apartment.get_node("HUD").speech.mark(0, &"spark") != null, "The host sparkles the husband for landing the hit")
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 3)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 4, "The guest sees the hit reaction"):
 		return
@@ -124,10 +127,14 @@ func _test_guest() -> void:
 	if not await _expect(func() -> bool: return _apartment.get_node("HUD/HusbandBag/Items").get_child_count() == 1, "The reliable deposit reaches the guest"):
 		return
 	_check(_husband.current_state == &"proud", "A deposit without a held snapshot still makes the husband proud on the guest")
+	_check(_speech_text(0) == "내 월급이야!!", "The guest shows the same bag line as the host")
 	_barrier.acknowledge.rpc_id(1, 3)
 	if not await _expect(func() -> bool: return _barrier.stage >= 3, "The host throws a hit"):
 		return
 	if not await _expect(func() -> bool: return _wife.current_state == &"fallen", "The reliable hit makes the wife card fall on the guest"):
+		return
+	_check(_speech_text(1) == "아얏!!", "The guest shows the same hit line as the host")
+	if not await _expect(func() -> bool: return _apartment.get_node("HUD").speech.mark(0, &"spark") != null, "The host-decided hit sparkle reaches the guest"):
 		return
 	_barrier.acknowledge.rpc_id(1, 4)
 	if not await _expect(func() -> bool: return _barrier.stage >= 4, "The host applies a status effect"):
@@ -139,6 +146,11 @@ func _test_guest() -> void:
 		return
 	_barrier.acknowledge.rpc_id(1, 6)
 	await _wait_frames(10)
+
+
+func _speech_text(index: int) -> String:
+	var bubble: PanelContainer = _apartment.get_node("HUD").speech.bubble(index)
+	return (bubble.get_child(0) as Label).text if bubble != null else ""
 
 
 func _expect(condition: Callable, message: String, seconds := 5.0) -> bool:

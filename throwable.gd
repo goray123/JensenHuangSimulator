@@ -255,6 +255,8 @@ func _on_body_entered(body: Node) -> void:
 	if is_instance_valid(thrower):
 		if stage != null:
 			stage.reward_thrower(thrower)
+			if stage.has_method(&"record_throw_hit"):
+				stage.record_throw_hit(thrower, body)
 		elif thrower.get("reads_local_input") == true:
 			SFX.play_ui(thrower, &"pickup_coin", -6.0)
 
@@ -267,7 +269,12 @@ func _on_sleeping_state_changed() -> void:
 
 func _disarm_if_sleeping() -> void:
 	if sleeping and not _banana_land_pending:
+		# A flight that comes to rest without touching a player is a miss (banana peels never get here).
+		var thrower := instance_from_id(_thrower_id) as Node3D if _armed and _hit_players.is_empty() else null
 		disarm()
+		var stage := _stage()
+		if is_instance_valid(thrower) and stage != null and stage.has_method(&"record_throw_miss"):
+			stage.record_throw_miss(thrower)
 
 
 func impact_sound() -> StringName:

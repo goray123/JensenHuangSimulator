@@ -259,6 +259,9 @@ func _verify_active_round() -> void:
 	_check(is_equal_approx(_contest.progress, 0.5) and is_equal_approx(_contest.presentation.progress, 0.5), "The two-color gauge begins exactly half full")
 	_check(_contest.presentation.gauge.is_visible_in_tree(), "The bottom contest gauge is visible")
 	_check(_host.contest_active and _guest.contest_active, "Both players are movement locked during the contest")
+	var speech: Control = _apartment.get_node("HUD").speech
+	_check(range(2).all(func(index: int) -> bool: return speech.bubble(index) != null and (speech.bubble(index).get_child(0) as Label).text in speech.LINES[&"contest"][index]),
+		"Both characters shout a tug line on every peer")
 	_check(_host.is_tugging() and _guest.is_tugging() and _host.motion in [&"Tug_Fast", &"Tug_Slow"] and _guest.motion == _host.motion, "Both peers play the same tug tempo on both characters")
 	var host_model := _host.get_node("Model") as Node3D
 	var guest_model := _guest.get_node("Model") as Node3D
@@ -311,6 +314,9 @@ func _verify_result(winner: int) -> void:
 	var portraits: Array = _apartment.get_node("HUD").portraits
 	_check(portraits[1 - winner].current_state == &"angry" and portraits[winner].current_state == &"idle",
 		"The loser's card turns angry (not fallen) on both peers; the 120-gold kimchi keeps the winner idle")
+	var speech: Control = _apartment.get_node("HUD").speech
+	var lines := [speech.bubble(1 - winner), speech.bubble(winner)].map(func(bubble: PanelContainer) -> String: return (bubble.get_child(0) as Label).text if bubble != null else "")
+	_check(lines[0] in speech.LINES[&"lost"][1 - winner] and lines[1] in speech.LINES[&"won"][winner], "The loser complains and the winner gloats on both peers (%s)" % [lines])
 	if loser.reads_local_input:
 		_key(KEY_D, true)
 	await create_timer(0.45).timeout
