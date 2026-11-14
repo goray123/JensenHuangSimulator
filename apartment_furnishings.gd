@@ -48,7 +48,7 @@ func _make_pickup(model: Node3D) -> void:
 	body.linear_damp_mode = RigidBody3D.DAMP_MODE_REPLACE
 	body.linear_damp = 0.0
 	body.angular_damp = 1.0
-	body.mass = PHYSICS_MASS.from_bounds(bounds)
+	body.mass = PHYSICS_MASS.from_item_bounds(bounds)
 	var material := PhysicsMaterial.new()
 	material.friction = 0.8
 	material.bounce = 0.2

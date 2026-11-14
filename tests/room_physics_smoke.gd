@@ -37,7 +37,8 @@ func _run() -> void:
 		_check(not body.freeze, "%s simulates physics before being picked up" % body.name)
 		_check(body.collision_layer == 2 and body.collision_mask == 3, "%s collides with the room and other objects" % body.name)
 		var volume: float = body.get_meta(&"physics_volume", -1.0)
-		_check(volume > 0 and is_equal_approx(body.mass, maxf(volume * 40.0, 0.02)), "%s has mass proportional to its volume" % body.name)
+		var weight_scale := 1.0 if body.is_in_group(&"dynamic_furniture") else 0.75
+		_check(volume > 0 and is_equal_approx(body.mass, maxf(volume * 40.0, 0.02) * weight_scale), "%s has volume-proportional mass with the item weight adjustment" % body.name)
 		_check(body.scale.is_equal_approx(Vector3.ONE), "%s has an unscaled physics body" % body.name)
 	_check(player.collision_mask & 2 != 0, "Players collide with movable objects")
 	var floors := get_nodes_in_group(&"map_floor")

@@ -43,7 +43,7 @@ const ONE_SHOT_CLIPS := ["Pickup", "Throw"]
 @export var model_scene: PackedScene = DEFAULT_MODEL
 
 var held_pickup: RigidBody3D = null
-var bag_weight := 0
+var bag_weight := 0.0
 var reads_local_input := true
 var simulates_movement := true
 var remote_input := Vector2.ZERO
@@ -442,7 +442,7 @@ func _physics_process(delta: float) -> void:
 
 func _move(input: Vector2, delta: float) -> void:
 	var direction := Vector3(input.x, 0.0, input.y)
-	var hand_weight: int = held_pickup.weight if held_pickup != null else 0
+	var hand_weight: float = held_pickup.weight if held_pickup != null else 0.0
 	var motion := direction * (MOVE_SPEED / pow(1.0 + 0.03 * (bag_weight + hand_weight), 1.5))
 	if not direction.is_zero_approx():
 		var target_yaw := atan2(-direction.x, -direction.z)

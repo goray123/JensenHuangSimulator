@@ -45,7 +45,7 @@ func _ready() -> void:
 		if not pickup.has_meta(&"physics_volume"):
 			var shape := pickup.get_node("CollisionShape3D") as CollisionShape3D
 			var bounds := shape.transform * shape.shape.get_debug_mesh().get_aabb()
-			pickup.mass = PHYSICS_MASS.from_bounds(bounds)
+			pickup.mass = PHYSICS_MASS.from_item_bounds(bounds)
 			pickup.set_meta(&"physics_volume", bounds.get_volume())
 		pickup.freeze = not multiplayer.is_server()
 	_physics_bodies.assign(_pickups)

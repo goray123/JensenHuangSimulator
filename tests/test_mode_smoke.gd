@@ -40,6 +40,10 @@ func _run() -> void:
 	var letter: RigidBody3D = apartment.get_node("Items/Item_14_letter")
 	var shampoo: RigidBody3D = apartment.get_node("Items/Item_23_shampoo")
 	var pan: RigidBody3D = apartment.get_node("Items/Item_07_frying_pan")
+	var weights := PackedFloat32Array([banana.weight, shampoo.weight, pan.weight,
+		apartment.get_node("Items/Item_17_tv").weight, apartment.get_node("Items/Item_11_bed").weight])
+	_check(weights == PackedFloat32Array([0.75, 1.5, 2.25, 3.0, 3.75]),
+		"Every item weight tier retains its fractional three-quarter carry weight")
 	target.hold_pickup(egg)
 	var start := player.global_position
 	var target_start := target.global_position
@@ -120,7 +124,7 @@ func _run() -> void:
 	_set_key(KEY_D, true)
 	await _wait_for_physics(3)
 	_set_key(KEY_D, false)
-	_check(is_equal_approx(player.velocity.x, player.MOVE_SPEED / pow(1.0 + 0.03 * 5.0, 1.5)), "Movement uses the total weight of the hand and bag")
+	_check(is_equal_approx(player.velocity.x, player.MOVE_SPEED / pow(1.0 + 0.03 * 3.75, 1.5)), "Movement uses three quarters of the original hand and bag weight")
 	letter.arm(target)
 	letter._on_body_entered(player)
 	_check(player.is_stunned() and player.held_pickup == shampoo and husband_bag.get_child_count() == 3, "A letter hit stuns without rolling drops")
@@ -128,7 +132,7 @@ func _run() -> void:
 	pan.arm(target)
 	pan._on_body_entered(player)
 	await _wait_for_physics(2)
-	var retained_weight := 0
+	var retained_weight := 0.0
 	var retained_gold := 0
 	var retained_count := 0
 	var recovered: RigidBody3D

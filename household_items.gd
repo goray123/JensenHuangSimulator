@@ -3,7 +3,7 @@ extends Node3D
 const THROWABLE := preload("res://throwable.gd")
 const PHYSICS_MASS := preload("res://physics_mass.gd")
 const ITEM_DIR := "res://assets/items/"
-# Item list: weight, attack power, gold value, bag icon.
+# Item list: pickup-time weight tier, attack power, gold value, bag icon.
 const GAMEPLAY := {
 	"01-banana": [1, 1, 20, preload("res://assets/Sprites/Items/Item_Banana.png")],
 	"04-kimchi": [3, 2, 120, preload("res://assets/Sprites/Items/Item_Kimchi.png")],
@@ -133,7 +133,8 @@ func _spawn(item_id: String, at: Vector3, yaw_degrees: float, item_scale: float)
 func _make_pickup(item: RigidBody3D, collision: CollisionShape3D) -> void:
 	item.set_script(THROWABLE)
 	var stats: Array = GAMEPLAY[item.get_meta(&"item_id")]
-	item.weight = stats[0]
+	item.weight_tier = stats[0]
+	item.weight = float(stats[0]) * PHYSICS_MASS.ITEM_WEIGHT_SCALE
 	item.attack_power = stats[1]
 	item.gold_value = stats[2]
 	item.bag_icon = stats[3]
@@ -146,7 +147,7 @@ func _make_pickup(item: RigidBody3D, collision: CollisionShape3D) -> void:
 	item.linear_damp = 0.0
 	item.angular_damp = 1.0
 	var bounds := collision.transform * collision.shape.get_debug_mesh().get_aabb()
-	item.mass = PHYSICS_MASS.from_bounds(bounds)
+	item.mass = PHYSICS_MASS.from_item_bounds(bounds)
 	item.set_meta(&"physics_volume", bounds.get_volume())
 	var size := bounds.size
 	# Item origins are at the bottom, so centre the body in the hand like apartment props.

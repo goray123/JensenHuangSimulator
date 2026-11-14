@@ -24,7 +24,9 @@ const FLOOR_SUPPORT_DOT := 0.7
 const PEEL_FLOOR_OFFSET := 0.005
 const RELEASE_CLEARANCE := 0.02
 
-var weight := 0
+var weight := 0.0
+# Pickup timing uses its original tier independently of fractional carry weight.
+var weight_tier := 0
 var attack_power := 1
 var gold_value := 10
 var bag_icon: Texture2D
@@ -53,7 +55,7 @@ func _ready() -> void:
 
 
 func packing_seconds() -> float:
-	return PACKING_SECONDS[weight]
+	return PACKING_SECONDS[weight_tier]
 
 
 func _physics_process(_delta: float) -> void:
