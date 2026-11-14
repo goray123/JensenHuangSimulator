@@ -155,7 +155,16 @@ func _run() -> void:
 		await _wait_settled(first)
 		_check(room_bounds.has_point(Vector2(first.global_position.x, first.global_position.z)), "Walls keep thrown spheres inside the apartment")
 		_check(first.global_position.y >= ground_y and first.global_position.y < 2.0, "Sphere thrown at %s lands on the floor or furniture" % throw_case.position)
-		player.global_position = _free_spot_near(player, first.global_position, ground_y, throw_case.recover, room_bounds)
+		if first.global_position.y > pickup_y + 0.15:
+			# The bounce left it on furniture (e.g. the counter past the coat rack); reusability is about the
+			# sphere's state, so set it on the open floor ahead of where this throw started, a step past the
+			# player and clear of the other test spheres, before re-picking.
+			first.linear_velocity = Vector3.ZERO
+			first.angular_velocity = Vector3.ZERO
+			player.global_position = throw_case.position + heading * 0.6
+			first.global_position = Vector3(player.global_position.x, pickup_y, player.global_position.z) + heading * 0.6
+		else:
+			player.global_position = _free_spot_near(player, first.global_position, ground_y, throw_case.recover, room_bounds)
 		# Let the teleport settle on the floor before pressing, as a walking player would be.
 		await _wait_for_physics(2)
 		await _hold_left(64)
