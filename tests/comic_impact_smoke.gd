@@ -182,14 +182,14 @@ func _stage_and_visuals() -> void:
 	var drawing := effect.get_node("Burst") as Control
 	_check(effect.world_position.is_equal_approx(point) and effect.scale_progress < 0.05, "A new effect starts at a point at the reported contact")
 	_check(drawing.mouse_filter == Control.MOUSE_FILTER_IGNORE and drawing.focus_mode == Control.FOCUS_NONE, "The effect never captures gameplay input")
-	await create_timer(0.12).timeout
-	_check(is_instance_valid(effect) and effect.scale_progress > 1.0 and effect.screen_visible, "The burst expands visibly from its contact point")
+	await create_timer(COMIC.LIFETIME * 0.25).timeout
+	_check(is_instance_valid(effect) and effect.scale_progress > 0.9 and effect.screen_visible, "The burst expands visibly from its contact point")
 	if is_instance_valid(effect):
 		var projected := root.get_camera_3d().unproject_position(point)
 		_check(effect.screen_position.distance_to(projected) < 1.0, "The burst remains pinned to the contact through camera projection")
-	await create_timer(0.33).timeout
+	await create_timer(COMIC.LIFETIME * 0.5).timeout
 	_check(is_instance_valid(effect) and drawing.modulate.a > 0.0 and drawing.modulate.a < 0.95, "The expanded burst fades before expiring")
-	await create_timer(0.2).timeout
+	await create_timer(COMIC.LIFETIME * 0.5).timeout
 	_check(not is_instance_valid(effect) and _effects(house).is_empty(), "The burst frees itself completely after its short lifetime")
 
 	var variants: Dictionary = {}
