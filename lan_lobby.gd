@@ -11,6 +11,10 @@ const POST_MATCH_ACTIONS := preload("res://ui/post_match_actions.gd")
 const REMATCH_NOTICE_SECONDS := 0.4
 const TITLE_NOTICE_SECONDS := 0.65
 const TITLE_ACK_TIMEOUT_SECONDS := 2.5
+## Dedicated server: the comic intro is about half a minute; past this the match opens anyway.
+const SERVER_INTRO_LIMIT_SECONDS := 45.0
+## Dedicated server: the ending plus voting; past this an unvoted room is freed for the next pair.
+const SERVER_POST_ROUND_LIMIT_SECONDS := 120.0
 const GAME_PORT := 33443
 const DISCOVERY_PORT := 33444
 ## Browser guests reach a `--web-host` host through the demo gateway (server/gateway.js), which forwards /ws here.
@@ -296,6 +300,17 @@ func _on_peer_connected(peer_id: int) -> void:
 		_start_game()
 
 
+func _on_server_intro_limit(pair: Array[int]) -> void:
+	if _state == State.HOSTING and _server_mode and _apartment == null and _room_peers == pair:
+		# A late client drops its intro when this arrives (_open_apartment removes it).
+		_open_apartment.rpc(pair[0], pair[1], _match_id + 1)
+
+
+func _on_server_post_round_limit(epoch: int) -> void:
+	if _state == State.HOSTING and _server_mode and epoch == _post_round_epoch and is_instance_valid(_post_round_menu) and not _post_round_transitioning:
+		_reset_server_room()
+
+
 func _server_wait_message() -> String:
 	return "QR로 접속할 두 사람을 기다리는 중입니다. (%d/2) 먼저 들어온 사람이 남편입니다." % _room_peers.size()
 
@@ -315,6 +330,9 @@ func _reset_server_room() -> void:
 
 func _on_peer_disconnected(peer_id: int) -> void:
 	if _state == State.HOSTING and _server_mode:
+		# A peer already kicked by a reset can report its disconnect late; it must not reset the next pair.
+		if peer_id not in _room_peers:
+			return
 		var was_playing := _peer.refuse_new_connections
 		_room_peers.erase(peer_id)
 		if was_playing:
@@ -362,6 +380,8 @@ func _start_game() -> void:
 			_intro_done_peers.clear()
 			_play_match_intro.rpc(_room_peers[0], _room_peers[1])
 			_show_lobby("두 사람이 들어왔습니다. 인트로를 보는 중입니다…")
+			# A locked phone or hidden tab keeps its socket but never finishes the intro: start without it.
+			get_tree().create_timer(SERVER_INTRO_LIMIT_SECONDS).timeout.connect(_on_server_intro_limit.bind(_room_peers.duplicate()))
 		return
 	var peers := multiplayer.get_peers()
 	if peers.size() == 1:
@@ -498,8 +518,9 @@ func _on_round_ended() -> void:
 		local_index = 1
 	_post_round_menu.setup(_post_round_choices.size(), local_index)
 	if _server_mode:
-		# The referee only counts the players' votes.
+		# The referee only counts the players' votes, and frees the room if nobody ever votes.
 		_post_round_menu.hide()
+		get_tree().create_timer(SERVER_POST_ROUND_LIMIT_SECONDS).timeout.connect(_on_server_post_round_limit.bind(_post_round_epoch))
 	_post_round_menu.set_choices(_post_round_choices)
 
 

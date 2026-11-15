@@ -164,7 +164,9 @@ func _ready() -> void:
 	_local_player.aim_changed.connect(_update_throw_power)
 	_local_player.grab_changed.connect(_update_grab_progress)
 	_local_player.bag_requested.connect(_request_bag_item)
-	_local_player.status_effect_applied.connect($HUD.show_hit_splat)
+	# Splats cover "your" screen; a dedicated server's audience view has no own player.
+	if _local_player.reads_local_input:
+		_local_player.status_effect_applied.connect($HUD.show_hit_splat)
 	round_seconds_changed.connect($HUD.on_round_seconds_changed)
 	for index in _players.size():
 		$HUD.bind_player(index, _players[index])
@@ -267,7 +269,8 @@ func _physics_process(_delta: float) -> void:
 
 ## Only WebSocket clients get 30 Hz snapshots; LAN (ENet, 60 Hz) keeps placing poses exactly as before.
 func _smooths_snapshots() -> bool:
-	return multiplayer.multiplayer_peer is WebSocketMultiplayerPeer
+	# Never on the server: it owns the poses and must place them itself.
+	return not multiplayer.is_server() and multiplayer.multiplayer_peer is WebSocketMultiplayerPeer
 
 
 ## Snapshot pose for a client body: eased in over WebSocket, placed at once on LAN.
@@ -283,8 +286,13 @@ func _ease_poses(delta: float) -> void:
 	var now := Time.get_ticks_msec()
 	if Player.read_movement().length() >= 0.1:
 		_last_move_input_msec = now
+	var held: Array[RigidBody3D] = []
+	for player in _players:
+		if player.held_pickup != null:
+			held.append(player.held_pickup)
 	for body: Node3D in _pose_targets.keys():
-		if not is_instance_valid(body):
+		# Held items follow the hand; a reliable event (contest win, grab) can make one held between snapshots.
+		if not is_instance_valid(body) or body in held:
 			_pose_targets.erase(body)
 			continue
 		var target: Transform3D = _pose_targets[body]
@@ -575,7 +583,9 @@ func _apply_hit_drops(pickup_indices: Array[int], poses: Array[Transform3D], rev
 			$HUD.remove_bag_item(owner, pickup_index, pickup.gold_value)
 		$HUD.add_drop_log(pickup)
 		pickup.disarm()
-		_place(pickup, poses[slot])
+		# A drop is a teleport out of the hand or bag: place it at once, with no stale target to slide from.
+		pickup.global_transform = poses[slot]
+		_pose_targets.erase(pickup)
 		pickup.add_to_group(&"pickups")
 		pickup.show()
 		pickup.collision_layer = 2
@@ -682,6 +692,9 @@ func _apply_snapshot(transforms: Array, holding: Vector2i, ownership_revision: i
 		if _bagged_items.has(holding[index]) or (holding[index] >= 0 and (not is_instance_valid(_pickups[holding[index]]) or _pickups[holding[index]].is_banana_peel)):
 			holding[index] = -1
 	_update_time_left(seconds_left)
+	# Predicting clients walk with the server's last-spurt speed too, or they would trail it and snap.
+	for player in _players:
+		player.speed_multiplier = LAST_SPURT_SPEED if seconds_left <= LAST_SPURT_SECONDS else 1.0
 	# Release old holders first, including when an intermediate throw was missed.
 	for index in _players.size():
 		var player := _players[index]
