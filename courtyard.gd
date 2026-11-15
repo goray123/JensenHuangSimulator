@@ -13,6 +13,9 @@ const ROOM_PHYSICS := preload("res://room_physics.gd")
 const PHYSICS_MASS := preload("res://physics_mass.gd")
 const SETTLEMENT := preload("res://settlement.gd")
 const FURNITURE_SNAPSHOT_BATCH := 16
+## Movement speed multiplier for the final LAST_SPURT_SECONDS of a round.
+const LAST_SPURT_SECONDS := 10
+const LAST_SPURT_SPEED := 1.2
 
 ## Host-decided whole seconds left (the guest receives them in snapshots); not emitted after the round ends.
 signal round_seconds_changed(seconds: int)
@@ -142,15 +145,20 @@ func _update_grab_progress(is_grabbing: bool, progress: float) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if guest_peer_id != 0 and not multiplayer.is_server():
-		_receive_movement.rpc_id(1, Player.read_movement())
+		_receive_movement.rpc_id(1, Player.read_movement(), _guest.local_aim_yaw())
 		return
 	var seconds_left := ceili(_round_timer.time_left)
 	_update_time_left(seconds_left)
+	# Last spurt: everyone runs faster for the final seconds (the host simulates both players).
+	var spurt := LAST_SPURT_SPEED if not _round_timer.is_stopped() and seconds_left <= LAST_SPURT_SECONDS else 1.0
+	for player in _players:
+		player.speed_multiplier = spurt
 	# The first input also signals that the guest has loaded this scene.
 	if guest_peer_id == 0 or _last_guest_input < 0:
 		return
 	if Time.get_ticks_msec() - _last_guest_input > INPUT_TIMEOUT_MS:
 		_guest.remote_input = Vector2.ZERO
+		_guest.remote_aim_yaw = NAN
 		_contest.request_interaction(_guest, false)
 	var transforms: Array[Transform3D] = [_host.transform, _guest.transform]
 	for pickup in _pickups:
@@ -245,19 +253,23 @@ func _settlement_rows(entries: PackedInt32Array) -> Array[Dictionary]:
 
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")
-func _receive_movement(direction: Vector2) -> void:
-	if _is_guest_request() and direction.is_finite():
+func _receive_movement(direction: Vector2, aim_yaw: float) -> void:
+	if _is_guest_request() and direction.is_finite() and not is_inf(aim_yaw):
 		_guest.remote_input = direction.limit_length()
+		_guest.remote_aim_yaw = aim_yaw if _guest.held_pickup != null else NAN
 		_last_guest_input = Time.get_ticks_msec()
 
 
-func _send_throw(speed: float) -> void:
-	_receive_throw.rpc_id(1, _pickups.find(_guest.held_pickup), speed)
+func _send_throw(speed: float, yaw: float) -> void:
+	_receive_throw.rpc_id(1, _pickups.find(_guest.held_pickup), speed, yaw)
 
 
 @rpc("any_peer", "call_remote", "reliable")
-func _receive_throw(pickup_index: int, speed: float) -> void:
-	if _is_guest_request() and _guest.held_pickup != null and _pickups.find(_guest.held_pickup) == pickup_index and is_finite(speed):
+func _receive_throw(pickup_index: int, speed: float, yaw: float) -> void:
+	if _is_guest_request() and _guest.held_pickup != null and _pickups.find(_guest.held_pickup) == pickup_index and is_finite(speed) and is_finite(yaw):
+		# Throw towards the guest's mouse as seen at release, not the last unreliable aim packet.
+		_guest.rotation.y = yaw
+		_guest.remote_aim_yaw = NAN
 		_guest.release_pickup(true, _guest.throw_velocity_at_speed(speed))
 
 

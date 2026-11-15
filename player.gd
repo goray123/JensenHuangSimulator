@@ -4,7 +4,7 @@ signal held_pickup_changed(is_holding: bool)
 signal throw_blocked
 signal aim_changed(is_aiming: bool, speed: float)
 signal grab_changed(is_grabbing: bool, progress: float)
-signal throw_requested(speed: float)
+signal throw_requested(speed: float, yaw: float)
 signal bag_requested
 signal hit_received
 ## Emitted when this player loses a pickup tug-of-war (the loss stun has a different cause than a hit).
@@ -67,6 +67,10 @@ var bag_weight := 0.0
 var reads_local_input := true
 var simulates_movement := true
 var remote_input := Vector2.ZERO
+## Host-side yaw the guest is aiming at with the mouse; NAN when the guest is not aiming.
+var remote_aim_yaw := NAN
+## Round-wide movement boost set by the host (last-spurt).
+var speed_multiplier := 1.0
 var contest_active := false
 var pickup_request_handler: Callable
 var _grab_target: RigidBody3D
@@ -446,12 +450,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_released(&"interact"):
 		_cancel_grab()
 		if _is_aiming:
+			_face_mouse()
 			var launch_velocity := _throw_velocity()
 			_cancel_aim()
 			if simulates_movement:
 				release_pickup(true, launch_velocity)
 			else:
-				throw_requested.emit(launch_velocity.length())
+				throw_requested.emit(launch_velocity.length(), rotation.y)
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed(&"bag_item") and not contest_active and held_pickup != null:
 		_cancel_aim()
@@ -494,6 +499,33 @@ func _cancel_aim() -> void:
 		_trajectory.clear_trajectory()
 	if was_aiming:
 		aim_changed.emit(false, 0.0)
+
+
+## Yaw from this player towards the mouse cursor on its floor plane; NAN if it cannot be found.
+func mouse_aim_yaw() -> float:
+	var camera := get_viewport().get_camera_3d()
+	if camera == null:
+		return NAN
+	var mouse := get_viewport().get_mouse_position()
+	var hit: Variant = Plane(Vector3.UP, global_position.y).intersects_ray(camera.project_ray_origin(mouse), camera.project_ray_normal(mouse))
+	if hit == null:
+		return NAN
+	var offset: Vector3 = hit - global_position
+	if Vector2(offset.x, offset.z).length_squared() < 0.0001:
+		return NAN
+	return atan2(-offset.x, -offset.z)
+
+
+## The yaw this local player is aiming at (sent to the host); NAN when not aiming.
+func local_aim_yaw() -> float:
+	return mouse_aim_yaw() if _is_aiming and held_pickup != null else NAN
+
+
+# Throws leave along the facing direction, so aiming turns the body to the cursor.
+func _face_mouse() -> void:
+	var yaw := mouse_aim_yaw()
+	if not is_nan(yaw):
+		rotation.y = yaw
 
 
 func _throw_speed() -> float:
@@ -719,6 +751,7 @@ func _physics_process(delta: float) -> void:
 	_update_footsteps()
 	if reads_local_input and _is_aiming and held_pickup != null and Input.is_action_pressed(&"interact"):
 		_aim_elapsed = fmod(_aim_elapsed + delta, THROW_CYCLE_SECONDS)
+		_face_mouse()
 		_trajectory.update_trajectory(self, held_pickup, _throw_velocity(), _throw_transform())
 		var speed := _throw_speed()
 		if speed >= MAX_THROW_SPEED * 0.97 and not _peak_sound_played:
@@ -739,8 +772,10 @@ func move_speed_factor() -> float:
 
 func _move(input: Vector2, delta: float) -> void:
 	var direction := Vector3(input.x, 0.0, input.y)
-	var motion := direction * MOVE_SPEED * move_speed_factor()
-	if not direction.is_zero_approx():
+	var motion := direction * MOVE_SPEED * move_speed_factor() * speed_multiplier
+	if not is_nan(remote_aim_yaw):
+		rotation.y = remote_aim_yaw
+	elif not direction.is_zero_approx() and not _is_aiming:
 		var target_yaw := atan2(-direction.x, -direction.z)
 		rotation.y = rotate_toward(rotation.y, target_yaw, TURN_SPEED * delta)
 	velocity.x = motion.x
