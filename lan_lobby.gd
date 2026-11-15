@@ -17,7 +17,8 @@ const DISCOVERY_PORT := 33444
 const WEB_PORT := 9080
 const WEB_TIMEOUT_MS := 12000
 const WEB_BUFFER_BYTES := 1 << 20
-const WEB_FONT_PATH := "res://assets/Fonts/NotoSansKR.ttf"
+## Noto Sans KR at a medium weight, close to the desktop's Malgun Gothic (browsers expose no system fonts).
+const WEB_FONT_PATH := "res://assets/Fonts/NotoSansKR_Web.tres"
 const TIMEOUT_MS := 4500
 const SEARCH_INTERVAL_MS := 350
 ## START searches this long (randomized so two players pressing together rarely both host) before hosting.
@@ -36,6 +37,13 @@ var _state := State.IDLE
 var _peer: MultiplayerPeer
 ## Launched with `-- --web-host`: START opens a WebSocket room for browser guests instead of the LAN search.
 var _web_host := OS.get_cmdline_user_args().has("--web-host")
+## Launched with `-- --server`: this PC only referees. The first two browser players to connect become
+## husband and wife; its window shows the match to the audience.
+var _server_mode := OS.get_cmdline_user_args().has("--server")
+## Dedicated server: connected player ids in arrival order (index 0 husband, 1 wife).
+var _room_peers: Array[int] = []
+## Remote players that acknowledged the title notice.
+var _title_acks: Array[int] = []
 var _discovery := PacketPeerUDP.new()
 var _query := "JensenHuangSimulator find 5".to_utf8_buffer()
 var _reply := "JensenHuangSimulator room 5".to_utf8_buffer()
@@ -57,7 +65,6 @@ var _post_round_resolution := 0
 var _post_round_started_msec := 0
 var _post_round_transitioning := false
 var _title_notice_elapsed := false
-var _title_guest_ready := false
 
 @onready var _menu: Control = $Menu
 @onready var _status: Label = %Status
@@ -74,6 +81,14 @@ func _ready() -> void:
 	if OS.has_feature("web"):
 		_use_web_font()
 	_start_button.pressed.connect(_on_start_pressed)
+	if _server_mode:
+		_host_room.call_deferred()
+	# Desktop stand-in for a browser player (tests, rehearsal): `-- --connect=http://127.0.0.1:9080 [--no-intro]`.
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--no-intro":
+			play_intro = false
+		elif arg.begins_with("--connect="):
+			_join_web.call_deferred(arg.trim_prefix("--connect="))
 	_cancel_button.pressed.connect(_return_to_menu.bind(READY_MESSAGE))
 	_tutorial_button.pressed.connect(_open_tutorial)
 	for button: TextureButton in [_start_button, _tutorial_button]:
@@ -135,7 +150,7 @@ func _restart_tutorial() -> void:
 func _on_start_pressed() -> void:
 	if OS.has_feature("web"):
 		_join_web(str(JavaScriptBridge.eval("location.origin", true)))
-	elif _web_host:
+	elif _web_host or _server_mode:
 		_bgm.play(&"brawl")
 		_host_room()
 	else:
@@ -170,7 +185,7 @@ func _join_web(origin: String) -> void:
 func _host_room() -> void:
 	if _state != State.IDLE:
 		return
-	if _web_host:
+	if _web_host or _server_mode:
 		var web_peer := WebSocketMultiplayerPeer.new()
 		web_peer.inbound_buffer_size = WEB_BUFFER_BYTES
 		web_peer.outbound_buffer_size = WEB_BUFFER_BYTES
@@ -180,7 +195,8 @@ func _host_room() -> void:
 		_state = State.HOSTING
 		_peer = web_peer
 		multiplayer.multiplayer_peer = _peer
-		_show_lobby("방을 열었습니다. QR로 들어올 상대를 기다리는 중입니다. (1/2)")
+		_room_peers.clear()
+		_show_lobby(_server_wait_message() if _server_mode else "방을 열었습니다. QR로 들어올 상대를 기다리는 중입니다. (1/2)")
 		return
 	var peer := ENetMultiplayerPeer.new()
 	peer.set_bind_ip("0.0.0.0")
@@ -225,7 +241,7 @@ func _process(_delta: float) -> void:
 
 
 func _answer_searches() -> void:
-	if _web_host or _discovery.get_available_packet_count() <= 0:
+	if _web_host or _server_mode or _discovery.get_available_packet_count() <= 0:
 		return
 	var can_join := _apartment == null and multiplayer.get_peers().is_empty()
 	for _packet in mini(32, _discovery.get_available_packet_count()):
@@ -268,12 +284,40 @@ func _connect_to_host(address: String) -> void:
 	_show_lobby("호스트에게 연결하는 중입니다…")
 
 
-func _on_peer_connected(_peer_id: int) -> void:
+func _on_peer_connected(peer_id: int) -> void:
 	if _state == State.HOSTING and _apartment == null:
+		if _server_mode and peer_id not in _room_peers:
+			_room_peers.append(peer_id)
+			_show_lobby(_server_wait_message())
 		_start_game()
 
 
-func _on_peer_disconnected(_peer_id: int) -> void:
+func _server_wait_message() -> String:
+	return "QR로 접속할 두 사람을 기다리는 중입니다. (%d/2) 먼저 들어온 사람이 남편입니다." % _room_peers.size()
+
+
+## Dedicated server: kick whoever is left and wait for a fresh pair, without closing the listening socket.
+func _reset_server_room() -> void:
+	_remove_apartment()
+	_intro_done_peers.clear()
+	_room_peers.clear()
+	# Open first, so the disconnects below read as "left the waiting room", not as another reset.
+	_peer.refuse_new_connections = false
+	for id in multiplayer.get_peers():
+		_peer.disconnect_peer(id)
+	_bgm.play(&"lobby")
+	_show_lobby(_server_wait_message())
+
+
+func _on_peer_disconnected(peer_id: int) -> void:
+	if _state == State.HOSTING and _server_mode:
+		var was_playing := _peer.refuse_new_connections
+		_room_peers.erase(peer_id)
+		if was_playing:
+			_reset_server_room.call_deferred()
+		else:
+			_show_lobby(_server_wait_message())
+		return
 	if _state == State.HOSTING:
 		if _post_round_resolution == 2:
 			_return_to_menu.call_deferred(READY_MESSAGE)
@@ -286,7 +330,7 @@ func _on_peer_disconnected(_peer_id: int) -> void:
 
 func _on_connected_to_host() -> void:
 	_state = State.JOINED
-	_show_lobby("방에 들어왔습니다. 곧 게임이 시작됩니다. (2/2)")
+	_show_lobby("접속했습니다. 상대가 들어오면 바로 시작합니다." if OS.has_feature("web") else "방에 들어왔습니다. 곧 게임이 시작됩니다. (2/2)")
 
 
 func _on_connection_failed() -> void:
@@ -297,23 +341,37 @@ func _on_connection_failed() -> void:
 
 
 func _on_host_disconnected() -> void:
-	_return_to_menu(READY_MESSAGE if _post_round_resolution == 2 else "호스트와의 연결이 끊겼습니다.")
+	if _post_round_resolution == 2:
+		_return_to_menu(READY_MESSAGE)
+	elif OS.has_feature("web"):
+		_return_to_menu("판이 끝났거나 상대가 나갔습니다. START를 눌러 다시 들어오세요.")
+	else:
+		_return_to_menu("호스트와의 연결이 끊겼습니다.")
 
 
 func _start_game() -> void:
 	if _state != State.HOSTING or _apartment != null:
 		return
+	if _server_mode:
+		if _room_peers.size() == 2:
+			_peer.refuse_new_connections = true
+			_intro_done_peers.clear()
+			_play_match_intro.rpc(_room_peers[0], _room_peers[1])
+			_show_lobby("두 사람이 들어왔습니다. 인트로를 보는 중입니다…")
+		return
 	var peers := multiplayer.get_peers()
 	if peers.size() == 1:
 		_peer.refuse_new_connections = true
 		_intro_done_peers.clear()
-		_play_match_intro.rpc(peers[0])
+		_play_match_intro.rpc(1, peers[0])
 
 
 ## Both players watch the intro; the host opens the map once both have finished it.
 @rpc("authority", "call_local", "reliable")
-func _play_match_intro(guest_id: int) -> void:
-	if _apartment != null or _intro != null or (_state != State.HOSTING and multiplayer.get_unique_id() != guest_id):
+func _play_match_intro(host_id: int, guest_id: int) -> void:
+	if _apartment != null or _intro != null or (_state != State.HOSTING and multiplayer.get_unique_id() not in [host_id, guest_id]):
+		return
+	if _server_mode:
 		return
 	_bgm.play(&"brawl")
 	_run_intro(_on_match_intro_done)
@@ -336,18 +394,23 @@ func _report_intro_done() -> void:
 	var peer_id := sender if sender != 0 else 1
 	if peer_id not in _intro_done_peers:
 		_intro_done_peers.append(peer_id)
+	if _server_mode:
+		if _room_peers.size() == 2 and _room_peers.all(func(id: int) -> bool: return id in _intro_done_peers):
+			_open_apartment.rpc(_room_peers[0], _room_peers[1], _match_id + 1)
+		return
 	var peers := multiplayer.get_peers()
 	if peers.size() == 1 and 1 in _intro_done_peers and peers[0] in _intro_done_peers:
-		_open_apartment.rpc(peers[0], _match_id + 1)
+		_open_apartment.rpc(1, peers[0], _match_id + 1)
 
 
 @rpc("authority", "call_local", "reliable")
-func _open_apartment(guest_id: int, match_id: int) -> void:
-	if match_id <= _match_id or _apartment != null or (_state != State.HOSTING and multiplayer.get_unique_id() != guest_id):
+func _open_apartment(host_id: int, guest_id: int, match_id: int) -> void:
+	if match_id <= _match_id or _apartment != null or (_state != State.HOSTING and multiplayer.get_unique_id() not in [host_id, guest_id]):
 		return
 	_match_id = match_id
 	_remove_intro()
 	_apartment = APARTMENT.instantiate()
+	_apartment.host_peer_id = host_id
 	_apartment.guest_peer_id = guest_id
 	_connect_round_music()
 	add_child(_apartment)
@@ -426,7 +489,13 @@ func _on_round_ended() -> void:
 	_post_round_menu.rematch_requested.connect(_request_rematch)
 	_post_round_menu.title_requested.connect(_request_title)
 	add_child(_post_round_menu)
-	_post_round_menu.setup(_post_round_choices.size(), 1 if _state == State.JOINED else 0)
+	var local_index := 0
+	if _state == State.JOINED and multiplayer.get_unique_id() != _apartment.host_peer_id:
+		local_index = 1
+	_post_round_menu.setup(_post_round_choices.size(), local_index)
+	if _server_mode:
+		# The referee only counts the players' votes.
+		_post_round_menu.hide()
 	_post_round_menu.set_choices(_post_round_choices)
 
 
@@ -443,7 +512,7 @@ func _request_post_round_choice(choice: int) -> void:
 		return
 	if _state == State.JOINED:
 		_receive_post_round_choice.rpc_id(1, _match_id, choice)
-	else:
+	elif not _server_mode:
 		_receive_post_round_choice(_match_id, choice)
 
 
@@ -457,9 +526,14 @@ func _receive_post_round_choice(match_id: int, choice: int) -> void:
 	var sender := multiplayer.get_remote_sender_id()
 	var index := 0
 	if sender != 0:
-		if _state != State.HOSTING or sender != _apartment.guest_peer_id:
+		if _state != State.HOSTING:
 			return
-		index = 1
+		if sender == _apartment.guest_peer_id:
+			index = 1
+		elif sender != _apartment.host_peer_id or _apartment.host_peer_id <= 1:
+			return
+	elif _server_mode:
+		return
 	if _post_round_choices[index] == choice:
 		return
 	var choices := _post_round_choices.duplicate()
@@ -503,24 +577,24 @@ func _finish_rematch(match_id: int, epoch: int) -> void:
 		return
 	if _state == State.TESTING:
 		_restart_test_mode.call_deferred()
-	elif _state == State.HOSTING and multiplayer.get_peers().size() == 1:
-		_begin_rematch.rpc(_apartment.guest_peer_id, match_id + 1)
+	elif _state == State.HOSTING and _apartment.client_peers().size() == (2 if _server_mode else 1):
+		_begin_rematch.rpc(_apartment.host_peer_id, _apartment.guest_peer_id, match_id + 1)
 
 
 @rpc("authority", "call_local", "reliable")
-func _begin_rematch(guest_id: int, next_match_id: int) -> void:
+func _begin_rematch(host_id: int, guest_id: int, next_match_id: int) -> void:
 	if next_match_id != _match_id + 1 or not _post_round_is_current(_match_id) or _post_round_resolution != 1 or _post_round_transitioning:
 		return
 	_post_round_transitioning = true
 	_post_round_menu.lock_actions()
-	_reload_match.call_deferred(guest_id, next_match_id, _post_round_epoch)
+	_reload_match.call_deferred(host_id, guest_id, next_match_id, _post_round_epoch)
 
 
-func _reload_match(guest_id: int, next_match_id: int, epoch: int) -> void:
+func _reload_match(host_id: int, guest_id: int, next_match_id: int, epoch: int) -> void:
 	if epoch != _post_round_epoch or not _post_round_transitioning or _post_round_resolution != 1 or next_match_id != _match_id + 1:
 		return
 	_remove_apartment()
-	_open_apartment(guest_id, next_match_id)
+	_open_apartment(host_id, guest_id, next_match_id)
 
 
 func _after_title_notice(match_id: int, epoch: int) -> void:
@@ -537,9 +611,11 @@ func _after_title_notice(match_id: int, epoch: int) -> void:
 func _ack_title_notice(match_id: int) -> void:
 	if not multiplayer.is_server() or not _post_round_is_current(match_id) or _post_round_resolution != 2:
 		return
-	if multiplayer.get_remote_sender_id() != _apartment.guest_peer_id:
+	var sender := multiplayer.get_remote_sender_id()
+	if sender not in _apartment.client_peers():
 		return
-	_title_guest_ready = true
+	if sender not in _title_acks:
+		_title_acks.append(sender)
 	_try_complete_title_return(match_id)
 
 
@@ -548,10 +624,11 @@ func _try_complete_title_return(match_id: int) -> void:
 		return
 	if _state == State.TESTING:
 		_return_to_menu.call_deferred(READY_MESSAGE)
-	elif _state == State.HOSTING and _title_guest_ready:
+	elif _state == State.HOSTING and _apartment.client_peers().all(func(id: int) -> bool: return id in _title_acks):
 		_post_round_transitioning = true
-		# Keep the host connected until the guest receives this command and leaves.
-		_complete_title_return.rpc_id(_apartment.guest_peer_id, match_id)
+		# Keep the host connected until the clients receive this command and leave.
+		for peer in _apartment.client_peers():
+			_complete_title_return.rpc_id(peer, match_id)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -562,7 +639,10 @@ func _complete_title_return(match_id: int) -> void:
 
 func _finish_title_fallback(match_id: int, epoch: int) -> void:
 	if epoch == _post_round_epoch and _post_round_is_current(match_id) and _post_round_resolution == 2:
-		_return_to_menu(READY_MESSAGE)
+		if _server_mode:
+			_reset_server_room()
+		else:
+			_return_to_menu(READY_MESSAGE)
 
 
 func _clear_post_round() -> void:
@@ -575,7 +655,7 @@ func _clear_post_round() -> void:
 	_post_round_started_msec = 0
 	_post_round_transitioning = false
 	_title_notice_elapsed = false
-	_title_guest_ready = false
+	_title_acks.clear()
 
 
 func _on_round_seconds_changed(seconds: int) -> void:

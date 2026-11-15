@@ -72,7 +72,7 @@ test_reset={
 
 [gui]
 
-theme/custom_font.web="res://assets/Fonts/NotoSansKR.ttf"
+theme/custom_font.web="res://assets/Fonts/NotoSansKR_Web.tres"
 
 [rendering]
 

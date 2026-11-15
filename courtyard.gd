@@ -25,12 +25,16 @@ signal round_seconds_changed(seconds: int)
 signal round_ended
 
 var guest_peer_id := 0
+## Peer that plays the husband: 1 when the server itself plays him (LAN host), a client id on a
+## dedicated server (`-- --server`), where the server only referees.
+var host_peer_id := 1
 ## Off in the tutorial so its scripted win cannot be reversed by a fake ring or a letter.
 var settlement_surprises := true
 var settlement_rng := RandomNumberGenerator.new()
 ## Gold after special evidence, set when the round ends (x = husband/host, y = wife/guest).
 var final_gold := Vector2i.ZERO
-var _last_guest_input := -1
+## Last input time per player index from its remote client; -1 until that client has loaded the scene.
+var _last_input: Array[int] = [-1, -1]
 var _guest: Player
 var _local_player: Player
 var _players: Array[Player]
@@ -80,12 +84,13 @@ func _ready() -> void:
 	_host.global_position = $Map/Markers/Player1Spawn.global_position
 	if guest_peer_id != 0:
 		var is_host := multiplayer.is_server()
-		_host.reads_local_input = is_host
+		var my_id := multiplayer.get_unique_id()
+		_host.reads_local_input = my_id == host_peer_id
 		_host.simulates_movement = is_host
 		_guest = PLAYER_SCENE.instantiate() as Player
 		_guest.name = "Guest"
 		_guest.position = to_local($Map/Markers/Player2Spawn.global_position)
-		_guest.reads_local_input = not is_host
+		_guest.reads_local_input = my_id == guest_peer_id
 		_guest.simulates_movement = is_host
 		_guest.model_scene = GUEST_MODEL
 		add_child(_guest)
@@ -100,9 +105,11 @@ func _ready() -> void:
 				_players[index].pickup_launched.connect(_broadcast_throw.bind(index))
 		process_physics_priority = 1
 		if not is_host:
-			_local_player = _guest
-			_guest.throw_requested.connect(_send_throw)
-	_local_player.get_node("Head/PlayerPosPointer").show()
+			_local_player = _host if my_id == host_peer_id else _guest
+			_local_player.throw_requested.connect(_send_throw)
+	# A dedicated server plays nobody: no "you" marker on its spectator screen.
+	if _local_player.reads_local_input:
+		_local_player.get_node("Head/PlayerPosPointer").show()
 	if guest_peer_id != 0:
 		for index in _players.size():
 			_players[index].shared_sfx_requested.connect(_broadcast_player_sound.bind(index))
@@ -151,7 +158,7 @@ func _update_grab_progress(is_grabbing: bool, progress: float) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if guest_peer_id != 0 and not multiplayer.is_server():
-		_receive_movement.rpc_id(1, Player.read_movement(), _guest.local_aim_yaw())
+		_receive_movement.rpc_id(1, Player.read_movement(), _local_player.local_aim_yaw())
 		return
 	var seconds_left := ceili(_round_timer.time_left)
 	_update_time_left(seconds_left)
@@ -159,15 +166,26 @@ func _physics_process(_delta: float) -> void:
 	var spurt := LAST_SPURT_SPEED if not _round_timer.is_stopped() and seconds_left <= LAST_SPURT_SECONDS else 1.0
 	for player in _players:
 		player.speed_multiplier = spurt
-	# The first input also signals that the guest has loaded this scene.
-	if guest_peer_id == 0 or _last_guest_input < 0:
+	if guest_peer_id == 0:
 		return
-	if Time.get_ticks_msec() - _last_guest_input > INPUT_TIMEOUT_MS:
-		_guest.remote_input = Vector2.ZERO
-		_guest.remote_aim_yaw = NAN
-		_contest.request_interaction(_guest, false)
-	# A browser guest rides one TCP WebSocket through the demo tunnel: 30 snapshots a second keep it from backing up.
-	if multiplayer.multiplayer_peer is WebSocketMultiplayerPeer and Engine.get_physics_frames() % 2 == 1:
+	# A browser client rides one TCP WebSocket through the demo tunnel: 30 snapshots a second keep it
+	# from backing up, and a late TCP retransmit must not read as "let go".
+	var on_web_socket := multiplayer.multiplayer_peer is WebSocketMultiplayerPeer
+	var timeout_ms := INPUT_TIMEOUT_MS * 3 if on_web_socket else INPUT_TIMEOUT_MS
+	var now := Time.get_ticks_msec()
+	var ready_peers: Array[int] = []
+	for index in _players.size():
+		var peer := peer_for(index)
+		# The first input also signals that this client has loaded the scene.
+		if peer <= 1 or _last_input[index] < 0:
+			continue
+		if now - _last_input[index] > timeout_ms:
+			_players[index].remote_input = Vector2.ZERO
+			_players[index].remote_aim_yaw = NAN
+			_contest.request_interaction(_players[index], false)
+		if multiplayer.get_peers().has(peer):
+			ready_peers.append(peer)
+	if ready_peers.is_empty() or (on_web_socket and Engine.get_physics_frames() % 2 == 1):
 		return
 	var transforms: Array[Transform3D] = [_host.transform, _guest.transform]
 	for pickup in _pickups:
@@ -177,14 +195,48 @@ func _physics_process(_delta: float) -> void:
 	var poses := PackedFloat32Array()
 	for pose in transforms:
 		poses.append_array(PackedFloat32Array([pose.basis.x.x, pose.basis.x.y, pose.basis.x.z, pose.basis.y.x, pose.basis.y.y, pose.basis.y.z, pose.basis.z.x, pose.basis.z.y, pose.basis.z.z, pose.origin.x, pose.origin.y, pose.origin.z]))
-	_receive_snapshot.rpc_id(guest_peer_id, poses, Vector4i(holding.x, holding.y, _ownership_revision, seconds_left))
+	for peer in ready_peers:
+		_receive_snapshot.rpc_id(peer, poses, Vector4i(holding.x, holding.y, _ownership_revision, seconds_left))
 	# Keep each unreliable packet below the network MTU as the room fills up.
 	var furniture: Array[RigidBody3D] = _room_physics.bodies
 	for start in range(0, furniture.size(), FURNITURE_SNAPSHOT_BATCH):
 		var furniture_poses: Array[Transform3D] = []
 		for index in range(start, mini(start + FURNITURE_SNAPSHOT_BATCH, furniture.size())):
 			furniture_poses.append(furniture[index].global_transform)
-		_apply_furniture_snapshot.rpc_id(guest_peer_id, start, furniture_poses)
+		for peer in ready_peers:
+			_apply_furniture_snapshot.rpc_id(peer, start, furniture_poses)
+
+
+## Peer id that plays the given player index (1 = this server plays the husband itself).
+func peer_for(player_index: int) -> int:
+	return host_peer_id if player_index == 0 else guest_peer_id
+
+
+## Connected remote clients that play in this match: the guest, plus the husband's client on a dedicated server.
+func client_peers() -> Array[int]:
+	var peers: Array[int] = []
+	for peer in [host_peer_id, guest_peer_id]:
+		if peer > 1 and multiplayer.get_peers().has(peer):
+			peers.append(peer)
+	return peers
+
+
+## Sends an authority RPC of this node to every client in client_peers().
+func _rpc_players(method: StringName, args: Array = []) -> void:
+	for peer in client_peers():
+		callv(&"rpc_id", [peer, method] + args)
+
+
+## Player index (0 husband, 1 wife) of the remote client that sent the current RPC, or -1.
+func sender_index() -> int:
+	if _round_finished or _guest == null or not multiplayer.is_server():
+		return -1
+	var sender := multiplayer.get_remote_sender_id()
+	if sender == guest_peer_id:
+		return 1
+	if sender == host_peer_id and host_peer_id > 1:
+		return 0
+	return -1
 
 
 func _update_time_left(seconds: int) -> void:
@@ -263,23 +315,29 @@ func _settlement_rows(entries: PackedInt32Array) -> Array[Dictionary]:
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")
 func _receive_movement(direction: Vector2, aim_yaw: float) -> void:
-	if _is_guest_request() and direction.is_finite() and not is_inf(aim_yaw):
-		_guest.remote_input = direction.limit_length()
-		_guest.remote_aim_yaw = aim_yaw if _guest.held_pickup != null else NAN
-		_last_guest_input = Time.get_ticks_msec()
+	var index := sender_index()
+	if index >= 0 and direction.is_finite() and not is_inf(aim_yaw):
+		var player := _players[index]
+		player.remote_input = direction.limit_length()
+		player.remote_aim_yaw = aim_yaw if player.held_pickup != null else NAN
+		_last_input[index] = Time.get_ticks_msec()
 
 
 func _send_throw(speed: float, yaw: float) -> void:
-	_receive_throw.rpc_id(1, _pickups.find(_guest.held_pickup), speed, yaw)
+	_receive_throw.rpc_id(1, _pickups.find(_local_player.held_pickup), speed, yaw)
 
 
 @rpc("any_peer", "call_remote", "reliable")
 func _receive_throw(pickup_index: int, speed: float, yaw: float) -> void:
-	if _is_guest_request() and _guest.held_pickup != null and _pickups.find(_guest.held_pickup) == pickup_index and is_finite(speed) and is_finite(yaw):
-		# Throw towards the guest's mouse as seen at release, not the last unreliable aim packet.
-		_guest.rotation.y = yaw
-		_guest.remote_aim_yaw = NAN
-		_guest.release_pickup(true, _guest.throw_velocity_at_speed(speed))
+	var index := sender_index()
+	if index < 0:
+		return
+	var player := _players[index]
+	if player.held_pickup != null and _pickups.find(player.held_pickup) == pickup_index and is_finite(speed) and is_finite(yaw):
+		# Throw towards the client's mouse as seen at release, not the last unreliable aim packet.
+		player.rotation.y = yaw
+		player.remote_aim_yaw = NAN
+		player.release_pickup(true, player.throw_velocity_at_speed(speed))
 
 
 # A validated launch is an ownership change: bumping the revision makes the guest drop older
@@ -288,8 +346,7 @@ func _broadcast_throw(pickup: RigidBody3D, player_index: int) -> void:
 	if _round_finished or not multiplayer.is_server():
 		return
 	_ownership_revision += 1
-	if multiplayer.get_peers().has(guest_peer_id):
-		_apply_throw.rpc_id(guest_peer_id, player_index, _pickups.find(pickup), _ownership_revision)
+	_rpc_players(&"_apply_throw", [player_index, _pickups.find(pickup), _ownership_revision])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -313,8 +370,9 @@ func _request_bag_item() -> void:
 
 @rpc("any_peer", "call_remote", "reliable")
 func _receive_bag_request(pickup_index: int) -> void:
-	if _is_guest_request():
-		_bag_held_item(1, pickup_index)
+	var index := sender_index()
+	if index >= 0:
+		_bag_held_item(index, pickup_index)
 
 
 func _bag_held_item(player_index: int, pickup_index: int) -> void:
@@ -323,8 +381,7 @@ func _bag_held_item(player_index: int, pickup_index: int) -> void:
 		return
 	var revision := _ownership_revision + 1
 	_apply_bag_item(player_index, pickup_index, revision)
-	if guest_peer_id != 0:
-		_apply_bag_item.rpc_id(guest_peer_id, player_index, pickup_index, revision)
+	_rpc_players(&"_apply_bag_item", [player_index, pickup_index, revision])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -376,8 +433,7 @@ func drop_hit_items(victim: Player, attack_power: int) -> void:
 		poses.append(_drop_pose(_pickups[candidates[slot]], victim, slot))
 	var revision := _ownership_revision + 1
 	_apply_hit_drops(candidates, poses, revision)
-	if guest_peer_id != 0:
-		_apply_hit_drops.rpc_id(guest_peer_id, candidates, poses, revision)
+	_rpc_players(&"_apply_hit_drops", [candidates, poses, revision])
 
 
 func _drop_pose(pickup: RigidBody3D, victim: Player, slot: int) -> Transform3D:
@@ -431,12 +487,8 @@ func _apply_hit_drops(pickup_indices: Array[int], poses: Array[Transform3D], rev
 		pickup.sleeping = false
 
 
-func _is_guest_request() -> bool:
-	return not _round_finished and _guest != null and multiplayer.is_server() and multiplayer.get_remote_sender_id() == guest_peer_id
-
-
 func _broadcast_hit(player_index: int) -> void:
-	_apply_hit.rpc_id(guest_peer_id, player_index, _players[player_index].last_hit_sound)
+	_rpc_players(&"_apply_hit", [player_index, _players[player_index].last_hit_sound])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -447,7 +499,7 @@ func _apply_hit(player_index: int, sound: StringName = &"") -> void:
 
 func _broadcast_status_effect(effect: StringName, seconds: float, player_index: int) -> void:
 	if not _round_finished:
-		_apply_status_effect.rpc_id(guest_peer_id, player_index, effect, seconds)
+		_rpc_players(&"_apply_status_effect", [player_index, effect, seconds])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -457,7 +509,7 @@ func _apply_status_effect(player_index: int, effect: StringName, seconds: float)
 
 
 func _broadcast_banana_peel_stun(player_index: int) -> void:
-	_apply_banana_peel_stun.rpc_id(guest_peer_id, player_index)
+	_rpc_players(&"_apply_banana_peel_stun", [player_index])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -467,8 +519,7 @@ func _apply_banana_peel_stun(player_index: int) -> void:
 
 
 func _broadcast_banana_peel(landing_transform: Transform3D, pickup_index: int) -> void:
-	if guest_peer_id != 0 and multiplayer.get_peers().has(guest_peer_id):
-		_apply_banana_peel.rpc_id(guest_peer_id, pickup_index, landing_transform)
+	_rpc_players(&"_apply_banana_peel", [pickup_index, landing_transform])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -486,8 +537,7 @@ func _apply_banana_peel(pickup_index: int, landing_transform: Transform3D) -> vo
 
 
 func _broadcast_banana_peel_consumed(pickup_index: int) -> void:
-	if guest_peer_id != 0 and multiplayer.get_peers().has(guest_peer_id):
-		_apply_banana_peel_consumed.rpc_id(guest_peer_id, pickup_index)
+	_rpc_players(&"_apply_banana_peel_consumed", [pickup_index])
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -622,8 +672,10 @@ func reward_thrower(thrower: Node3D) -> void:
 		return
 	if thrower.reads_local_input:
 		SFX.play_ui(thrower, &"pickup_coin", -6.0)
-	elif guest_peer_id != 0 and thrower == _guest:
-		_play_hit_reward.rpc_id(guest_peer_id)
+	elif guest_peer_id != 0:
+		var peer := peer_for(_players.find(thrower))
+		if peer in client_peers():
+			_play_hit_reward.rpc_id(peer)
 
 
 @rpc("authority", "call_remote", "reliable")
@@ -665,8 +717,7 @@ func record_throw_miss(thrower: Node3D) -> void:
 
 func _cartoon_fx(player_index: int, kind: StringName) -> void:
 	$HUD.speech.fx(player_index, kind)
-	if guest_peer_id != 0:
-		_apply_cartoon_fx.rpc_id(guest_peer_id, player_index, kind)
+	_rpc_players(&"_apply_cartoon_fx", [player_index, kind])
 
 
 @rpc("authority", "call_remote", "reliable")

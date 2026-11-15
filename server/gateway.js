@@ -36,11 +36,11 @@ for (const name of fs.existsSync(WEB_DIR) ? fs.readdirSync(WEB_DIR) : []) {
 
 async function qrPage(res) {
   const body = publicUrl
-    ? `${await QRCode.toString(publicUrl, { type: 'svg', margin: 1 })}<p class="url">${publicUrl}</p><p>QR을 찍거나 주소를 열고 START를 누르세요. 한 번에 한 명씩 아내로 들어옵니다.</p>`
+    ? `${await QRCode.toString(publicUrl, { type: 'svg', margin: 1 })}<p class="url">${publicUrl}</p><p>QR을 찍거나 주소를 열고 START를 누르세요. 먼저 들어온 사람이 남편, 다음 사람이 아내입니다.</p>`
     : `<p>${args.includes('--tunnel') ? '인터넷 주소를 여는 중…' : '터널 없이 실행 중: http://localhost:' + PORT}</p>`;
   res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
   res.end(`<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EXTREME DIVORCE QR</title>${publicUrl ? '' : '<meta http-equiv="refresh" content="2">'}
+<title>EXTREME DIVORCE QR</title><meta http-equiv="refresh" content="${publicUrl ? 30 : 2}">
 <style>:root{color-scheme:light}body{margin:0;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
 background:#ff3d8b;font-family:system-ui,sans-serif;color:#111;text-align:center;padding:16px;box-sizing:border-box}
 h1{font-size:clamp(28px,6vw,64px);margin:0 0 16px;color:#fff;-webkit-text-stroke:2px #111}
@@ -58,9 +58,16 @@ const server = http.createServer((req, res) => {
     res.writeHead(404);
     return void res.end('not found');
   }
+  // Revalidate every time: a re-export keeps the same file names, and an old .pck would speak the old protocol.
+  const modified = fs.statSync(file).mtime.toUTCString();
+  if (req.headers['if-modified-since'] === modified) {
+    res.writeHead(304);
+    return void res.end();
+  }
   const headers = {
     'Content-Type': TYPES[path.extname(file)] || 'application/octet-stream',
-    'Cache-Control': rel === 'index.html' ? 'no-cache' : 'max-age=600',
+    'Cache-Control': 'no-cache',
+    'Last-Modified': modified,
   };
   let send = file;
   if (fs.existsSync(file + '.gz') && /gzip/.test(req.headers['accept-encoding'] || '')) {

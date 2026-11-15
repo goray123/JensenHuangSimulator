@@ -66,14 +66,16 @@ func request_interaction(player: CharacterBody3D, pressed := true, target: Rigid
 
 @rpc("any_peer", "call_remote", "reliable")
 func _request_grab(pickup_index: int) -> void:
-	if _apartment._is_guest_request():
-		_set_grab(1, pickup_index)
+	var index: int = _apartment.sender_index()
+	if index >= 0:
+		_set_grab(index, pickup_index)
 
 
 @rpc("any_peer", "call_remote", "reliable")
 func _request_interaction(requested_round: int, requested_item: int) -> void:
-	if _apartment._is_guest_request():
-		_handle_interaction(1, requested_round, requested_item)
+	var index: int = _apartment.sender_index()
+	if index >= 0:
+		_handle_interaction(index, requested_round, requested_item)
 
 
 func _set_grab(player_index: int, pickup_index: int) -> void:
@@ -104,7 +106,7 @@ func _set_grab_item(player_index: int, pickup_index: int) -> void:
 	_grab_items[player_index] = pickup_index
 	_show_grab(player_index, pickup_index)
 	if _has_guest():
-		_sync_grab.rpc_id(_apartment.guest_peer_id, round_id, player_index, pickup_index)
+		_rpc_players(&"_sync_grab", [round_id, player_index, pickup_index])
 
 
 func _show_grab(player_index: int, pickup_index: int) -> void:
@@ -132,7 +134,7 @@ func _handle_interaction(player_index: int, requested_round: int, requested_item
 	if abs(_press_difference) >= PRESS_ADVANTAGE_TO_WIN:
 		_finish_contest(0 if _press_difference > 0 else 1)
 	elif _has_guest():
-		_sync_progress.rpc_id(_apartment.guest_peer_id, round_id, progress)
+		_rpc_players(&"_sync_progress", [round_id, progress])
 
 
 func _start_contest(pickup_index: int) -> void:
@@ -141,7 +143,7 @@ func _start_contest(pickup_index: int) -> void:
 	_begin_round(round_id, pickup_index)
 	if _has_guest():
 		var poses := [_players[0].transform, _players[1].transform, _pickups[item_index].global_transform]
-		_sync_start.rpc_id(_apartment.guest_peer_id, round_id, item_index, _apartment._ownership_revision, poses)
+		_rpc_players(&"_sync_start", [round_id, item_index, _apartment._ownership_revision, poses])
 
 
 func _begin_round(id: int, pickup_index: int) -> void:
@@ -191,7 +193,7 @@ func _finish_contest(winner_index: int) -> void:
 	_apartment._ownership_revision += 1
 	_complete_round(winner_index)
 	if _has_guest():
-		_sync_result.rpc_id(_apartment.guest_peer_id, round_id, item_index, winner_index, _apartment._ownership_revision)
+		_rpc_players(&"_sync_result", [round_id, item_index, winner_index, _apartment._ownership_revision])
 
 
 func _complete_round(winner_index: int) -> void:
@@ -230,7 +232,13 @@ func _sync_result(id: int, pickup_index: int, winner_index: int, state_revision:
 
 
 func _has_guest() -> bool:
-	return _apartment.guest_peer_id != 0 and multiplayer.get_peers().has(_apartment.guest_peer_id)
+	return not _apartment.client_peers().is_empty()
+
+
+## Sends an authority RPC of this node to every remote player client of the match.
+func _rpc_players(method: StringName, args: Array = []) -> void:
+	for peer in _apartment.client_peers():
+		callv(&"rpc_id", [peer, method] + args)
 
 
 func _physics_process(delta: float) -> void:
@@ -245,12 +253,12 @@ func _physics_process(delta: float) -> void:
 			_apartment._ownership_revision += 1
 			cancel_round()
 			if _has_guest():
-				_sync_cancel.rpc_id(_apartment.guest_peer_id, round_id, _apartment._ownership_revision)
+				_rpc_players(&"_sync_cancel", [round_id, _apartment._ownership_revision])
 			return
 		_tug_sync_elapsed += delta
 		if _tug_sync_elapsed >= TUG_SYNC_SECONDS and _has_guest():
 			_tug_sync_elapsed = 0.0
-			_sync_tug.rpc_id(_apartment.guest_peer_id, round_id, item_index, _apartment._ownership_revision, presentation.tug_phase, presentation.is_tug_fast())
+			_rpc_players(&"_sync_tug", [round_id, item_index, _apartment._ownership_revision, presentation.tug_phase, presentation.is_tug_fast()])
 		return
 	for index in _players.size():
 		if _grab_items[index] < 0:
