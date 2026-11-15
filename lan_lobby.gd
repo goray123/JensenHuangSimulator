@@ -16,8 +16,8 @@ const DISCOVERY_PORT := 33444
 const TIMEOUT_MS := 4500
 const SEARCH_INTERVAL_MS := 350
 ## START searches this long (randomized so two players pressing together rarely both host) before hosting.
-const AUTO_SEARCH_MIN_MS := 9000
-const AUTO_SEARCH_MAX_MS := 11000
+const AUTO_SEARCH_MIN_MS := 1200
+const AUTO_SEARCH_MAX_MS := 2000
 const START_HOVER_SCALE := 1.15
 const START_HOVER_TIME := 0.12
 const READY_MESSAGE := ""
