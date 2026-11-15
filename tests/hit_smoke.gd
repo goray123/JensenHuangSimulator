@@ -48,10 +48,10 @@ func _run() -> void:
 	_check(torso.material_overlay == original_overlay, "The red flash ends after 0.2 seconds")
 	_check(torso.material_override == blue, "Flashing preserves the guest's blue outfit")
 	_check(victim.is_stunned() and victim.global_position.distance_to(hit_position) < 0.01, "Movement stays locked after the red flash ends")
-	await _wait_for_physics(12)
-	_check(victim.is_stunned() and victim.global_position.distance_to(hit_position) < 0.01, "Held movement input cannot move the victim during the 0.5-second stun")
+	await _wait_for_physics(42)
+	_check(victim.is_stunned() and victim.global_position.distance_to(hit_position) < 0.01, "Held movement input cannot move the victim during the 1-second stun")
 	await _wait_for_physics(8)
-	_check(not victim.is_stunned() and victim.global_position.x > hit_position.x + 0.02 and is_equal_approx(victim.velocity.x, victim.MOVE_SPEED), "Movement resumes at the authored speed after 0.5 seconds")
+	_check(not victim.is_stunned() and victim.global_position.x > hit_position.x + 0.02 and is_equal_approx(victim.velocity.x, victim.MOVE_SPEED), "Movement resumes at the authored speed after 1 second")
 
 	var tv := apartment.get_node("Furnishings/LivingRoom/Television") as RigidBody3D
 	victim.remote_input = Vector2.ZERO
@@ -62,8 +62,8 @@ func _run() -> void:
 	_launch(thrower, victim, sphere, ground_y)
 	await _expect(func() -> bool: return hit_positions.size() == 3, "Picking up and throwing a sphere again can cause another hit")
 	_park_item(sphere)
-	await _wait_for_physics(20)
-	_check(victim.is_stunned(), "A new impact restarts the 0.5-second stun")
+	await _wait_for_physics(50)
+	_check(victim.is_stunned(), "A new impact restarts the 1-second stun")
 	await _wait_for_physics(14)
 	_check(not victim.is_stunned() and torso.material_overlay == original_overlay, "Repeated hits eventually restore movement and appearance")
 

@@ -78,7 +78,7 @@ func _run() -> void:
 		"The real projectile also drops the test target's held item")
 	_check(logs.get_child_count() == 2 and logs.get_child(0).text.ends_with("아내를 공격 하였다!")
 		and logs.get_child(1).text.ends_with("떨어졌다!"), "The hit logs the attack and the dropped item")
-	await _wait_for_physics(35)
+	await _wait_for_physics(65)
 	_check(not target.is_stunned() and target._body_meshes[0].material_overlay == null, "The target recovers and the hit flash clears")
 
 	var before_hit := player.global_position
@@ -86,7 +86,7 @@ func _run() -> void:
 	await _tap(KEY_F)
 	await _wait_for_physics(18)
 	_check(player.is_stunned() and player.global_position.distance_to(before_hit) < 0.01, "F tests the player's movement lock while a movement key is held")
-	await _wait_for_physics(20)
+	await _wait_for_physics(50)
 	_set_key(KEY_D, false)
 	_check(not player.is_stunned() and player.global_position.x > before_hit.x + 0.1, "Movement resumes after the self-hit test")
 	var splats := hud.get_node("HitSplats") as Control
@@ -94,7 +94,7 @@ func _run() -> void:
 	await _tap(KEY_F4)
 	_check(player.is_stunned() and splats.get_child_count() == 1 and splats.get_child(0).texture.resource_path.ends_with("CakeSplat.png"),
 		"F4 stuns the player and adds the cake splat")
-	await create_timer(0.65).timeout
+	await create_timer(3.65).timeout
 	await _tap(KEY_F5)
 	_check(player.is_stunned() and splats.get_child_count() == 2 and splats.get_child(1).texture.resource_path.ends_with("EggSplat.png"),
 		"F5 stuns the player and adds the egg splat above the cake splat")
@@ -102,6 +102,7 @@ func _run() -> void:
 		"The older splat fades while the newer one stays opaque")
 	await _expect(func() -> bool: return splats.get_child_count() == 1 and splats.get_child(0).texture.resource_path.ends_with("EggSplat.png"),
 		"The older splat expires while the newer one stays on screen")
+	await create_timer(3.4).timeout
 	await _expect(func() -> bool: return splats.get_child_count() == 0, "Both splats expire on their own")
 	await _expect(func() -> bool: return clock.text.begins_with("00:"), "The display counts down during practice")
 	var item_index: int = apartment._pickups.find(ring)
@@ -189,7 +190,7 @@ func _run() -> void:
 	dumbbell._on_body_entered(dummy)
 	await _wait_for_physics(2)
 	_check(dummy.held_pickup == null and dummy_bag.get_child_count() == 0 and dummy.bag_weight == 0, "A power-five hit drops all three of the dummy's items")
-	await _wait_for_physics(35)
+	await _wait_for_physics(65)
 	timer = apartment.get_node("RoundTimer") as Timer
 	clock = apartment.get_node("HUD/TimeLeft") as Label
 	await _tap(KEY_G)

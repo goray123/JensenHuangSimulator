@@ -320,8 +320,8 @@ func _test_hits_host(apartment: Node3D) -> void:
 	await _wait_frames(20)
 	_check(_guest.is_stunned() and _guest.global_position.distance_to(hit_position) < 0.02,
 		"The server blocks guest movement during the stun (position %s -> %s, stun %.3f)" % [hit_position, _guest.global_position, _guest._stun_remaining])
-	await _wait_frames(20)
-	_check(not _guest.is_stunned(), "The server releases the guest's movement after half a second")
+	await _wait_frames(50)
+	_check(not _guest.is_stunned(), "The server releases the guest's movement after one second")
 	# The guest holds D to verify movement resumes. Wait for that check and its
 	# released input to reach the server before resetting the next throw's pose.
 	await _expect(func() -> bool: return root.get_node("SmokeBarrier").hit_input_released and _guest.remote_input.is_zero_approx(),
@@ -331,7 +331,7 @@ func _test_hits_host(apartment: Node3D) -> void:
 	_guest.rotation.y = 0
 	_guest.hold_pickup(ring)
 	await _expect(func() -> bool: return _host.is_stunned(), "The guest's projectile can also stun the host")
-	await _wait_frames(40)
+	await _wait_frames(70)
 	_check(not _host.is_stunned(), "The host recovers after the same stun duration")
 	root.get_node("SmokeBarrier").finish_hits.rpc_id(apartment.guest_peer_id)
 
