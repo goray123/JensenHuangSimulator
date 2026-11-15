@@ -82,6 +82,9 @@ func _ready() -> void:
 		_use_web_font()
 	_start_button.pressed.connect(_on_start_pressed)
 	if _server_mode:
+		# The referee window is only for the audience: 30 drawn frames leave the PC's GPU and CPU to the
+		# 60 Hz physics and to any browser players on the same machine.
+		Engine.max_fps = 30
 		_host_room.call_deferred()
 	# Desktop stand-in for a browser player (tests, rehearsal): `-- --connect=http://127.0.0.1:9080 [--no-intro]`.
 	for arg in OS.get_cmdline_user_args():

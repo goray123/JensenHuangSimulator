@@ -53,6 +53,14 @@ var _recent_comic_impacts: Array[Dictionary] = []
 
 ## A second hit within this window counts as "hit again in a row" (anger veins).
 const HIT_STREAK_WINDOW_MSEC := 5000
+## Clients ease every snapshot pose in over a few ticks: 30 Hz WebSocket snapshots and network jitter
+## then read as smooth motion, and the run animation (which measures per-tick movement) stops flickering.
+const POSE_SMOOTHING := 25.0
+## Farther than this is a teleport (respawn, drop, rematch): jump instead of sliding across the room.
+const POSE_SNAP_DISTANCE := 1.5
+
+## Client: latest server pose (global) per moving body, eased toward every physics tick.
+var _pose_targets := {}
 
 @onready var _host: Player = $Player
 @onready var _throw_power: ProgressBar = $HUD/ThrowPower
@@ -110,6 +118,9 @@ func _ready() -> void:
 	# A dedicated server plays nobody: no "you" marker on its spectator screen.
 	if _local_player.reads_local_input:
 		_local_player.get_node("Head/PlayerPosPointer").show()
+	if OS.has_feature("web"):
+		# Browsers (often laptop GPUs) render the room without the directional shadow pass.
+		$Sun.shadow_enabled = false
 	if guest_peer_id != 0:
 		for index in _players.size():
 			_players[index].shared_sfx_requested.connect(_broadcast_player_sound.bind(index))
@@ -158,6 +169,8 @@ func _update_grab_progress(is_grabbing: bool, progress: float) -> void:
 
 func _physics_process(_delta: float) -> void:
 	if guest_peer_id != 0 and not multiplayer.is_server():
+		if _smooths_snapshots():
+			_ease_poses(_delta)
 		_receive_movement.rpc_id(1, Player.read_movement(), _local_player.local_aim_yaw())
 		return
 	var seconds_left := ceili(_round_timer.time_left)
@@ -205,6 +218,30 @@ func _physics_process(_delta: float) -> void:
 			furniture_poses.append(furniture[index].global_transform)
 		for peer in ready_peers:
 			_apply_furniture_snapshot.rpc_id(peer, start, furniture_poses)
+
+
+## Only WebSocket clients get 30 Hz snapshots; LAN (ENet, 60 Hz) keeps placing poses exactly as before.
+func _smooths_snapshots() -> bool:
+	return multiplayer.multiplayer_peer is WebSocketMultiplayerPeer
+
+
+## Snapshot pose for a client body: eased in over WebSocket, placed at once on LAN.
+func _place(body: Node3D, pose: Transform3D) -> void:
+	if _smooths_snapshots():
+		_pose_targets[body] = pose
+	else:
+		body.global_transform = pose
+
+
+func _ease_poses(delta: float) -> void:
+	var weight := 1.0 - exp(-POSE_SMOOTHING * delta)
+	for body: Node3D in _pose_targets.keys():
+		if not is_instance_valid(body):
+			_pose_targets.erase(body)
+			continue
+		var target: Transform3D = _pose_targets[body]
+		var current := body.global_transform
+		body.global_transform = target if current.origin.distance_to(target.origin) > POSE_SNAP_DISTANCE else current.interpolate_with(target, weight)
 
 
 ## Peer id that plays the given player index (1 = this server plays the husband itself).
@@ -280,6 +317,7 @@ func _end_round(entries: PackedInt32Array) -> void:
 		push_warning("Ignoring an invalid settlement list from the host.")
 		entries = PackedInt32Array()
 	_round_finished = true
+	_pose_targets.clear()
 	final_gold = SETTLEMENT.totals(entries)
 	_contest.cancel_round()
 	_grab_progress.hide()
@@ -392,6 +430,7 @@ func _apply_bag_item(player_index: int, pickup_index: int, revision: int) -> voi
 	if not is_instance_valid(pickup):
 		return
 	_ownership_revision = revision
+	_pose_targets.erase(pickup)
 	for player in _players:
 		if player.held_pickup == pickup:
 			player.release_pickup(false)
@@ -476,7 +515,7 @@ func _apply_hit_drops(pickup_indices: Array[int], poses: Array[Transform3D], rev
 			$HUD.remove_bag_item(owner, pickup_index, pickup.gold_value)
 		$HUD.add_drop_log(pickup)
 		pickup.disarm()
-		pickup.global_transform = poses[slot]
+		_place(pickup, poses[slot])
 		pickup.add_to_group(&"pickups")
 		pickup.show()
 		pickup.collision_layer = 2
@@ -529,6 +568,7 @@ func _apply_banana_peel(pickup_index: int, landing_transform: Transform3D) -> vo
 	var pickup := _pickups[pickup_index]
 	if pickup.is_banana_peel:
 		return
+	_pose_targets.erase(pickup)
 	# Landing may arrive before the snapshot that releases the thrower's hand.
 	for player in _players:
 		if player.held_pickup == pickup:
@@ -583,7 +623,7 @@ func _apply_snapshot(transforms: Array, holding: Vector2i, ownership_revision: i
 	# Release old holders first, including when an intermediate throw was missed.
 	for index in _players.size():
 		var player := _players[index]
-		player.transform = transforms[index]
+		_place(player, global_transform * (transforms[index] as Transform3D))
 		if _pickups.find(player.held_pickup) != holding[index]:
 			player.release_pickup(false)
 	for index in _players.size():
@@ -592,7 +632,10 @@ func _apply_snapshot(transforms: Array, holding: Vector2i, ownership_revision: i
 			_players[index].hold_pickup(_pickups[pickup_index])
 	for index in _pickups.size():
 		if index != holding.x and index != holding.y and not _bagged_items.has(index) and is_instance_valid(_pickups[index]) and not _pickups[index].is_banana_peel:
-			_pickups[index].global_transform = transforms[_players.size() + index]
+			_place(_pickups[index], transforms[_players.size() + index])
+		else:
+			# Held, bagged or a peel: the hand, the bag or the peel event places it, never a stale pose.
+			_pose_targets.erase(_pickups[index])
 
 
 func _broadcast_player_sound(sound: StringName, player_index: int) -> void:
@@ -737,4 +780,4 @@ func _apply_furniture_snapshot(start: int, poses: Array[Transform3D]) -> void:
 		if not pose.is_finite():
 			return
 	for index in poses.size():
-		furniture[start + index].global_transform = poses[index]
+		_place(furniture[start + index], poses[index])

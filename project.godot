@@ -17,6 +17,8 @@ config/icon="res://icon.svg"
 
 [display]
 
+window/dpi/allow_hidpi.web=false
+
 window/size/viewport_width=1280
 window/size/viewport_height=720
 window/size/window_width_override=1920
@@ -79,3 +81,4 @@ theme/custom_font.web="res://assets/Fonts/NotoSansKR_Web.tres"
 rendering_device/driver.windows="d3d12"
 renderer/rendering_method="gl_compatibility"
 anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/msaa_3d.web=0
