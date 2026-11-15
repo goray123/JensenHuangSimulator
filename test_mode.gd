@@ -85,13 +85,16 @@ func _load_target() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed(&"test_hit"):
 		_player.receive_hit()
-		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_G:
-		_start_contest_test()
-		get_viewport().set_input_as_handled()
-	elif event is InputEventKey and event.pressed and not event.echo and event.physical_keycode == KEY_F3:
-		_load_target()
-		get_viewport().set_input_as_handled()
+	elif event is InputEventKey and event.pressed and not event.echo:
+		match event.physical_keycode:
+			KEY_G: _start_contest_test()
+			KEY_F3: _load_target()
+			KEY_F4: _player.receive_hit(&"", &"05-cake")
+			KEY_F5: _player.receive_hit(&"", &"06-egg")
+			_: return
+	else:
+		return
+	get_viewport().set_input_as_handled()
 
 
 func _on_target_hit() -> void:

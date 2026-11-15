@@ -89,6 +89,20 @@ func _run() -> void:
 	await _wait_for_physics(20)
 	_set_key(KEY_D, false)
 	_check(not player.is_stunned() and player.global_position.x > before_hit.x + 0.1, "Movement resumes after the self-hit test")
+	var splats := hud.get_node("HitSplats") as Control
+	_check(splats.get_child_count() == 0, "An ordinary hit leaves the screen clear")
+	await _tap(KEY_F4)
+	_check(player.is_stunned() and splats.get_child_count() == 1 and splats.get_child(0).texture.resource_path.ends_with("CakeSplat.png"),
+		"F4 stuns the player and adds the cake splat")
+	await create_timer(0.65).timeout
+	await _tap(KEY_F5)
+	_check(player.is_stunned() and splats.get_child_count() == 2 and splats.get_child(1).texture.resource_path.ends_with("EggSplat.png"),
+		"F5 stuns the player and adds the egg splat above the cake splat")
+	await _expect(func() -> bool: return splats.get_child_count() == 2 and splats.get_child(0).modulate.a < 0.9 and is_equal_approx(splats.get_child(1).modulate.a, 1.0),
+		"The older splat fades while the newer one stays opaque")
+	await _expect(func() -> bool: return splats.get_child_count() == 1 and splats.get_child(0).texture.resource_path.ends_with("EggSplat.png"),
+		"The older splat expires while the newer one stays on screen")
+	await _expect(func() -> bool: return splats.get_child_count() == 0, "Both splats expire on their own")
 	await _expect(func() -> bool: return clock.text.begins_with("00:"), "The display counts down during practice")
 	var item_index: int = apartment._pickups.find(ring)
 	player.hold_pickup(ring)

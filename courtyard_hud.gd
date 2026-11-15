@@ -2,8 +2,13 @@ extends CanvasLayer
 
 const FALLBACK_ICON := preload("res://assets/Sprites/Items/Item_Ring.png")
 const SPEECH_BUBBLES := preload("res://ui/speech_bubbles.gd")
+const HIT_SPLAT_TEXTURES := {
+	&"cake": preload("res://assets/Sprites/Effects/CakeSplat.png"),
+	&"egg": preload("res://assets/Sprites/Effects/EggSplat.png"),
+}
 const GOLD_STEP_SECONDS := 0.04
 const LOG_SECONDS := 3.0
+const SPLAT_FADE_SECONDS := 0.45
 
 ## Holding an item worth at least this much gold shows the proud portrait.
 @export var proud_gold_threshold := 500
@@ -12,6 +17,7 @@ var _shown_gold := Vector2i.ZERO
 var _target_gold := Vector2i.ZERO
 var _gold_step_left := 0.0
 var _bound_players: Array[CharacterBody3D] = []
+var _hit_splats: Control
 
 @onready var _bags: Array[GridContainer] = [$HusbandBag/Items, $WifeBag/Items]
 @onready var _gold: Array[Label] = [$HusbandProfile/HusbandWallet/Gold, $WifeProfile/WifeWallet/Gold]
@@ -27,6 +33,37 @@ func _ready() -> void:
 	add_child(speech)
 	# Behind the cards, bags and logs so a bubble near the edge never covers the scores.
 	move_child(speech, 0)
+	_hit_splats = Control.new()
+	_hit_splats.name = "HitSplats"
+	_hit_splats.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_hit_splats)
+	_hit_splats.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	move_child(_hit_splats, 0)
+
+
+func show_hit_splat(effect: StringName, seconds: float) -> void:
+	var texture: Texture2D = HIT_SPLAT_TEXTURES.get(effect)
+	if texture == null:
+		return
+	var splat := TextureRect.new()
+	splat.texture = texture
+	splat.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	splat.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	splat.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_hit_splats.add_child(splat)
+	var center := Vector2(randf_range(0.34, 0.66), randf_range(0.40, 0.60))
+	var half_size := Vector2(0.21, 0.37) * randf_range(0.9, 1.0)
+	splat.anchor_left = center.x - half_size.x
+	splat.anchor_right = center.x + half_size.x
+	splat.anchor_top = center.y - half_size.y
+	splat.anchor_bottom = center.y + half_size.y
+	splat.pivot_offset = splat.size * 0.5
+	splat.scale = Vector2.ONE * 0.7
+	var fade_seconds := minf(SPLAT_FADE_SECONDS, seconds)
+	var tween := splat.create_tween()
+	tween.tween_property(splat, ^"scale", Vector2.ONE, minf(0.15, seconds)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(splat, ^"modulate:a", 0.0, fade_seconds).set_delay(seconds - fade_seconds)
+	tween.tween_callback(splat.queue_free)
 
 
 ## Index 0 is the husband (host) card and 1 the wife (guest) card, matching the bag and gold order.

@@ -106,6 +106,7 @@ func _ready() -> void:
 	_local_player.aim_changed.connect(_update_throw_power)
 	_local_player.grab_changed.connect(_update_grab_progress)
 	_local_player.bag_requested.connect(_request_bag_item)
+	_local_player.status_effect_applied.connect($HUD.show_hit_splat)
 	for index in _players.size():
 		$HUD.bind_player(index, _players[index])
 	_contest = PICKUP_CONTEST.new()

@@ -244,7 +244,7 @@ func _on_body_entered(body: Node) -> void:
 	if player_id == _thrower_id or player_id in _hit_players:
 		return
 	_hit_players.append(player_id)
-	body.receive_hit()
+	body.receive_hit(&"", get_meta(&"item_id", &""))
 	var stage := _stage()
 	if stage != null:
 		stage.log_attack(self, body)

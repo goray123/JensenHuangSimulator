@@ -9,7 +9,7 @@ signal bag_requested
 signal hit_received
 ## Emitted when this player loses a pickup tug-of-war (the loss stun has a different cause than a hit).
 signal contest_lost
-## Emitted by apply_status_effect(); no status-effect gameplay exists yet.
+## Emitted by apply_status_effect() for HUD reactions and overlays.
 signal status_effect_applied(effect: StringName, seconds: float)
 signal shared_sfx_requested(sound: StringName)
 signal banana_peel_stepped
@@ -32,6 +32,8 @@ const FURNITURE_LIFT_STEPS := 10
 const HIT_FLASH_DURATION := 0.2
 const HIT_STUN_DURATION := 0.5
 const HIT_FLASH_INTERVAL := 0.05
+const HIT_SPLAT_SECONDS := 2.0
+const HIT_SPLAT_EFFECTS := {&"05-cake": &"cake", &"06-egg": &"egg"}
 const PEEL_STUN_DURATION := 2.0
 const SLIP_FALL_SECONDS := 0.28
 const SLIP_RECOVER_SECONDS := 0.32
@@ -321,13 +323,16 @@ func is_tugging() -> bool:
 	return _tug_side >= 0
 
 
-func receive_hit(sound: StringName = &"") -> void:
+func receive_hit(sound: StringName = &"", item_id: StringName = &"") -> void:
 	last_hit_sound = sound if sound in [&"hit_bonk", &"hit_boing"] else (&"hit_bonk" if randf() < 0.7 else &"hit_boing")
 	SFX.play_at(self, last_hit_sound)
 	apply_stun(HIT_STUN_DURATION)
 	_flash_remaining = HIT_FLASH_DURATION
 	_set_hit_flash(true)
 	hit_received.emit()
+	var effect: StringName = HIT_SPLAT_EFFECTS.get(item_id, &"")
+	if effect != &"":
+		apply_status_effect(effect, HIT_SPLAT_SECONDS)
 
 
 func apply_stun(duration: float) -> void:
@@ -337,8 +342,7 @@ func apply_stun(duration: float) -> void:
 	velocity.z = 0.0
 
 
-## Entry point for future status effects (poison, slipping, ...). It only reports the
-## effect for UI reactions; the gameplay effect itself is not implemented yet.
+## Reports an item status effect to the HUD.
 ## In LAN games call it on the host: courtyard.gd relays it to the guest like hits.
 func apply_status_effect(effect: StringName, seconds: float) -> void:
 	if is_finite(seconds) and seconds > 0.0:

@@ -39,8 +39,8 @@ continuous_cd = true
 metadata/item_id = "06-egg"
 metadata/display_name = "계란"
 metadata/room = "부엌"
-metadata/gameplay_note = "화면 효과 미정(?)"
-metadata/gameplay_implemented = false
+metadata/gameplay_note = "투척에 맞은 플레이어의 화면 가리기"
+metadata/gameplay_implemented = true
 metadata/origin = "bottom center, metres, Y up"
 
 [node name="Visual" type="MeshInstance3D" parent="." unique_id=1493699497]

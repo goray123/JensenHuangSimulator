@@ -21,6 +21,7 @@ var _host: CharacterBody3D
 var _guest: CharacterBody3D
 var _wife: TextureRect
 var _husband: TextureRect
+var _splats: Control
 var _barrier: PortraitBarrier
 var _failed := false
 
@@ -58,6 +59,7 @@ func _run() -> void:
 	_guest = _apartment.get_node("Guest")
 	_wife = _apartment.get_node("HUD").portraits[1]
 	_husband = _apartment.get_node("HUD").portraits[0]
+	_splats = _apartment.get_node("HUD/HitSplats")
 	_check(_wife.current_state == &"idle" and _husband.current_state == &"idle", "Both cards start idle")
 	if is_host:
 		await _test_host()
@@ -76,7 +78,7 @@ func _test_host() -> void:
 		item.disarm()
 	var ring: RigidBody3D = _apartment.get_node("Items/Item_12_ring")
 	var tv: RigidBody3D = _apartment._pickups.filter(func(item: RigidBody3D) -> bool: return item.get_meta(&"item_id", "") == "17-tv")[0]
-	var pan: RigidBody3D = _apartment.get_node("Items/Item_07_frying_pan")
+	var cake: RigidBody3D = _apartment.get_node("Items/Item_05_cake")
 	# 1. The guest player holds the 800-gold ring; the guest only learns this from snapshots.
 	_guest.hold_pickup(ring)
 	_check(_wife.current_state == &"proud" and _husband.current_state == &"idle", "The host shows the proud wife card")
@@ -92,8 +94,9 @@ func _test_host() -> void:
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 3, "The guest checks the bag-driven proud reaction"):
 		return
 	# 3. A real projectile hit on the guest player, simulated by the host.
-	pan.arm(_host)
-	pan._on_body_entered(_guest)
+	cake.arm(_host)
+	cake._on_body_entered(_guest)
+	_check(_splats.get_child_count() == 0, "Hitting the guest with cake leaves the host's view clear")
 	_check(_wife.current_state == &"fallen", "The host shows the fallen wife card")
 	_check(_speech_text(1) == "아얏!!", "The hit makes the wife shout on the host")
 	_check(_apartment.get_node("HUD").speech.mark(0, &"spark") != null, "The host sparkles the husband for landing the hit")
@@ -101,8 +104,10 @@ func _test_host() -> void:
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 4, "The guest sees the hit reaction"):
 		return
 	# 4. A host-side status effect on the host player is relayed to the guest.
-	_host.apply_status_effect(&"poison", 2.0)
+	_host.apply_status_effect(&"egg", 2.0)
 	_check(_husband.current_state == &"sad", "A status effect makes the husband sad over proud on the host")
+	_check(_splats.get_child_count() == 1 and _splats.get_child(0).texture.resource_path.ends_with("EggSplat.png"),
+		"The host sees an egg splat when affected")
 	_barrier.advance.rpc_id(_apartment.guest_peer_id, 4)
 	if not await _expect(func() -> bool: return _barrier.guest_stage >= 5, "The guest sees the relayed status effect"):
 		return
@@ -133,6 +138,9 @@ func _test_guest() -> void:
 		return
 	if not await _expect(func() -> bool: return _wife.current_state == &"fallen", "The reliable hit makes the wife card fall on the guest"):
 		return
+	if not await _expect(func() -> bool: return _splats.get_child_count() == 1 and _splats.get_child(0).texture.resource_path.ends_with("CakeSplat.png"),
+		"The guest hit by cake sees exactly one cake splat"):
+		return
 	_check(_speech_text(1) == "아얏!!", "The guest shows the same hit line as the host")
 	if not await _expect(func() -> bool: return _apartment.get_node("HUD").speech.mark(0, &"spark") != null, "The host-decided hit sparkle reaches the guest"):
 		return
@@ -141,6 +149,8 @@ func _test_guest() -> void:
 		return
 	if not await _expect(func() -> bool: return _husband.current_state == &"sad", "The relayed status effect makes the husband sad on the guest"):
 		return
+	_check(_splats.get_children().all(func(splat: TextureRect) -> bool: return splat.texture.resource_path.ends_with("CakeSplat.png")),
+		"The host's egg effect does not add a splat to the guest's view")
 	_barrier.acknowledge.rpc_id(1, 5)
 	if not await _expect(func() -> bool: return _husband.current_state == &"idle" and _wife.current_state == &"idle", "Both guest cards return to idle", 5.0):
 		return

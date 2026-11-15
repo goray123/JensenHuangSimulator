@@ -19,4 +19,4 @@
 
 현재 게임의 E/T·파란 테두리·피격 기능을 연결하려면 물건에 `res://throwable.gd`를 붙이고 `pickups` 그룹, 레이어 `2`, 마스크 `3`을 적용합니다. `Collision` 노드 이름은 `CollisionShape3D`로 맞추고, HUD 이름은 `pickup_name`, 손에 드는 위치는 `hold_offset` 메타데이터로 지정합니다. `GripPoint`를 손 위치를 정하는 기준으로 사용할 수 있습니다. 현재 투척 궤도에 맞추려면 연속 충돌 감지를 켜고 선형 감쇠를 Replace / 0으로 설정합니다.
 
-`gameplay_note`는 원본의 효과 아이디어이며, 바나나껍질의 이동 정지 외 다른 아이템 효과는 연결되지 않았습니다. 매니페스트의 `concept_path`와 `turnaround_path`는 별도 원본 작업물의 경로입니다.
+`gameplay_note`는 원본의 효과 아이디어입니다. 메인 게임에 연결된 케이크와 계란은 투척에 맞은 플레이어의 화면 일부를 2초간 가립니다. 매니페스트의 `concept_path`와 `turnaround_path`는 별도 원본 작업물의 경로입니다.
