@@ -20,7 +20,7 @@ func _count(prefix: String, source := 0) -> int:
 
 
 func _run() -> void:
-	_check(SFX.STREAMS.size() == 31, "All 31 authored WAV assets load")
+	_check(SFX.STREAMS.size() == 32, "All 31 authored WAV assets and the timer alert placeholder load")
 	for sound: AudioStreamWAV in SFX.STREAMS.values():
 		var source := FileAccess.get_file_as_bytes(sound.resource_path)
 		_check(sound.mix_rate == 44100 and not sound.stereo and source.decode_u16(22) == 1 and source.decode_u32(24) == 44100 and source.decode_u16(34) == 16, "Every source preserves mono 44.1kHz 16-bit WAV; engine import compression is independent")

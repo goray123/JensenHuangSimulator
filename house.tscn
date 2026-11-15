@@ -12,10 +12,11 @@
 [ext_resource type="Script" path="res://courtyard_hud.gd" id="10_hud"]
 [ext_resource type="Texture2D" path="res://assets/Sprites/LogBG.png" id="11_log"]
 [ext_resource type="PackedScene" path="res://ui/bust_portrait.tscn" id="20_portrait"]
+[ext_resource type="Script" path="res://camera_backdrop.gd" id="21_backdrop"]
 
 [sub_resource type="Environment" id="Environment_apartment"]
-background_mode = 3
-background_canvas_max_layer = -1
+background_mode = 1
+background_color = Color(0.494, 0.255, 0.804, 1)
 ambient_light_source = 2
 ambient_light_color = Color(0.83, 0.9, 1, 1)
 ambient_light_energy = 0.49
@@ -125,21 +126,14 @@ current = true
 size = 13.6
 far = 150.0
 
+[node name="Backdrop" type="MeshInstance3D" parent="Overview"]
+script = ExtResource("21_backdrop")
+texture = SubResource("GradientTexture2D_backdrop")
+
 [node name="RoundTimer" type="Timer" parent="." unique_id=1442103769]
 wait_time = 60.0
 one_shot = true
 ignore_time_scale = true
-
-[node name="Backdrop" type="CanvasLayer" parent="." unique_id=860664763]
-layer = -1
-
-[node name="Gradient" type="TextureRect" parent="Backdrop" unique_id=1159199657]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-mouse_filter = 2
-texture = SubResource("GradientTexture2D_backdrop")
-expand_mode = 1
 
 [node name="HUD" type="CanvasLayer" parent="." unique_id=1501621115]
 process_mode = 3

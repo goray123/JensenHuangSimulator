@@ -17,6 +17,8 @@ const STREAMS := {
 	&"pickup_coin": preload("res://assets/audio/sfx/pickup_coin.wav"),
 	&"pickup_powerup": preload("res://assets/audio/sfx/pickup_powerup.wav"),
 	&"pickup_sparkle": preload("res://assets/audio/sfx/pickup_sparkle.wav"),
+	# shortcut: placeholder until a dedicated 30-second alert sound exists; swap the file here.
+	&"timer_alert": preload("res://assets/audio/sfx/pickup_powerup.wav"),
 	&"step_wood_1": preload("res://assets/audio/sfx/step_wood_1.wav"),
 	&"step_wood_2": preload("res://assets/audio/sfx/step_wood_2.wav"),
 	&"step_wood_3": preload("res://assets/audio/sfx/step_wood_3.wav"),

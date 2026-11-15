@@ -9,6 +9,14 @@ const HIT_SPLAT_TEXTURES := {
 const GOLD_STEP_SECONDS := 0.04
 const LOG_SECONDS := 3.0
 const SPLAT_FADE_SECONDS := 0.45
+const URGENT_VIGNETTE_SHADER := preload("res://ui/urgent_vignette.gdshader")
+const TIMER_ALERT_SECONDS := 30
+const URGENT_SECONDS := 10
+const TIMER_SHAKE_SECONDS := 0.36
+const TIMER_SHAKE_OFFSETS: Array[float] = [-10.0, 9.0, -6.0, 4.0, -2.0, 0.0]
+const URGENT_PEAK := 0.85
+const URGENT_REST := 0.3
+const URGENT_FADE_SECONDS := 0.8
 
 ## Holding an item worth at least this much gold shows the proud portrait.
 @export var proud_gold_threshold := 500
@@ -18,7 +26,13 @@ var _target_gold := Vector2i.ZERO
 var _gold_step_left := 0.0
 var _bound_players: Array[CharacterBody3D] = []
 var _hit_splats: Control
+var _round_seconds := -1
+var _timer_shake: Tween
+var _timer_rest_position := Vector2.ZERO
+var _urgent_vignette: ColorRect
+var _urgent_pulse: Tween
 
+@onready var _timer: Control = $TimeLeft
 @onready var _bags: Array[GridContainer] = [$HusbandBag/Items, $WifeBag/Items]
 @onready var _gold: Array[Label] = [$HusbandProfile/HusbandWallet/Gold, $WifeProfile/WifeWallet/Gold]
 @onready var _logs: VBoxContainer = $AcquisitionLogs
@@ -39,6 +53,63 @@ func _ready() -> void:
 	add_child(_hit_splats)
 	_hit_splats.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	move_child(_hit_splats, 0)
+	_urgent_vignette = ColorRect.new()
+	_urgent_vignette.name = "UrgentVignette"
+	_urgent_vignette.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_urgent_vignette.material = ShaderMaterial.new()
+	_urgent_vignette.material.shader = URGENT_VIGNETTE_SHADER
+	_urgent_vignette.hide()
+	add_child(_urgent_vignette)
+	_urgent_vignette.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Under every HUD element so scores, bags and the timer stay readable.
+	move_child(_urgent_vignette, 0)
+
+
+## Receives the displayed whole seconds every physics frame on every peer.
+## Reacts once per drop: the 30-second alert, then a shake and red pulse for each of the last 10 seconds.
+func on_round_seconds_changed(seconds: int) -> void:
+	var previous := _round_seconds
+	_round_seconds = seconds
+	if previous < 0 or seconds == previous:
+		return
+	if seconds > previous:
+		# A restarted round, not a reordered guest snapshot that is one second behind.
+		if seconds > previous + 1:
+			clear_round_warnings()
+		return
+	if previous > TIMER_ALERT_SECONDS and seconds <= TIMER_ALERT_SECONDS and seconds > URGENT_SECONDS:
+		Sfx.play_ui(self, &"timer_alert")
+		_shake_timer()
+	if seconds > 0 and seconds <= URGENT_SECONDS:
+		_shake_timer()
+		_pulse_urgent_vignette()
+
+
+func clear_round_warnings() -> void:
+	if _urgent_pulse != null:
+		_urgent_pulse.kill()
+	_urgent_vignette.hide()
+
+
+func _shake_timer() -> void:
+	if _timer_shake != null and _timer_shake.is_valid():
+		_timer_shake.kill()
+		_timer.position = _timer_rest_position
+	_timer_rest_position = _timer.position
+	_timer_shake = _timer.create_tween()
+	var step := TIMER_SHAKE_SECONDS / TIMER_SHAKE_OFFSETS.size()
+	for offset in TIMER_SHAKE_OFFSETS:
+		_timer_shake.tween_property(_timer, ^"position", _timer_rest_position + Vector2(offset, 0.0), step)
+
+
+func _pulse_urgent_vignette() -> void:
+	if _urgent_pulse != null:
+		_urgent_pulse.kill()
+	var material := _urgent_vignette.material as ShaderMaterial
+	material.set_shader_parameter(&"intensity", URGENT_PEAK)
+	_urgent_vignette.show()
+	_urgent_pulse = _urgent_vignette.create_tween()
+	_urgent_pulse.tween_property(material, ^"shader_parameter/intensity", URGENT_REST, URGENT_FADE_SECONDS).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 
 func show_hit_splat(effect: StringName, seconds: float) -> void:
