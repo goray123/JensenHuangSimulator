@@ -40,6 +40,8 @@ var _web_host := OS.get_cmdline_user_args().has("--web-host")
 ## Launched with `-- --server`: this PC only referees. The first two browser players to connect become
 ## husband and wife; its window shows the match to the audience.
 var _server_mode := OS.get_cmdline_user_args().has("--server")
+## WebSocket room port (`-- --port=N`, default WEB_PORT), so a second server can run beside the demo one.
+var _web_port := WEB_PORT
 ## Dedicated server: connected player ids in arrival order (index 0 husband, 1 wife).
 var _room_peers: Array[int] = []
 ## Remote players that acknowledged the title notice.
@@ -82,14 +84,13 @@ func _ready() -> void:
 		_use_web_font()
 	_start_button.pressed.connect(_on_start_pressed)
 	if _server_mode:
-		# The referee window is only for the audience: 30 drawn frames leave the PC's GPU and CPU to the
-		# 60 Hz physics and to any browser players on the same machine.
-		Engine.max_fps = 30
 		_host_room.call_deferred()
 	# Desktop stand-in for a browser player (tests, rehearsal): `-- --connect=http://127.0.0.1:9080 [--no-intro]`.
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--no-intro":
 			play_intro = false
+		elif arg.begins_with("--port="):
+			_web_port = arg.trim_prefix("--port=").to_int()
 		elif arg.begins_with("--connect="):
 			_join_web.call_deferred(arg.trim_prefix("--connect="))
 	_cancel_button.pressed.connect(_return_to_menu.bind(READY_MESSAGE))
@@ -192,8 +193,8 @@ func _host_room() -> void:
 		var web_peer := WebSocketMultiplayerPeer.new()
 		web_peer.inbound_buffer_size = WEB_BUFFER_BYTES
 		web_peer.outbound_buffer_size = WEB_BUFFER_BYTES
-		if web_peer.create_server(WEB_PORT, "127.0.0.1") != OK:
-			_show_lobby("방을 열 수 없습니다. TCP %d 포트가 사용 중인지 확인해 주세요." % WEB_PORT)
+		if web_peer.create_server(_web_port, "127.0.0.1") != OK:
+			_show_lobby("방을 열 수 없습니다. TCP %d 포트가 사용 중인지 확인해 주세요." % _web_port)
 			return
 		_state = State.HOSTING
 		_peer = web_peer

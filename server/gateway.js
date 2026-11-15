@@ -100,7 +100,7 @@ server.on('upgrade', (req, socket, head) => {
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`gateway: http://localhost:${PORT}  (QR page: http://localhost:${PORT}/qr, web files: ${WEB_DIR})`);
   if (args.includes('--tunnel')) startTunnel();
-  exec(`start "" "http://127.0.0.1:${PORT}/qr"`);
+  if (!args.includes('--no-open')) exec(`start "" "http://127.0.0.1:${PORT}/qr"`);
 });
 
 function startTunnel() {

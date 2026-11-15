@@ -58,9 +58,35 @@ const HIT_STREAK_WINDOW_MSEC := 5000
 const POSE_SMOOTHING := 25.0
 ## Farther than this is a teleport (respawn, drop, rematch): jump instead of sliding across the room.
 const POSE_SNAP_DISTANCE := 1.5
+## A predicted own player is pulled to the server pose once input has been idle this long...
+const PREDICT_SETTLE_MSEC := 200
+## ...or at any time once it has drifted this far (the server trails by about speed x latency, ~0.4 m).
+const PREDICT_DRIFT := 0.6
+var _last_move_input_msec := 0
+## Server: last time each furniture batch went out; resting batches are resent only once a second.
+var _furniture_sent := {}
 
 ## Client: latest server pose (global) per moving body, eased toward every physics tick.
 var _pose_targets := {}
+const NET_STATS := preload("res://ui/net_stats.gd")
+## Client lag readout, only when asked for (see net_stats.gd).
+var _net_stats: Label
+## Server `-- --netstats`: prints the worst real-time gap between physics ticks every 2 s.
+var _server_stats := false
+var _last_tick_usec := 0
+var _worst_tick_usec := 0
+var _next_tick_report := 0
+
+
+func _log_server_tick() -> void:
+	var now := Time.get_ticks_usec()
+	if _last_tick_usec > 0:
+		_worst_tick_usec = maxi(_worst_tick_usec, now - _last_tick_usec)
+	_last_tick_usec = now
+	if now >= _next_tick_report:
+		print("server: worst tick gap %d ms, fps %d" % [_worst_tick_usec / 1000, Engine.get_frames_per_second()])
+		_worst_tick_usec = 0
+		_next_tick_report = now + 2000000
 
 @onready var _host: Player = $Player
 @onready var _throw_power: ProgressBar = $HUD/ThrowPower
@@ -115,12 +141,19 @@ func _ready() -> void:
 		if not is_host:
 			_local_player = _host if my_id == host_peer_id else _guest
 			_local_player.throw_requested.connect(_send_throw)
+			# Over the internet, wait-for-the-server walking feels like lag; walk at once and reconcile.
+			_local_player.predicts_movement = _smooths_snapshots()
 	# A dedicated server plays nobody: no "you" marker on its spectator screen.
 	if _local_player.reads_local_input:
 		_local_player.get_node("Head/PlayerPosPointer").show()
 	if OS.has_feature("web"):
 		# Browsers (often laptop GPUs) render the room without the directional shadow pass.
 		$Sun.shadow_enabled = false
+	_server_stats = guest_peer_id != 0 and multiplayer.is_server() and OS.get_cmdline_user_args().has("--netstats")
+	if guest_peer_id != 0 and not multiplayer.is_server() and NET_STATS.wanted():
+		_net_stats = NET_STATS.new()
+		_net_stats.name = "NetStats"
+		$HUD.add_child(_net_stats)
 	if guest_peer_id != 0:
 		for index in _players.size():
 			_players[index].shared_sfx_requested.connect(_broadcast_player_sound.bind(index))
@@ -171,8 +204,14 @@ func _physics_process(_delta: float) -> void:
 	if guest_peer_id != 0 and not multiplayer.is_server():
 		if _smooths_snapshots():
 			_ease_poses(_delta)
-		_receive_movement.rpc_id(1, Player.read_movement(), _local_player.local_aim_yaw())
+		var input := Player.read_movement()
+		_receive_movement.rpc_id(1, input, _local_player.local_aim_yaw())
+		if _net_stats != null:
+			var server_pose: Transform3D = _pose_targets.get(_local_player, _local_player.global_transform)
+			_net_stats.on_tick(input, server_pose.origin, _local_player.global_position)
 		return
+	if _server_stats:
+		_log_server_tick()
 	var seconds_left := ceili(_round_timer.time_left)
 	_update_time_left(seconds_left)
 	# Last spurt: everyone runs faster for the final seconds (the host simulates both players).
@@ -214,8 +253,14 @@ func _physics_process(_delta: float) -> void:
 	var furniture: Array[RigidBody3D] = _room_physics.bodies
 	for start in range(0, furniture.size(), FURNITURE_SNAPSHOT_BATCH):
 		var furniture_poses: Array[Transform3D] = []
+		var awake := false
 		for index in range(start, mini(start + FURNITURE_SNAPSHOT_BATCH, furniture.size())):
 			furniture_poses.append(furniture[index].global_transform)
+			awake = awake or not furniture[index].sleeping
+		# Over WebSocket, resting furniture is resent once a second instead of 30 times.
+		if on_web_socket and not awake and now - int(_furniture_sent.get(start, -100000)) < 1000:
+			continue
+		_furniture_sent[start] = now
 		for peer in ready_peers:
 			_apply_furniture_snapshot.rpc_id(peer, start, furniture_poses)
 
@@ -235,13 +280,28 @@ func _place(body: Node3D, pose: Transform3D) -> void:
 
 func _ease_poses(delta: float) -> void:
 	var weight := 1.0 - exp(-POSE_SMOOTHING * delta)
+	var now := Time.get_ticks_msec()
+	if Player.read_movement().length() >= 0.1:
+		_last_move_input_msec = now
 	for body: Node3D in _pose_targets.keys():
 		if not is_instance_valid(body):
 			_pose_targets.erase(body)
 			continue
 		var target: Transform3D = _pose_targets[body]
+		if body == _local_player and _local_player.predicts_movement:
+			_correct_prediction(target.origin, weight, now - _last_move_input_msec > PREDICT_SETTLE_MSEC)
+			continue
 		var current := body.global_transform
 		body.global_transform = target if current.origin.distance_to(target.origin) > POSE_SNAP_DISTANCE else current.interpolate_with(target, weight)
+
+
+## The own player walks locally; it is pulled to the server only when settled or clearly off.
+func _correct_prediction(server_position: Vector3, weight: float, settled: bool) -> void:
+	var error := server_position - _local_player.global_position
+	if error.length() > POSE_SNAP_DISTANCE:
+		_local_player.global_position = server_position
+	elif settled or error.length() > PREDICT_DRIFT:
+		_local_player.global_position += error * weight
 
 
 ## Peer id that plays the given player index (1 = this server plays the husband itself).
@@ -593,6 +653,8 @@ func _apply_banana_peel_consumed(pickup_index: int) -> void:
 
 @rpc("authority", "call_remote", "unreliable_ordered")
 func _receive_snapshot(poses: PackedFloat32Array, state: Vector4i) -> void:
+	if _net_stats != null:
+		_net_stats.on_snapshot()
 	if poses.size() != (_players.size() + _pickups.size()) * 12:
 		return
 	var transforms: Array[Transform3D] = []

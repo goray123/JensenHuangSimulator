@@ -73,6 +73,9 @@ var held_pickup: RigidBody3D = null
 var bag_weight := 0.0
 var reads_local_input := true
 var simulates_movement := true
+## Browser-play client: walk this client's own player at once from local input (same motion as the
+## server); courtyard.gd pulls it back to the server pose when it settles or drifts. Never set on a server.
+var predicts_movement := false
 var remote_input := Vector2.ZERO
 ## Host-side yaw the guest is aiming at with the mouse; NAN when the guest is not aiming.
 var remote_aim_yaw := NAN
@@ -759,6 +762,8 @@ func _physics_process(delta: float) -> void:
 	if simulates_movement:
 		var input := read_movement() if reads_local_input else remote_input
 		_move(Vector2.ZERO if is_stunned() or contest_active else input, delta)
+	elif predicts_movement and reads_local_input:
+		_move(Vector2.ZERO if is_stunned() or contest_active else read_movement(), delta)
 	_update_hit_effects(delta)
 	_update_slip(delta)
 	if _grab_elapsed >= 0.0:
