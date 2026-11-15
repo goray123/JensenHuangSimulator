@@ -62,7 +62,7 @@ var _marks := {}
 var _spinners := {}
 var _spin_time := 0.0
 var _counts := {}
-var _font := SystemFont.new()
+var _font: Font = SystemFont.new()
 var _frame := StyleBoxFlat.new()
 
 
@@ -70,8 +70,15 @@ func _ready() -> void:
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# shortcut: uses the OS heavy Korean gothic (Malgun Gothic Bold on Windows); bundle a font file to match exactly on every OS.
-	_font.font_names = PackedStringArray(["Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR"])
-	_font.font_weight = 800
+	if OS.has_feature("web"):
+		# Browsers expose no system fonts to Godot, so the web build draws the bundled Noto Sans KR at the same weight.
+		var heavy := FontVariation.new()
+		heavy.base_font = load("res://assets/Fonts/NotoSansKR.ttf")
+		heavy.variation_opentype = {"wght": 800}
+		_font = heavy
+	else:
+		_font.font_names = PackedStringArray(["Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR"])
+		_font.font_weight = 800
 	_frame.bg_color = Color.WHITE
 	_frame.border_color = Color.BLACK
 	_frame.set_border_width_all(4)

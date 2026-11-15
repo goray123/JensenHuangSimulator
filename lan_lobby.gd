@@ -13,6 +13,11 @@ const TITLE_NOTICE_SECONDS := 0.65
 const TITLE_ACK_TIMEOUT_SECONDS := 2.5
 const GAME_PORT := 33443
 const DISCOVERY_PORT := 33444
+## Browser guests reach a `--web-host` host through the demo gateway (server/gateway.js), which forwards /ws here.
+const WEB_PORT := 9080
+const WEB_TIMEOUT_MS := 12000
+const WEB_BUFFER_BYTES := 1 << 20
+const WEB_FONT_PATH := "res://assets/Fonts/NotoSansKR.ttf"
 const TIMEOUT_MS := 4500
 const SEARCH_INTERVAL_MS := 350
 ## START searches this long (randomized so two players pressing together rarely both host) before hosting.
@@ -28,7 +33,9 @@ const FINAL_MUSIC_SECONDS := 20
 @export var play_intro := true
 
 var _state := State.IDLE
-var _peer: ENetMultiplayerPeer
+var _peer: MultiplayerPeer
+## Launched with `-- --web-host`: START opens a WebSocket room for browser guests instead of the LAN search.
+var _web_host := OS.get_cmdline_user_args().has("--web-host")
 var _discovery := PacketPeerUDP.new()
 var _query := "JensenHuangSimulator find 5".to_utf8_buffer()
 var _reply := "JensenHuangSimulator room 5".to_utf8_buffer()
@@ -64,7 +71,9 @@ func _ready() -> void:
 	_bgm = BGM.new()
 	_bgm.name = "Bgm"
 	add_child(_bgm)
-	_start_button.pressed.connect(_find_room.bind(true))
+	if OS.has_feature("web"):
+		_use_web_font()
+	_start_button.pressed.connect(_on_start_pressed)
 	_cancel_button.pressed.connect(_return_to_menu.bind(READY_MESSAGE))
 	_tutorial_button.pressed.connect(_open_tutorial)
 	for button: TextureButton in [_start_button, _tutorial_button]:
@@ -123,8 +132,55 @@ func _restart_tutorial() -> void:
 	_open_tutorial_apartment()
 
 
+func _on_start_pressed() -> void:
+	if OS.has_feature("web"):
+		_join_web(str(JavaScriptBridge.eval("location.origin", true)))
+	elif _web_host:
+		_bgm.play(&"brawl")
+		_host_room()
+	else:
+		_find_room(true)
+
+
+## Browsers have no system fonts: the bundled Korean font backs the Latin-only IntelOneMono too.
+func _use_web_font() -> void:
+	var korean: Font = load(WEB_FONT_PATH)
+	var mono: Font = load("res://assets/Fonts/IntelOneMono-Bold.otf")
+	mono.fallbacks = [korean]
+
+
+## Joins the `--web-host` room through the gateway on the page's own origin (https -> wss).
+func _join_web(origin: String) -> void:
+	if _state != State.IDLE:
+		return
+	var peer := WebSocketMultiplayerPeer.new()
+	peer.inbound_buffer_size = WEB_BUFFER_BYTES
+	peer.outbound_buffer_size = WEB_BUFFER_BYTES
+	if peer.create_client(origin.replace("https://", "wss://").replace("http://", "ws://") + "/ws") != OK:
+		_return_to_menu("서버에 연결하지 못했습니다. 페이지를 새로 고친 뒤 다시 시도해 주세요.")
+		return
+	_state = State.CONNECTING
+	_deadline = Time.get_ticks_msec() + WEB_TIMEOUT_MS
+	_peer = peer
+	multiplayer.multiplayer_peer = _peer
+	_bgm.play(&"brawl")
+	_show_lobby("서버에 연결하는 중입니다…")
+
+
 func _host_room() -> void:
 	if _state != State.IDLE:
+		return
+	if _web_host:
+		var web_peer := WebSocketMultiplayerPeer.new()
+		web_peer.inbound_buffer_size = WEB_BUFFER_BYTES
+		web_peer.outbound_buffer_size = WEB_BUFFER_BYTES
+		if web_peer.create_server(WEB_PORT, "127.0.0.1") != OK:
+			_show_lobby("방을 열 수 없습니다. TCP %d 포트가 사용 중인지 확인해 주세요." % WEB_PORT)
+			return
+		_state = State.HOSTING
+		_peer = web_peer
+		multiplayer.multiplayer_peer = _peer
+		_show_lobby("방을 열었습니다. QR로 들어올 상대를 기다리는 중입니다. (1/2)")
 		return
 	var peer := ENetMultiplayerPeer.new()
 	peer.set_bind_ip("0.0.0.0")
@@ -169,7 +225,7 @@ func _process(_delta: float) -> void:
 
 
 func _answer_searches() -> void:
-	if _discovery.get_available_packet_count() == 0:
+	if _web_host or _discovery.get_available_packet_count() <= 0:
 		return
 	var can_join := _apartment == null and multiplayer.get_peers().is_empty()
 	for _packet in mini(32, _discovery.get_available_packet_count()):
@@ -234,6 +290,9 @@ func _on_connected_to_host() -> void:
 
 
 func _on_connection_failed() -> void:
+	if OS.has_feature("web"):
+		_return_to_menu("지금 다른 사람이 플레이 중이거나 방이 닫혀 있습니다. 잠시 후 다시 시도해 주세요.")
+		return
 	_return_to_menu("방에 연결하지 못했습니다. 방이 열려 있는지 확인하고 다시 시도해 주세요.")
 
 

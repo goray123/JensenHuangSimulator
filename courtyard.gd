@@ -166,6 +166,9 @@ func _physics_process(_delta: float) -> void:
 		_guest.remote_input = Vector2.ZERO
 		_guest.remote_aim_yaw = NAN
 		_contest.request_interaction(_guest, false)
+	# A browser guest rides one TCP WebSocket through the demo tunnel: 30 snapshots a second keep it from backing up.
+	if multiplayer.multiplayer_peer is WebSocketMultiplayerPeer and Engine.get_physics_frames() % 2 == 1:
+		return
 	var transforms: Array[Transform3D] = [_host.transform, _guest.transform]
 	for pickup in _pickups:
 		transforms.append(pickup.global_transform)

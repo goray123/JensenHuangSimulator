@@ -1,0 +1,7 @@
+{
+  "name": "extreme-divorce-demo-gateway",
+  "private": true,
+  "description": "Serves the web export, forwards /ws to the --web-host game, shows a QR page and opens a Cloudflare quick tunnel.",
+  "scripts": { "start": "node gateway.js --tunnel" },
+  "dependencies": { "qrcode": "^1.5.4" }
+}
