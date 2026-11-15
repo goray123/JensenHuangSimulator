@@ -17,8 +17,11 @@ signal banana_peel_stepped
 signal pickup_launched(pickup: RigidBody3D)
 ## Emitted on every peer when the validated Throw motion starts (host launch or guest _apply_throw).
 signal throw_played
+## A fresh, forceful side collision, emitted only by the peer simulating movement.
+signal strong_collision(world_position: Vector3, strength: float)
 
 const SFX := preload("res://sfx.gd")
+const COMIC_IMPACT := preload("res://comic_impact.gd")
 
 const MOVE_SPEED := 1.5
 const TURN_SPEED := 6.0
@@ -41,6 +44,10 @@ const SLIP_FALL_ANGLE := PI * 0.5
 # Sustained contact must overcome floor friction, including on large furniture.
 const PUSH_MASS := 120.0
 const PUSH_RESPONSE := 20.0
+const IMPACT_MIN_CLOSING_SPEED := 1.0
+const IMPACT_FULL_CLOSING_SPEED := 6.0
+const IMPACT_COOLDOWN := 0.4
+const IMPACT_CONTACT_REARM := 0.15
 const DEFAULT_MODEL := preload("res://assets/characters/motions/01_Elder.glb")
 const MOTION_MANIFEST := preload("res://assets/characters/motions/CHARACTER_MOTIONS_MANIFEST.json")
 const PAINTED_VERTEX_COLOR := preload("res://assets/characters/motions/painted_vertex_color.gdshader")
@@ -115,6 +122,9 @@ var _step_position := Vector3.ZERO
 var _step_distance := 0.0
 var _step_regions: Array[Dictionary] = []
 var _step_ray := PhysicsRayQueryParameters3D.new()
+var _impact_cooldown := 0.0
+# A short absence is ignored so contact jitter cannot create repeated bursts.
+var _impact_contacts: Dictionary = {}
 
 @onready var _hand_socket: Marker3D = $HandSocket
 @onready var _trajectory: MeshInstance3D = $ThrowTrajectory
@@ -794,9 +804,44 @@ func _move(input: Vector2, delta: float) -> void:
 	velocity.z = motion.z
 	if not is_on_floor():
 		velocity += get_gravity() * delta
+	var incoming_velocity := velocity
 	move_and_slide()
+	_update_collision_impacts(incoming_velocity, delta)
 	if not direction.is_zero_approx():
 		_push_colliding_bodies(motion, delta)
+
+
+func _update_collision_impacts(incoming_velocity: Vector3, delta: float) -> void:
+	if not simulates_movement:
+		return
+	_impact_cooldown = maxf(_impact_cooldown - delta, 0.0)
+	for collider_id: int in _impact_contacts.keys():
+		_impact_contacts[collider_id] -= delta
+		if _impact_contacts[collider_id] <= 0.0:
+			_impact_contacts.erase(collider_id)
+	for index in get_slide_collision_count():
+		var collision := get_slide_collision(index)
+		var normal := collision.get_normal()
+		# Ordinary floor contact and shallow slides are not cartoon impacts.
+		if absf(normal.y) >= 0.6:
+			continue
+		var collider_id := collision.get_collider_id()
+		var fresh_contact := not _impact_contacts.has(collider_id)
+		_impact_contacts[collider_id] = IMPACT_CONTACT_REARM
+		if not fresh_contact or _impact_cooldown > 0.0:
+			continue
+		var collider := collision.get_collider()
+		# A launched pickup reports its own hit, including stationary players.
+		if collider != null and collider.has_method(&"arm") and collider.get(&"_armed") == true:
+			continue
+		var closing_speed := (incoming_velocity - collision.get_collider_velocity()).dot(-normal)
+		if closing_speed < IMPACT_MIN_CLOSING_SPEED:
+			continue
+		var strength := lerpf(0.35, 1.0, clampf(inverse_lerp(IMPACT_MIN_CLOSING_SPEED, IMPACT_FULL_CLOSING_SPEED, closing_speed), 0.0, 1.0))
+		_impact_cooldown = IMPACT_COOLDOWN
+		strong_collision.emit(collision.get_position(), strength)
+		if strong_collision.get_connections().is_empty() and is_inside_tree():
+			COMIC_IMPACT.spawn(get_parent(), collision.get_position(), -1, strength)
 
 
 func _push_colliding_bodies(motion: Vector3, delta: float) -> void:
