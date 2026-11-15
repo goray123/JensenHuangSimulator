@@ -13,6 +13,9 @@ const ROOM_PHYSICS := preload("res://room_physics.gd")
 const PHYSICS_MASS := preload("res://physics_mass.gd")
 const SETTLEMENT := preload("res://settlement.gd")
 const FURNITURE_SNAPSHOT_BATCH := 16
+const COMIC_IMPACT := preload("res://comic_impact.gd")
+const COMIC_IMPACT_MERGE_MSEC := 70
+const COMIC_IMPACT_MERGE_DISTANCE := 0.3
 
 ## Host-decided whole seconds left (the guest receives them in snapshots); not emitted after the round ends.
 signal round_seconds_changed(seconds: int)
@@ -39,6 +42,7 @@ var _contest: Node
 var _miss_streaks := {}
 var _hit_streaks := {}
 var _last_hit_msec := {}
+var _recent_comic_impacts: Array[Dictionary] = []
 
 ## A second hit within this window counts as "hit again in a row" (anger veins).
 const HIT_STREAK_WINDOW_MSEC := 5000
@@ -114,6 +118,8 @@ func _ready() -> void:
 	_contest.active_changed.connect(_on_contest_active_changed)
 	_contest.setup(self, _players, _pickups)
 	if guest_peer_id == 0 or multiplayer.is_server():
+		for player in _players:
+			player.strong_collision.connect(broadcast_comic_impact)
 		for index in _pickups.size():
 			_pickups[index].banana_landed.connect(_broadcast_banana_peel.bind(index))
 			_pickups[index].banana_peel_consumed.connect(_broadcast_banana_peel_consumed.bind(index))
@@ -547,6 +553,31 @@ func broadcast_prop_impact(pickup: RigidBody3D, sound: StringName) -> void:
 func _play_prop_impact(pickup_index: int, sound: StringName) -> void:
 	if pickup_index >= 0 and pickup_index < _pickups.size() and sound in [&"hit_thud", &"hit_soft", &"hit_metal", &"hit_shatter"]:
 		SFX.play_at(_pickups[pickup_index], sound)
+
+
+## The authority chooses the variation once so every peer sees the same contact burst.
+func broadcast_comic_impact(world_position: Vector3, strength: float = 1.0) -> void:
+	if not multiplayer.is_server() or _round_finished or not world_position.is_finite() or not is_finite(strength):
+		return
+	var now := Time.get_ticks_msec()
+	_recent_comic_impacts = _recent_comic_impacts.filter(func(event: Dictionary) -> bool: return now - int(event.time) < COMIC_IMPACT_MERGE_MSEC)
+	for event in _recent_comic_impacts:
+		if world_position.distance_to(event.position) < COMIC_IMPACT_MERGE_DISTANCE:
+			return
+	_recent_comic_impacts.append({time = now, position = world_position})
+	var variant := randi_range(0, COMIC_IMPACT.VARIANT_COUNT - 1)
+	var intensity := clampf(strength, 0.35, 1.4)
+	if guest_peer_id != 0:
+		_play_comic_impact.rpc(world_position, variant, intensity)
+	else:
+		_play_comic_impact(world_position, variant, intensity)
+
+
+@rpc("authority", "call_local", "reliable")
+func _play_comic_impact(world_position: Vector3, variant: int, strength: float) -> void:
+	if _round_finished or not world_position.is_finite() or not is_finite(strength) or variant < 0 or variant >= COMIC_IMPACT.VARIANT_COUNT:
+		return
+	COMIC_IMPACT.spawn(self, world_position, variant, clampf(strength, 0.35, 1.4))
 
 
 func log_attack(pickup: RigidBody3D, victim: Node3D) -> void:

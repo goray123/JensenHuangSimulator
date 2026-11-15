@@ -4,6 +4,8 @@ signal banana_landed(landing_transform: Transform3D)
 signal banana_peel_consumed
 
 const SFX := preload("res://sfx.gd")
+const COMIC_IMPACT := preload("res://comic_impact.gd")
+const COMIC_IMPACT_COOLDOWN_MSEC := 120
 const IMPACT_SOUNDS := {
 	&"StewPan": &"hit_metal", &"MopAndBucket": &"hit_metal",
 	&"CoffeeMug": &"hit_shatter", &"DeskMug": &"hit_shatter", &"DiningCoffee": &"hit_shatter",
@@ -47,6 +49,10 @@ var _last_impact_ms := -1000
 var _flight_generation := 0
 var _banana_land_pending := false
 var _banana_landing_yaw := 0.0
+var _impact_contact_points: Dictionary[int, Vector3] = {}
+var _impact_contact_speeds: Dictionary[int, float] = {}
+var _previous_impact_velocity := Vector3.ZERO
+var _last_comic_impact_ms := -1000
 
 
 func _ready() -> void:
@@ -133,6 +139,10 @@ func arm(thrower: PhysicsBody3D) -> void:
 	_hit_players.clear()
 	_armed = true
 	_impact_played = false
+	_impact_contact_points.clear()
+	_impact_contact_speeds.clear()
+	_previous_impact_velocity = linear_velocity
+	_last_comic_impact_ms = -1000
 	var heading := Vector3(linear_velocity.x, 0, linear_velocity.z)
 	if heading.is_zero_approx():
 		heading = -global_basis.z
@@ -147,7 +157,19 @@ func disarm() -> void:
 
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
-	if not _armed or is_banana_peel or _banana_land_pending or not multiplayer.is_server():
+	if not _armed or is_banana_peel or not multiplayer.is_server():
+		return
+	# The contact monitor emits body_entered after this callback. Preserve the actual
+	# world-space contact, including the incoming speed before the solver stops a throw.
+	_impact_contact_points.clear()
+	_impact_contact_speeds.clear()
+	for index in state.get_contact_count():
+		var collider_id := state.get_contact_collider_id(index)
+		var other_velocity := state.get_contact_collider_velocity_at_position(index)
+		_impact_contact_points[collider_id] = state.get_contact_collider_position(index)
+		_impact_contact_speeds[collider_id] = maxf((_previous_impact_velocity - other_velocity).length(), (state.linear_velocity - other_velocity).length())
+	_previous_impact_velocity = state.linear_velocity
+	if _banana_land_pending:
 		return
 	if get_meta(&"item_id", "") != BANANA_ID:
 		return
@@ -227,6 +249,7 @@ func consume_banana_peel() -> void:
 func _on_body_entered(body: Node) -> void:
 	if not _armed or not multiplayer.is_server():
 		return
+	_queue_comic_impact(body)
 	if not body.has_method(&"receive_hit"):
 		if not _impact_played:
 			_impact_played = true
@@ -259,6 +282,28 @@ func _on_body_entered(body: Node) -> void:
 				stage.record_throw_hit(thrower, body)
 		elif thrower.get("reads_local_input") == true:
 			SFX.play_ui(thrower, &"pickup_coin", -6.0)
+
+
+func _queue_comic_impact(body: Node) -> void:
+	var now := Time.get_ticks_msec()
+	if now - _last_comic_impact_ms < COMIC_IMPACT_COOLDOWN_MSEC:
+		return
+	_last_comic_impact_ms = now
+	var body_id := body.get_instance_id()
+	var point: Vector3 = _impact_contact_points.get(body_id, global_position)
+	var speed: float = _impact_contact_speeds.get(body_id, maxf(_previous_impact_velocity.length(), linear_velocity.length()))
+	var strength := clampf(speed / 7.0, 0.65, 1.4)
+	var stage := _stage()
+	if stage != null and stage.has_method(&"broadcast_comic_impact"):
+		# Keep the event even when this contact immediately converts a banana to a peel.
+		stage.broadcast_comic_impact.call_deferred(point, strength)
+	else:
+		_show_comic_impact.call_deferred(point, strength)
+
+
+func _show_comic_impact(point: Vector3, strength: float) -> void:
+	if is_inside_tree():
+		COMIC_IMPACT.spawn(get_parent(), point, -1, strength)
 
 
 func _on_sleeping_state_changed() -> void:
