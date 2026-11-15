@@ -71,6 +71,9 @@ var remote_input := Vector2.ZERO
 var remote_aim_yaw := NAN
 ## Round-wide movement boost set by the host (last-spurt).
 var speed_multiplier := 1.0
+# Cursor from the last mouse motion event; mouse aiming starts once the cursor really moves.
+var _mouse_position := Vector2.ZERO
+var _mouse_moved := false
 var contest_active := false
 var pickup_request_handler: Callable
 var _grab_target: RigidBody3D
@@ -427,6 +430,12 @@ func _set_hit_flash(red: bool) -> void:
 		_body_meshes[index].material_overlay = _hit_material if red else _original_overlays[index]
 
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion:
+		_mouse_position = event.position
+		_mouse_moved = true
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if not reads_local_input:
 		return
@@ -504,9 +513,12 @@ func _cancel_aim() -> void:
 ## Yaw from this player towards the mouse cursor on its floor plane; NAN if it cannot be found.
 func mouse_aim_yaw() -> float:
 	var camera := get_viewport().get_camera_3d()
-	if camera == null:
+	if camera == null or not _mouse_moved:
 		return NAN
-	var mouse := get_viewport().get_mouse_position()
+	var mouse := _mouse_position
+	# A cursor outside the window keeps the current heading.
+	if not get_viewport().get_visible_rect().has_point(mouse):
+		return NAN
 	var hit: Variant = Plane(Vector3.UP, global_position.y).intersects_ray(camera.project_ray_origin(mouse), camera.project_ray_normal(mouse))
 	if hit == null:
 		return NAN

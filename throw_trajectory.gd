@@ -25,6 +25,10 @@ func _ready() -> void:
 	cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	# The arc starts inside the held item; draw it last and on top so the item never hides it.
+	_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_material.no_depth_test = true
+	_material.render_priority = Material.RENDER_PRIORITY_MAX
 	material_override = _material
 	clear_trajectory()
 

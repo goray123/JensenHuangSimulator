@@ -146,7 +146,7 @@ func _run() -> void:
 		and player.get_node("ThrowTrajectory").visible,
 		"A sustained aim unlocks throwing without launching early")
 	# An actual miss must give the learner another attempt rather than advance.
-	player.rotation.y += PI
+	_aim_mouse_at(player.global_position * 2.0 - lesson.target.global_position)
 	await _physics(1)
 	_mouse(MOUSE_BUTTON_LEFT, false)
 	if not await _expect(func() -> bool: return lesson.step == lesson.Step.AIM,
@@ -274,6 +274,16 @@ func _place_near(player: CharacterBody3D, item: RigidBody3D) -> void:
 func _face_target(player: CharacterBody3D, target: CharacterBody3D) -> void:
 	var offset := target.global_position - player.global_position
 	player.rotation.y = atan2(-offset.x, -offset.z)
+	_aim_mouse_at(target.global_position)
+
+
+# Throws follow the cursor once the mouse has moved, so point it at a floor position.
+func _aim_mouse_at(point: Vector3) -> void:
+	var event := InputEventMouseMotion.new()
+	event.position = root.get_camera_3d().unproject_position(point)
+	event.global_position = event.position
+	Input.parse_input_event(event)
+	Input.flush_buffered_events()
 
 
 func _grab(player: CharacterBody3D, item: RigidBody3D) -> void:
